@@ -1,7 +1,8 @@
 .update-toast {
   position: fixed; z-index: 4000;
-  /* Acima dos botões do mapa (zoom, camada, ◎), que ocupam ~150 px no rodapé. */
-  left: 12px; right: 12px; bottom: calc(164px + env(safe-area-inset-bottom));
+  /* No topo, abaixo da faixa da atividade e da linha GPS/rede: o rodapé é do "+", dos controles e dos painéis de marcação,
+     e o aviso de atualização fica até o toque (não pode tapar nada disso). */
+  left: 12px; right: 12px; top: calc(118px + env(safe-area-inset-top));
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   max-width: 560px; margin: 0 auto;
   padding: 10px 12px 10px 16px;

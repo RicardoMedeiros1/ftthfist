@@ -3,12 +3,14 @@ import ScreenShell from '../../components/ScreenShell';
 import { SETTING_KEYS, setSetting } from '../../db/db';
 import type { ActivityKind } from '../../db/types';
 import { goBack, navigate } from '../../lib/route';
+import { draftStore, useDraft } from '../elements/draftStore';
 import { useTechnician } from '../settings/useTechnician';
 import { ActivityRuleError, activities } from './activityRepo';
 import { KIND_LABEL } from './labels';
 
 export default function NewActivityScreen() {
   const savedTechnician = useTechnician();
+  const needsActivityHint = useDraft((s) => s.needsActivityHint);
   const [kind, setKind] = useState<ActivityKind>('implantacao');
   const [title, setTitle] = useState('');
   const [osNumber, setOsNumber] = useState('');
@@ -19,6 +21,9 @@ export default function NewActivityScreen() {
   useEffect(() => {
     if (savedTechnician !== undefined) setTechnician(savedTechnician);
   }, [savedTechnician]);
+
+  // O aviso vale só para esta visita à tela.
+  useEffect(() => draftStore.clearHint, []);
 
   const needsName = savedTechnician === '';
 
@@ -41,6 +46,11 @@ export default function NewActivityScreen() {
   return (
     <ScreenShell title="Nova atividade" onBack={() => goBack('atividades')}>
       <form onSubmit={onSubmit} className="screen-body" style={{ padding: 0 }}>
+        {needsActivityHint && (
+          <div className="ok-note" role="status">
+            Para marcar elementos no mapa, primeiro inicie uma atividade.
+          </div>
+        )}
         <div className="field">
           <span className="label" id="kind-label">Tipo</span>
           <div className="seg" role="group" aria-labelledby="kind-label">

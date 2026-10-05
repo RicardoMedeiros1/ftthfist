@@ -6,6 +6,14 @@ import { SETTING_KEYS, getSetting, setSetting } from '../../db/db';
 import { classifyAccuracy, formatAccuracy } from '../../lib/geo';
 import { useOnlineStatus } from '../../lib/useOnlineStatus';
 import ActivityBar from '../activities/ActivityBar';
+import AddButton from '../elements/AddButton';
+import { useDraft } from '../elements/draftStore';
+import ElementsLayer from '../elements/ElementsLayer';
+import GpsCaptureHost from '../elements/GpsCapture';
+import PlacementLayer from '../elements/PlacementLayer';
+import PlacementPanel from '../elements/PlacementPanel';
+import TypePicker from '../elements/TypePicker';
+import '../elements/elements.css';
 import { BASE_LAYERS, type BaseLayerId } from './layers';
 import { useGeolocation, type LocateMode, type LocationFix } from './useGeolocation';
 import './map.css';
@@ -19,6 +27,7 @@ interface MapView {
 // Brasil inteiro até o primeiro GPS ou até haver uma visão salva.
 const DEFAULT_VIEW: MapView = { lat: -14.2, lng: -51.9, zoom: 4 };
 const FOLLOW_MIN_ZOOM = 17;
+const NOTICE_MS = 3500;
 
 /** Salva a última visão (para reabrir offline no mesmo lugar). */
 function PersistView() {
@@ -93,11 +102,46 @@ function ZoomButtons() {
   );
 }
 
+/** Aviso rápido (ex.: "Salvo: Poste"). */
+function SavedNotice() {
+  const idle = useDraft((s) => s.phase === 'idle');
+  const notice = useDraft((s) => s.notice);
+  const id = useDraft((s) => s.noticeId);
+  const [visibleId, setVisibleId] = useState(0);
+
+  useEffect(() => {
+    if (!id) return;
+    setVisibleId(id);
+    const t = setTimeout(() => setVisibleId(0), NOTICE_MS);
+    return () => clearTimeout(t);
+  }, [id]);
+
+  // Some assim que uma nova marcação começa (ficaria por cima do painel).
+  if (!idle || !notice || visibleId !== id) return null;
+  return (
+    <div className="saved-notice" role="status">
+      {notice}
+    </div>
+  );
+}
+
 export default function MapScreen() {
-  const [initial, setInitial] = useState<{ view: MapView; layer: BaseLayerId } | null>(null);
+  const [initial, setInitial] = useState<{ view: MapView } | null>(null);
   const [layerId, setLayerId] = useState<BaseLayerId>('ruas');
+  // Camada imposta pela marcação (satélite quando o GPS está impreciso); não altera a preferência salva.
+  const [layerOverride, setLayerOverride] = useState<BaseLayerId | null>(null);
   const online = useOnlineStatus();
   const { fix, mode, error, toggle, release } = useGeolocation();
+
+  const phase = useDraft((s) => s.phase);
+  const badGps = useDraft(
+    (s) =>
+      s.position?.source === 'gps' &&
+      s.capture === 'concluido' &&
+      s.position.accuracy !== undefined &&
+      classifyAccuracy(s.position.accuracy) === 'ruim',
+  );
+  const placing = phase !== 'idle';
 
   useEffect(() => {
     void (async () => {
@@ -106,24 +150,38 @@ export default function MapScreen() {
         getSetting<BaseLayerId>(SETTING_KEYS.baseLayer, 'ruas'),
       ]);
       setLayerId(layer);
-      setInitial({ view, layer });
+      setInitial({ view });
     })();
   }, []);
 
+  // Ao iniciar a marcação o mapa para de seguir o GPS (senão brigaria com o ajuste do ponto).
+  useEffect(() => {
+    if (placing) release();
+  }, [placing, release]);
+
+  // GPS impreciso (> 15 m): satélite para ajustar o ponto. Continua assim até o fim da marcação,
+  // mesmo depois de arrastar (quando a posição deixa de ser "GPS").
+  useEffect(() => {
+    if (badGps) setLayerOverride('satelite');
+  }, [badGps]);
+  useEffect(() => {
+    if (!placing) setLayerOverride(null);
+  }, [placing]);
+
+  const effectiveLayer = layerOverride ?? layerId;
   const switchLayer = useCallback(() => {
-    setLayerId((cur) => {
-      const next: BaseLayerId = cur === 'ruas' ? 'satelite' : 'ruas';
-      void setSetting(SETTING_KEYS.baseLayer, next);
-      return next;
-    });
-  }, []);
+    const next: BaseLayerId = effectiveLayer === 'ruas' ? 'satelite' : 'ruas';
+    setLayerOverride(null);
+    setLayerId(next);
+    void setSetting(SETTING_KEYS.baseLayer, next);
+  }, [effectiveLayer]);
 
   if (!initial) return null;
-  const layer = BASE_LAYERS[layerId];
-  const nextLayerLabel = BASE_LAYERS[layerId === 'ruas' ? 'satelite' : 'ruas'].label;
+  const layer = BASE_LAYERS[effectiveLayer];
+  const nextLayerLabel = BASE_LAYERS[effectiveLayer === 'ruas' ? 'satelite' : 'ruas'].label;
 
   return (
-    <div className="map-screen">
+    <div className={`map-screen phase-${phase}`}>
       <MapContainer
         center={[initial.view.lat, initial.view.lng]}
         zoom={initial.view.zoom}
@@ -139,6 +197,8 @@ export default function MapScreen() {
           crossOrigin="anonymous"
         />
         {fix && <LocationMarker fix={fix} />}
+        <ElementsLayer />
+        <PlacementLayer />
         <FollowLocation fix={fix} mode={mode} onRelease={release} />
         <PersistView />
         <ZoomButtons />
@@ -165,11 +225,17 @@ export default function MapScreen() {
         </button>
       </div>
 
-      {(fix || error) && (
+      {!placing && (fix || error) && (
         <div className={`gps-banner ${fix && classifyAccuracy(fix.accuracy) === 'ruim' ? 'gps-warn' : ''}`} role="status">
           {error ?? (fix ? `GPS ${formatAccuracy(fix.accuracy)}${classifyAccuracy(fix.accuracy) === 'ruim' ? ' — precisão baixa' : ''}` : '')}
         </div>
       )}
+
+      <AddButton />
+      <TypePicker />
+      <PlacementPanel />
+      <GpsCaptureHost />
+      <SavedNotice />
     </div>
   );
 }

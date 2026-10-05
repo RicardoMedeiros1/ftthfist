@@ -1,6 +1,7 @@
 import UpdatePrompt from './components/UpdatePrompt';
 import ActivitiesScreen from './features/activities/ActivitiesScreen';
 import NewActivityScreen from './features/activities/NewActivityScreen';
+import ElementFormScreen from './features/elements/ElementFormScreen';
 import MapScreen from './features/map/MapScreen';
 import SettingsScreen from './features/settings/SettingsScreen';
 import { useRoute } from './lib/route';
@@ -15,6 +16,7 @@ export default function App() {
       </div>
       {route === 'atividades' && <ActivitiesScreen />}
       {route === 'nova-atividade' && <NewActivityScreen />}
+      {route === 'novo-elemento' && <ElementFormScreen />}
       {route === 'config' && <SettingsScreen />}
       <UpdatePrompt />
     </>
