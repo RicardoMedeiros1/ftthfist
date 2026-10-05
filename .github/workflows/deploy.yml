@@ -1,10 +1,10 @@
 name: Publicar no GitHub Pages
 
-# A branch padrão do repositório hoje é claude/pensive-fermi-45wiib (não existe main).
-# Quando existir uma main, ela já está listada aqui.
+# Publica a cada push na main. (O Pages só aceita deploy da branch padrão ou das
+# branches liberadas no ambiente github-pages; por isso a main deve ser a padrão.)
 on:
   push:
-    branches: [claude/pensive-fermi-45wiib, main]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
