@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import { SETTING_KEYS, getSetting, setSetting } from '../../db/db';
 import { classifyAccuracy, formatAccuracy } from '../../lib/geo';
 import { useOnlineStatus } from '../../lib/useOnlineStatus';
+import ActivityBar from '../activities/ActivityBar';
 import { BASE_LAYERS, type BaseLayerId } from './layers';
 import { useGeolocation, type LocateMode, type LocationFix } from './useGeolocation';
 import './map.css';
@@ -142,6 +143,8 @@ export default function MapScreen() {
         <PersistView />
         <ZoomButtons />
       </MapContainer>
+
+      <ActivityBar />
 
       <div className={`net-pill ${online ? 'net-online' : 'net-offline'}`} role="status">
         <span className="net-dot" aria-hidden="true" />

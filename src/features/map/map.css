@@ -27,7 +27,7 @@
 
 .net-pill {
   position: absolute; z-index: 1000;
-  top: calc(10px + env(safe-area-inset-top)); right: calc(10px + env(safe-area-inset-right));
+  top: calc(76px + env(safe-area-inset-top)); right: calc(10px + env(safe-area-inset-right));
   display: flex; align-items: center; gap: 6px;
   padding: 4px 10px; border-radius: 999px;
   font: 600 13px/1.4 system-ui, sans-serif;
@@ -40,7 +40,7 @@
 
 .gps-banner {
   position: absolute; z-index: 1000;
-  top: calc(10px + env(safe-area-inset-top)); left: calc(10px + env(safe-area-inset-left));
+  top: calc(76px + env(safe-area-inset-top)); left: calc(10px + env(safe-area-inset-left));
   max-width: calc(100% - 130px);
   padding: 8px 14px; border-radius: 10px;
   background: rgba(0,0,0,.85); color: #fff;
@@ -50,3 +50,22 @@
 
 /* Atribuição legível mas discreta */
 .leaflet-control-attribution { font-size: 11px; }
+
+/* Faixa da atividade no topo */
+.activity-bar {
+  position: absolute; z-index: 1000;
+  top: calc(10px + env(safe-area-inset-top));
+  left: calc(10px + env(safe-area-inset-left)); right: calc(10px + env(safe-area-inset-right));
+  display: flex; gap: 8px;
+}
+.activity-main {
+  flex: 1; min-width: 0; min-height: 56px; padding: 6px 14px;
+  display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 1px;
+  border: 3px solid #000; border-radius: 14px;
+  background: #fff; color: #000; text-align: left;
+  box-shadow: 0 2px 8px rgba(0,0,0,.5);
+  touch-action: manipulation;
+}
+.activity-main-open { background: var(--accent); }
+.activity-title { font: 800 18px/1.2 system-ui, sans-serif; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.activity-sub { font: 600 14px/1.2 system-ui, sans-serif; }
