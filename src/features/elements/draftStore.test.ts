@@ -79,4 +79,26 @@ describe('rascunho de marcação', () => {
     draftStore.cancel();
     expect(s()).toMatchObject({ phase: 'idle', movingId: null, movingFrom: null, position: null });
   });
+
+  it('lançar cabo: o ponto pendente é descartável sem sair do modo cabo', () => {
+    draftStore.startCable();
+    expect(s()).toMatchObject({ phase: 'cabo', type: 'poste', position: null });
+    draftStore.setGpsBest({ lat: 1, lng: 2, accuracy: 40 });
+    expect(s().position).toMatchObject({ source: 'gps', accuracy: 40 });
+    draftStore.dragTo(1.1, 2.1);
+    expect(s().position).toEqual({ lat: 1.1, lng: 2.1, source: 'manual' });
+    draftStore.discardPosition();
+    expect(s()).toMatchObject({ phase: 'cabo', position: null });
+    draftStore.cancel();
+    expect(s().phase).toBe('idle');
+  });
+
+  it('editar o traçado de um cabo: seleciona pontos e sai limpando tudo', () => {
+    draftStore.startCableEdit('c1');
+    expect(s()).toMatchObject({ phase: 'cabo-editar', editingCableId: 'c1', selectedVertex: null });
+    draftStore.selectVertex(2);
+    expect(s().selectedVertex).toBe(2);
+    draftStore.cancel();
+    expect(s()).toMatchObject({ phase: 'idle', editingCableId: null, selectedVertex: null });
+  });
 });

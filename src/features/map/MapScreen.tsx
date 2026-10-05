@@ -6,6 +6,15 @@ import { SETTING_KEYS, getSetting, setSetting } from '../../db/db';
 import { classifyAccuracy, formatAccuracy } from '../../lib/geo';
 import { useOnlineStatus } from '../../lib/useOnlineStatus';
 import ActivityBar from '../activities/ActivityBar';
+import CableDrawLayer from '../cables/CableDrawLayer';
+import CableEditLayer from '../cables/CableEditLayer';
+import CableEditPanel from '../cables/CableEditPanel';
+import CableGps from '../cables/CableGps';
+import CablePanel from '../cables/CablePanel';
+import CablesLayer from '../cables/CablesLayer';
+import { cableStore } from '../cables/cableRepo';
+import { LegendSheet } from '../cables/Legend';
+import { useLiveQuery } from 'dexie-react-hooks';
 import AddButton from '../elements/AddButton';
 import { useDraft } from '../elements/draftStore';
 import ElementsLayer from '../elements/ElementsLayer';
@@ -143,6 +152,9 @@ export default function MapScreen() {
       classifyAccuracy(s.position.accuracy) === 'ruim',
   );
   const placing = phase !== 'idle';
+  const lancando = phase === 'cabo' || phase === 'cabo-editar';
+  const hasCables = (useLiveQuery(() => cableStore.list())?.length ?? 0) > 0;
+  const [legendOpen, setLegendOpen] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -156,18 +168,24 @@ export default function MapScreen() {
   }, []);
 
   // Ao iniciar a marcação o mapa para de seguir o GPS (senão brigaria com o ajuste do ponto).
+  // Ao lançar cabo é o contrário: o técnico anda, então o mapa liga o GPS e acompanha.
   useEffect(() => {
-    if (placing) release();
-  }, [placing, release]);
+    if (placing && !lancando) release();
+  }, [placing, lancando, release]);
+  useEffect(() => {
+    if (phase === 'cabo' && mode === 'off') toggle();
+    // só ao entrar no modo cabo
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
 
   // GPS impreciso (> 15 m): satélite para ajustar o ponto. Continua assim até o fim da marcação,
   // mesmo depois de arrastar (quando a posição deixa de ser "GPS").
   useEffect(() => {
     if (badGps) setLayerOverride('satelite');
   }, [badGps]);
-  // Mover um elemento é ajuste fino: satélite para enxergar onde ele realmente fica.
+  // Mover um elemento ou ajustar o traçado é ajuste fino: satélite para enxergar onde as coisas realmente ficam.
   useEffect(() => {
-    if (phase === 'mover') setLayerOverride('satelite');
+    if (phase === 'mover' || phase === 'cabo-editar') setLayerOverride('satelite');
   }, [phase]);
   useEffect(() => {
     if (!placing) setLayerOverride(null);
@@ -186,7 +204,7 @@ export default function MapScreen() {
   const nextLayerLabel = BASE_LAYERS[effectiveLayer === 'ruas' ? 'satelite' : 'ruas'].label;
 
   return (
-    <div className={`map-screen phase-${phase}`}>
+    <div className={`map-screen phase-${phase}${legendOpen ? ' legend-open' : ''}`}>
       <MapContainer
         center={[initial.view.lat, initial.view.lng]}
         zoom={initial.view.zoom}
@@ -202,7 +220,10 @@ export default function MapScreen() {
           crossOrigin="anonymous"
         />
         {fix && <LocationMarker fix={fix} />}
+        <CablesLayer />
         <ElementsLayer />
+        <CableDrawLayer />
+        <CableEditLayer />
         <PlacementLayer />
         <FollowLocation fix={fix} mode={mode} onRelease={release} />
         <PersistView />
@@ -217,6 +238,11 @@ export default function MapScreen() {
       </div>
 
       <div className="map-controls">
+        {hasCables && phase === 'idle' && (
+          <button className="map-btn map-btn-wide" onClick={() => setLegendOpen(true)}>
+            Legenda
+          </button>
+        )}
         <button className="map-btn map-btn-wide" onClick={switchLayer} aria-label={`Trocar para ${nextLayerLabel}`}>
           {nextLayerLabel}
         </button>
@@ -240,6 +266,10 @@ export default function MapScreen() {
       <TypePicker />
       <PlacementPanel />
       <MovePanel />
+      <CablePanel />
+      <CableEditPanel />
+      <CableGps />
+      {legendOpen && <LegendSheet onClose={() => setLegendOpen(false)} />}
       <GpsCaptureHost />
       <SavedNotice />
     </div>

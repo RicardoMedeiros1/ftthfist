@@ -7,6 +7,7 @@ describe('parseRoute', () => {
     expect(parseRoute('#/atividades/nova')).toBe('nova-atividade');
     expect(parseRoute('#/elemento/novo')).toBe('novo-elemento');
     expect(parseRoute('#/backup')).toBe('backup');
+    expect(parseRoute('#/cabo/novo')).toBe('novo-cabo');
     expect(parseRoute('#/config')).toBe('config');
   });
   it('qualquer outra coisa abre o mapa', () => {
@@ -29,5 +30,14 @@ describe('parseLocation (elemento por id)', () => {
     expect(parseLocation('#/elemento/%E0%A4%A')).toEqual({ route: 'map' });
     expect(parseLocation('#/elemento/a/b')).toEqual({ route: 'map' });
     expect(parseLocation('#/elemento/')).toEqual({ route: 'map' });
+  });
+});
+
+describe('parseLocation (cabo por id)', () => {
+  it('lê o id do cabo; "novo" é a tela de lançar', () => {
+    expect(parseLocation('#/cabo/abc-1')).toEqual({ route: 'cabo', id: 'abc-1' });
+    expect(parseLocation('#/cabo/novo')).toEqual({ route: 'novo-cabo' });
+    expect(parseLocation('#/cabo/a/b')).toEqual({ route: 'map' });
+    expect(parseLocation('#/cabo/')).toEqual({ route: 'map' });
   });
 });

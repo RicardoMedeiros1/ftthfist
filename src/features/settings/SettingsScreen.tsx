@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { SETTING_KEYS, getSetting, setSetting } from '../../db/db';
 import { formatAgo } from '../../lib/format';
 import { goBack, navigate } from '../../lib/route';
+import CableTypesEditor from '../cables/CableTypesEditor';
 import { useTechnician } from './useTechnician';
 
 export default function SettingsScreen() {
@@ -47,6 +48,7 @@ export default function SettingsScreen() {
         </button>
         {justSaved && <div className="ok-note" role="status">Salvo.</div>}
       </form>
+      <CableTypesEditor />
       <section className="card" aria-label="Backup">
         <div className="card-title">Backup e restauração</div>
         <div className="card-meta">

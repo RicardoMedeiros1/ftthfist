@@ -41,7 +41,7 @@ export default function PlacementLayer() {
     map.setView([s.position.lat, s.position.lng], Math.max(map.getZoom(), MIN_ZOOM));
   }, [map, movingId]);
 
-  if ((phase !== 'posicao' && phase !== 'mover') || !type || !position) return null;
+  if ((phase !== 'posicao' && phase !== 'mover' && phase !== 'cabo') || !type || !position) return null;
 
   const searching = mode === 'gps' && capture === 'buscando';
   const bad = position.accuracy !== undefined && classifyAccuracy(position.accuracy) === 'ruim';

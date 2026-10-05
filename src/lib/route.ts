@@ -2,30 +2,37 @@ import { useSyncExternalStore } from 'react';
 
 // Navegação por hash: funciona em qualquer subpasta (GitHub Pages) e o botão
 // "voltar" do celular segue o histórico do app.
-export type Route = 'map' | 'atividades' | 'nova-atividade' | 'novo-elemento' | 'elemento' | 'backup' | 'config';
+export type Route = 'map' | 'atividades' | 'nova-atividade' | 'novo-elemento' | 'elemento' | 'novo-cabo' | 'cabo' | 'backup' | 'config';
 
-const STATIC_HASH: Record<Exclude<Route, 'elemento'>, string> = {
+const STATIC_HASH: Record<Exclude<Route, 'elemento' | 'cabo'>, string> = {
   map: '#/',
   atividades: '#/atividades',
   'nova-atividade': '#/atividades/nova',
   'novo-elemento': '#/elemento/novo',
+  'novo-cabo': '#/cabo/novo',
   backup: '#/backup',
   config: '#/config',
 };
 
 export interface AppLocation {
   route: Route;
-  /** Só na rota 'elemento': id do elemento aberto. */
+  /** Nas rotas 'elemento' e 'cabo': id do registro aberto. */
   id?: string;
 }
 
+const WITH_ID: { route: 'elemento' | 'cabo'; re: RegExp }[] = [
+  { route: 'elemento', re: /^#\/elemento\/([^/]+)$/ },
+  { route: 'cabo', re: /^#\/cabo\/([^/]+)$/ },
+];
+
 export function parseLocation(hash: string): AppLocation {
-  const fixed = (Object.keys(STATIC_HASH) as Exclude<Route, 'elemento'>[]).find((r) => STATIC_HASH[r] === hash);
+  const fixed = (Object.keys(STATIC_HASH) as Exclude<Route, 'elemento' | 'cabo'>[]).find((r) => STATIC_HASH[r] === hash);
   if (fixed) return { route: fixed };
-  const m = /^#\/elemento\/([^/]+)$/.exec(hash);
-  if (m?.[1]) {
+  for (const { route, re } of WITH_ID) {
+    const m = re.exec(hash);
+    if (!m?.[1]) continue;
     try {
-      return { route: 'elemento', id: decodeURIComponent(m[1]) };
+      return { route, id: decodeURIComponent(m[1]) };
     } catch {
       return { route: 'map' };
     }
@@ -38,7 +45,7 @@ export function parseRoute(hash: string): Route {
 }
 
 function hashFor(route: Route, id?: string): string {
-  if (route === 'elemento') return id ? `#/elemento/${encodeURIComponent(id)}` : STATIC_HASH.map;
+  if (route === 'elemento' || route === 'cabo') return id ? `#/${route}/${encodeURIComponent(id)}` : STATIC_HASH.map;
   return STATIC_HASH[route];
 }
 

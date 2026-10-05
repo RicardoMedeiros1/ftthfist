@@ -4,6 +4,9 @@ import BackupScreen from './features/export/BackupScreen';
 import { requestPersistence } from './lib/storage';
 import ActivitiesScreen from './features/activities/ActivitiesScreen';
 import NewActivityScreen from './features/activities/NewActivityScreen';
+import CableDetailScreen from './features/cables/CableDetailScreen';
+import CableSetupScreen from './features/cables/CableSetupScreen';
+import { cableDraftStore } from './features/cables/cableDraft';
 import ElementDetailScreen from './features/elements/ElementDetailScreen';
 import { draftStore } from './features/elements/draftStore';
 import ElementFormScreen from './features/elements/ElementFormScreen';
@@ -20,9 +23,17 @@ export default function App() {
     void requestPersistence();
   }, []);
 
-  // Sair do mapa (voltar, configurações…) no meio de "mover" desiste da movimentação.
+  // Reabriu o app com um cabo em lançamento? Retoma de onde parou.
   useEffect(() => {
-    if (route !== 'map' && draftStore.getState().phase === 'mover') draftStore.cancel();
+    void cableDraftStore.hydrate().then((found) => {
+      if (found) draftStore.startCable();
+    });
+  }, []);
+
+  // Sair do mapa (voltar, configurações…) no meio de "mover" ou de editar o traçado desiste da operação.
+  useEffect(() => {
+    const phase = draftStore.getState().phase;
+    if (route !== 'map' && (phase === 'mover' || phase === 'cabo-editar')) draftStore.cancel();
   }, [route]);
   return (
     <>
@@ -34,6 +45,8 @@ export default function App() {
       {route === 'nova-atividade' && <NewActivityScreen />}
       {route === 'novo-elemento' && <ElementFormScreen />}
       {route === 'elemento' && <ElementDetailScreen />}
+      {route === 'novo-cabo' && <CableSetupScreen />}
+      {route === 'cabo' && <CableDetailScreen />}
       {route === 'config' && <SettingsScreen />}
       {route === 'backup' && <BackupScreen />}
       <div className="toast-host">

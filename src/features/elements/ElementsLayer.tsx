@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Marker, useMap } from 'react-leaflet';
 import { navigate } from '../../lib/route';
+import { addElementVertex } from '../cables/cableActions';
 import { activities } from '../activities/activityRepo';
 import { draftStore, useDraft } from './draftStore';
 import { elementStore } from './elementRepo';
@@ -28,6 +29,9 @@ export default function ElementsLayer() {
                 const s = draftStore.getState();
                 if (s.phase === 'idle') {
                   navigate('elemento', { id: e.id });
+                } else if (s.phase === 'cabo') {
+                  // Lançando cabo: o elemento tocado vira o próximo ponto do traçado (a menos que haja ponto pendente).
+                  if (!s.position) addElementVertex(e);
                 } else if ((s.phase === 'posicao' && s.mode === 'manual') || s.phase === 'mover') {
                   // Ao marcar/mover pelo toque, um ícone no caminho não pode "roubar" o ponto:
                   // usa o lugar tocado, e não a posição do ícone.

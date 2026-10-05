@@ -1,4 +1,5 @@
 import type { ElementType } from '../../db/types';
+import type { CableChoice } from '../cables/cableChoices';
 import { Chips, NumberField, TextField } from './fields';
 
 export interface FieldValues {
@@ -28,10 +29,12 @@ function TypeFields({
   type,
   attrs,
   set,
+  cableChoices,
 }: {
   type: ElementType;
   attrs: Record<string, string>;
   set: (k: string, v: string) => void;
+  cableChoices: CableChoice[];
 }) {
   const get = (k: string) => attrs[k] ?? '';
   switch (type) {
@@ -66,14 +69,17 @@ function TypeFields({
       );
     case 'reserva':
       return (
-        <NumberField
-          id="meters"
-          label="Metros de reserva"
-          decimal
-          value={get('meters')}
-          onChange={(v) => set('meters', v)}
-          hint="O vínculo com o cabo entra junto com o desenho de cabo."
-        />
+        <>
+          <NumberField id="meters" label="Metros de reserva" decimal value={get('meters')} onChange={(v) => set('meters', v)} />
+          {cableChoices.length > 0 && (
+            <Chips
+              label="Cabo desta reserva"
+              value={get('cableId')}
+              options={cableChoices.map((c) => ({ value: c.id, label: c.label }))}
+              onChange={(v) => set('cableId', v)}
+            />
+          )}
+        </>
       );
     case 'ocorrencia':
       return (
@@ -92,10 +98,13 @@ export default function ElementFields({
   type,
   values,
   onChange,
+  cableChoices = [],
 }: {
   type: ElementType;
   values: FieldValues;
   onChange: (v: FieldValues) => void;
+  /** Cabos próximos (para ligar uma reserva); só aparece em Reserva. */
+  cableChoices?: CableChoice[];
 }) {
   return (
     <>
@@ -104,6 +113,7 @@ export default function ElementFields({
         type={type}
         attrs={values.attrs}
         set={(k, v) => onChange({ ...values, attrs: { ...values.attrs, [k]: v } })}
+        cableChoices={cableChoices}
       />
       <div className="field">
         <label htmlFor="notes">Observações</label>

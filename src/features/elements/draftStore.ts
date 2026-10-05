@@ -12,8 +12,8 @@ export interface DraftPosition {
 }
 
 export interface DraftState {
-  /** idle · tipo (escolhendo) · posicao (marcando um novo) · mover (reposicionando um existente) */
-  phase: 'idle' | 'tipo' | 'posicao' | 'mover';
+  /** idle · tipo (escolhendo) · posicao (marcando um novo) · mover (reposicionando um existente) · cabo (lançando um cabo) · cabo-editar (ajustando o traçado de um cabo salvo) */
+  phase: 'idle' | 'tipo' | 'posicao' | 'mover' | 'cabo' | 'cabo-editar';
   type: ElementType | null;
   mode: 'gps' | 'manual';
   capture: 'buscando' | 'concluido' | 'erro';
@@ -28,6 +28,9 @@ export interface DraftState {
   /** Elemento sendo movido e de onde ele saiu (para saber se houve mudança). */
   movingId: string | null;
   movingFrom: { lat: number; lng: number } | null;
+  /** Cabo sendo editado no mapa e o ponto do traçado selecionado. */
+  editingCableId: string | null;
+  selectedVertex: number | null;
   /** O "+" foi tocado sem atividade aberta: a tela de nova atividade explica o motivo. */
   needsActivityHint: boolean;
 }
@@ -45,6 +48,8 @@ const initial: DraftState = {
   noticeId: 0,
   movingId: null,
   movingFrom: null,
+  editingCableId: null,
+  selectedVertex: null,
   needsActivityHint: false,
 };
 
@@ -111,6 +116,25 @@ export const draftStore = {
       movingFrom: { lat: el.lat, lng: el.lng },
     }),
   setError: (error: string | null) => set({ error }),
+
+  /** Entra no modo de lançar cabo. A `position` do rascunho passa a ser o poste de precisão baixa aguardando ajuste. */
+  startCable: () =>
+    set({
+      phase: 'cabo',
+      type: 'poste',
+      mode: 'gps',
+      capture: 'concluido',
+      elapsedMs: 0,
+      error: null,
+      position: null,
+      movingId: null,
+      movingFrom: null,
+    }),
+  startCableEdit: (cableId: string) =>
+    set({ phase: 'cabo-editar', editingCableId: cableId, selectedVertex: null, type: null, position: null, error: null }),
+  selectVertex: (i: number | null) => set({ selectedVertex: i }),
+  /** Descarta só o ponto pendente (continua no modo cabo). */
+  discardPosition: () => set({ position: null, error: null }),
 
   hintNeedsActivity: () => set({ needsActivityHint: true }),
   clearHint: () => set({ needsActivityHint: false }),

@@ -8,6 +8,8 @@ import { formatDateTime } from '../../lib/format';
 import { formatAccuracy } from '../../lib/geo';
 import { goBack, navigate, useRouteId } from '../../lib/route';
 import { KIND_LABEL } from '../activities/labels';
+import { cableChoicesNear } from '../cables/cableChoices';
+import { cableStore } from '../cables/cableRepo';
 import { useTechnician } from '../settings/useTechnician';
 import { attrsToFormStrings, describeAttrs } from './attrsView';
 import { draftStore } from './draftStore';
@@ -38,6 +40,7 @@ export default function ElementDetailScreen() {
     [el?.activityId],
   );
   const technician = useTechnician();
+  const cables = useLiveQuery(() => cableStore.list());
 
   const [editing, setEditing] = useState(false);
   const [values, setValues] = useState<FieldValues>(emptyValues);
@@ -118,7 +121,16 @@ export default function ElementDetailScreen() {
             void saveEdit();
           }}
         >
-          <ElementFields type={el.type} values={values} onChange={setValues} />
+          <ElementFields
+            type={el.type}
+            values={values}
+            onChange={setValues}
+            cableChoices={
+              el.type === 'reserva' && cables
+                ? cableChoicesNear(el, cables, undefined, (el.attrs as { cableId?: string }).cableId)
+                : []
+            }
+          />
           {error && <div className="alert" role="alert">{error}</div>}
           <div className="sticky-actions">
             <div className="placement-row">

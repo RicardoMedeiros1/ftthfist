@@ -78,10 +78,10 @@
 .sticky-actions { position: sticky; bottom: 0; padding: 10px 0 calc(10px + env(safe-area-inset-bottom)); background: linear-gradient(transparent, #000 25%); }
 
 /* A atribuição do mapa é obrigatória: durante a marcação ela sobe para ficar acima do painel/escolha de tipo.
-   (Alturas fixas: painel 205 px, escolha de tipo 293 px.) */
+   (Alturas fixas: painel 205 px, painel de cabo 225 px, escolha de tipo 353 px.) */
 .map-screen.phase-posicao .leaflet-bottom,
 .map-screen.phase-mover .leaflet-bottom { margin-bottom: calc(205px + env(safe-area-inset-bottom)); }
-.map-screen.phase-tipo .leaflet-bottom { margin-bottom: calc(293px + env(safe-area-inset-bottom)); }
+.map-screen.phase-tipo .leaflet-bottom { margin-bottom: calc(353px + env(safe-area-inset-bottom)); }
 
 /* Detalhe do elemento */
 .info-list { display: flex; flex-direction: column; border: 3px solid #444; border-radius: 14px; overflow: hidden; }
@@ -91,3 +91,49 @@
 .info-value { font-size: 18px; overflow-wrap: anywhere; }
 .detail-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
 .detail-actions .btn { padding: 0 6px; }
+
+/* Lançar cabo / editar traçado: mesmas alturas do painel de marcação */
+.map-screen.phase-cabo-editar .map-btn-group,
+.map-screen.phase-cabo-editar .map-controls { bottom: calc(230px + env(safe-area-inset-bottom)); }
+.map-screen.phase-cabo-editar .leaflet-bottom { margin-bottom: calc(205px + env(safe-area-inset-bottom)); }
+/* O painel de lançar cabo é mais alto (225 px): tem o botão Cancelar na primeira linha */
+.map-screen.phase-cabo .map-btn-group,
+.map-screen.phase-cabo .map-controls { bottom: calc(250px + env(safe-area-inset-bottom)); }
+.map-screen.phase-cabo .leaflet-bottom { margin-bottom: calc(225px + env(safe-area-inset-bottom)); }
+.map-screen.legend-open .map-btn-group,
+.map-screen.legend-open .map-controls,
+.map-screen.legend-open .add-btn,
+.map-screen.legend-open .saved-notice { display: none; }
+/* A atribuição fica acima da legenda (altura fixa) */
+.map-screen.legend-open .leaflet-bottom { margin-bottom: calc(279px + env(safe-area-inset-bottom)); }
+
+.cable-launch { background: #111; border-color: var(--accent); color: var(--accent); }
+.cabo-status { display: flex; flex-direction: column; justify-content: center; }
+.cabo-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.cabo-title { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.cabo-cancel { min-height: 40px; }
+.tone-warn { color: #ff9f0a; }
+.tone-error { color: #ff6b6b; }
+
+.fiber-line { flex-shrink: 0; }
+.legend-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.legend-list li { display: flex; align-items: center; gap: 12px; font: 600 17px/1.2 system-ui, sans-serif; }
+.legend-sheet { max-height: 70%; overflow-y: auto; }
+.chips.fibers { grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); }
+.chips.fibers button { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 4px; }
+
+.handle { display: block; box-sizing: border-box; border: 3px solid #000; background: #fff; }
+.handle-element { width: 22px; height: 22px; border-radius: 50%; }
+.handle-loose { width: 20px; height: 20px; border-radius: 4px; }
+.handle-mid { width: 26px; height: 26px; border-radius: 50%; border-color: var(--accent); background: #000; position: relative; }
+.handle-mid::before { content: '+'; position: absolute; inset: 0; display: grid; place-items: center; color: var(--accent); font: 800 20px/1 system-ui, sans-serif; }
+.handle-selected { background: var(--accent); width: 28px; height: 28px; }
+
+.summary-math { display: flex; flex-direction: column; gap: 2px; font-size: 18px; padding: 8px 0; }
+.summary-math strong { font-size: 22px; color: var(--accent); }
+.vertex-list { margin: 0; padding: 0; list-style: none; border: 3px solid #444; border-radius: 14px; overflow: hidden; }
+.vertex-list li { display: flex; justify-content: space-between; gap: 8px; padding: 10px 14px; background: #111; font-size: 17px; }
+.vertex-list li + li { border-top: 2px solid #333; }
+.vertex-list small { color: #bbb; white-space: nowrap; }
+.type-list { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 8px; }
+.type-list li { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 18px; }

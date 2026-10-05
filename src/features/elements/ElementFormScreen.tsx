@@ -1,7 +1,10 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import ScreenShell from '../../components/ScreenShell';
 import { formatAccuracy } from '../../lib/geo';
 import { goBack, navigate } from '../../lib/route';
+import { cableChoicesNear } from '../cables/cableChoices';
+import { cableStore } from '../cables/cableRepo';
 import { useTechnician } from '../settings/useTechnician';
 import { draftStore, useDraft } from './draftStore';
 import ElementFields, { emptyValues, type FieldValues } from './ElementFields';
@@ -27,6 +30,18 @@ export default function ElementFormScreen() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const items = useMemo(() => photos.map((p) => ({ id: p.id, blob: p.blob })), [photos]);
+  // Reserva "sobre um vértice" de um cabo: sugere esse cabo (o técnico pode trocar ou tirar).
+  const cables = useLiveQuery(() => cableStore.list());
+  const cableChoices = useMemo(
+    () => (type === 'reserva' && position && cables ? cableChoicesNear(position, cables) : []),
+    [type, position, cables],
+  );
+  const suggested = useRef(false);
+  useEffect(() => {
+    if (suggested.current || cableChoices.length === 0) return;
+    suggested.current = true;
+    setValues((v) => ({ ...v, attrs: { ...v.attrs, cableId: cableChoices[0]!.id } }));
+  }, [cableChoices]);
 
   const missing = !type || !position;
   // Recarregar a página nesta tela perde o rascunho: volta para o mapa.
@@ -79,7 +94,7 @@ export default function ElementFormScreen() {
           </div>
         </div>
 
-        <ElementFields type={type} values={values} onChange={setValues} />
+        <ElementFields type={type} values={values} onChange={setValues} cableChoices={cableChoices} />
 
         <div className="field">
           <span className="label">Fotos</span>
