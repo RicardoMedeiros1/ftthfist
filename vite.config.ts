@@ -6,8 +6,12 @@ import { VitePWA } from 'vite-plugin-pwa';
 // BASE_PATH permite publicar em subpasta (ex.: GitHub Pages: /ftthfist/).
 const base = process.env.BASE_PATH ?? '/';
 
+// Identificação da versão publicada (aparece nas Configurações para conferir se o celular atualizou).
+const buildId = (process.env.GITHUB_SHA ?? 'dev').slice(0, 7);
+
 export default defineConfig({
   base,
+  define: { __BUILD_ID__: JSON.stringify(buildId) },
   plugins: [
     react(),
     // HTTPS na rede local: geolocalização do celular exige contexto seguro.

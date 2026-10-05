@@ -1,3 +1,4 @@
+import UpdatePrompt from './components/UpdatePrompt';
 import ActivitiesScreen from './features/activities/ActivitiesScreen';
 import NewActivityScreen from './features/activities/NewActivityScreen';
 import MapScreen from './features/map/MapScreen';
@@ -15,6 +16,7 @@ export default function App() {
       {route === 'atividades' && <ActivitiesScreen />}
       {route === 'nova-atividade' && <NewActivityScreen />}
       {route === 'config' && <SettingsScreen />}
+      <UpdatePrompt />
     </>
   );
 }

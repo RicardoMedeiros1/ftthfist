@@ -44,6 +44,7 @@ export default function SettingsScreen() {
         </button>
         {justSaved && <div className="ok-note" role="status">Salvo.</div>}
       </form>
+      <p className="hint">Versão do app: {__BUILD_ID__}</p>
     </ScreenShell>
   );
 }
