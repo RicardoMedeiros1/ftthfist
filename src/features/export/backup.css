@@ -1,0 +1,4 @@
+.section { display: flex; flex-direction: column; gap: 10px; }
+.section h2 { margin: 6px 0 0; font-size: 20px; }
+.progress { margin-top: 8px; height: 14px; border: 2px solid #fff; border-radius: 8px; overflow: hidden; }
+.progress > div { height: 100%; background: var(--accent); transition: width .15s linear; }

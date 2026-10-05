@@ -58,6 +58,8 @@ export const SETTING_KEYS = {
   technician: 'technician',
   mapView: 'mapView',
   baseLayer: 'baseLayer',
+  lastBackupAt: 'lastBackupAt',
+  backupDismissedAt: 'backupDismissedAt',
 } as const;
 
 export async function getSetting<T>(key: string, fallback: T): Promise<T> {

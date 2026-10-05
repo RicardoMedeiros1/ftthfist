@@ -1,4 +1,7 @@
 import UpdatePrompt from './components/UpdatePrompt';
+import BackupReminder from './features/export/BackupReminder';
+import BackupScreen from './features/export/BackupScreen';
+import { requestPersistence } from './lib/storage';
 import ActivitiesScreen from './features/activities/ActivitiesScreen';
 import NewActivityScreen from './features/activities/NewActivityScreen';
 import ElementDetailScreen from './features/elements/ElementDetailScreen';
@@ -11,6 +14,11 @@ import { useRoute } from './lib/route';
 
 export default function App() {
   const route = useRoute();
+
+  // Pede ao navegador para não apagar os dados do app (a tela de backup mostra o resultado).
+  useEffect(() => {
+    void requestPersistence();
+  }, []);
 
   // Sair do mapa (voltar, configurações…) no meio de "mover" desiste da movimentação.
   useEffect(() => {
@@ -27,7 +35,11 @@ export default function App() {
       {route === 'novo-elemento' && <ElementFormScreen />}
       {route === 'elemento' && <ElementDetailScreen />}
       {route === 'config' && <SettingsScreen />}
-      <UpdatePrompt />
+      {route === 'backup' && <BackupScreen />}
+      <div className="toast-host">
+        <UpdatePrompt />
+        <BackupReminder />
+      </div>
     </>
   );
 }

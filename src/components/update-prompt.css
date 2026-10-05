@@ -1,15 +1,21 @@
-.update-toast {
+/* Avisos do app (nova versão, lembrete de backup): no topo, abaixo da faixa da atividade e da linha GPS/rede.
+   O rodapé é do "+", dos controles e dos painéis de marcação; os avisos não podem tapar nada disso. */
+.toast-host {
   position: fixed; z-index: 4000;
-  /* No topo, abaixo da faixa da atividade e da linha GPS/rede: o rodapé é do "+", dos controles e dos painéis de marcação,
-     e o aviso de atualização fica até o toque (não pode tapar nada disso). */
-  left: 12px; right: 12px; top: calc(118px + env(safe-area-inset-top));
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  top: calc(118px + env(safe-area-inset-top)); left: 12px; right: 12px;
   max-width: 560px; margin: 0 auto;
+  display: flex; flex-direction: column; gap: 8px;
+  pointer-events: none; /* só os avisos recebem toque; o resto do mapa continua tocável */
+}
+.update-toast, .backup-toast {
+  pointer-events: auto;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 10px 12px 10px 16px;
   border: 3px solid var(--accent); border-radius: 14px;
   background: #000; color: #fff;
   font: 700 17px/1.25 system-ui, sans-serif;
   box-shadow: 0 4px 16px rgba(0,0,0,.6);
 }
-
+.backup-toast { flex-direction: column; align-items: stretch; }
+.backup-toast .update-actions { justify-content: flex-end; }
 .update-actions { display: flex; gap: 8px; flex-shrink: 0; }

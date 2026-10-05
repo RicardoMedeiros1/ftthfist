@@ -6,6 +6,7 @@ describe('parseRoute', () => {
     expect(parseRoute('#/atividades')).toBe('atividades');
     expect(parseRoute('#/atividades/nova')).toBe('nova-atividade');
     expect(parseRoute('#/elemento/novo')).toBe('novo-elemento');
+    expect(parseRoute('#/backup')).toBe('backup');
     expect(parseRoute('#/config')).toBe('config');
   });
   it('qualquer outra coisa abre o mapa', () => {

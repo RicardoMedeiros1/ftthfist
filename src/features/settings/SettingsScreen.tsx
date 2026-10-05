@@ -1,11 +1,14 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import ScreenShell from '../../components/ScreenShell';
-import { SETTING_KEYS, setSetting } from '../../db/db';
-import { goBack } from '../../lib/route';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { SETTING_KEYS, getSetting, setSetting } from '../../db/db';
+import { formatAgo } from '../../lib/format';
+import { goBack, navigate } from '../../lib/route';
 import { useTechnician } from './useTechnician';
 
 export default function SettingsScreen() {
   const saved = useTechnician();
+  const lastBackupAt = useLiveQuery(() => getSetting<number | null>(SETTING_KEYS.lastBackupAt, null));
   const [name, setName] = useState('');
   const [justSaved, setJustSaved] = useState(false);
 
@@ -44,6 +47,15 @@ export default function SettingsScreen() {
         </button>
         {justSaved && <div className="ok-note" role="status">Salvo.</div>}
       </form>
+      <section className="card" aria-label="Backup">
+        <div className="card-title">Backup e restauração</div>
+        <div className="card-meta">
+          {lastBackupAt ? `Último backup ${formatAgo(Date.now() - lastBackupAt)}` : 'Nenhum backup feito ainda'}
+        </div>
+        <button className="btn btn-block" onClick={() => navigate('backup')}>
+          Abrir backup
+        </button>
+      </section>
       <p className="hint">Versão do app: {__BUILD_ID__}</p>
     </ScreenShell>
   );
