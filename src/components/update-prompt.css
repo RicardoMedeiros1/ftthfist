@@ -11,3 +11,5 @@
   font: 700 17px/1.25 system-ui, sans-serif;
   box-shadow: 0 4px 16px rgba(0,0,0,.6);
 }
+
+.update-actions { display: flex; gap: 8px; flex-shrink: 0; }

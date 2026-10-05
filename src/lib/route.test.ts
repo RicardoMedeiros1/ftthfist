@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseRoute } from './route';
+import { parseLocation, parseRoute } from './route';
 
 describe('parseRoute', () => {
   it('reconhece as telas', () => {
@@ -12,5 +12,21 @@ describe('parseRoute', () => {
     expect(parseRoute('')).toBe('map');
     expect(parseRoute('#/')).toBe('map');
     expect(parseRoute('#/inexistente')).toBe('map');
+  });
+});
+
+describe('parseLocation (elemento por id)', () => {
+  it('lê o id do elemento', () => {
+    expect(parseLocation('#/elemento/abc-123')).toEqual({ route: 'elemento', id: 'abc-123' });
+    expect(parseRoute('#/elemento/abc-123')).toBe('elemento');
+  });
+  it('"novo" continua sendo o formulário, não um id', () => {
+    expect(parseLocation('#/elemento/novo')).toEqual({ route: 'novo-elemento' });
+  });
+  it('decodifica o id e ignora caminhos inválidos', () => {
+    expect(parseLocation('#/elemento/a%20b').id).toBe('a b');
+    expect(parseLocation('#/elemento/%E0%A4%A')).toEqual({ route: 'map' });
+    expect(parseLocation('#/elemento/a/b')).toEqual({ route: 'map' });
+    expect(parseLocation('#/elemento/')).toEqual({ route: 'map' });
   });
 });

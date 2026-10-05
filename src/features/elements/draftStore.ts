@@ -12,7 +12,8 @@ export interface DraftPosition {
 }
 
 export interface DraftState {
-  phase: 'idle' | 'tipo' | 'posicao';
+  /** idle · tipo (escolhendo) · posicao (marcando um novo) · mover (reposicionando um existente) */
+  phase: 'idle' | 'tipo' | 'posicao' | 'mover';
   type: ElementType | null;
   mode: 'gps' | 'manual';
   capture: 'buscando' | 'concluido' | 'erro';
@@ -24,6 +25,9 @@ export interface DraftState {
   /** Aviso rápido no mapa (ex.: "Salvo: Poste"). */
   notice: string | null;
   noticeId: number;
+  /** Elemento sendo movido e de onde ele saiu (para saber se houve mudança). */
+  movingId: string | null;
+  movingFrom: { lat: number; lng: number } | null;
   /** O "+" foi tocado sem atividade aberta: a tela de nova atividade explica o motivo. */
   needsActivityHint: boolean;
 }
@@ -39,6 +43,8 @@ const initial: DraftState = {
   captureRun: 0,
   notice: null,
   noticeId: 0,
+  movingId: null,
+  movingFrom: null,
   needsActivityHint: false,
 };
 
@@ -90,6 +96,21 @@ export const draftStore = {
   cancel: () => set({ ...initial, notice: state.notice, noticeId: state.noticeId }),
   /** Marcação salva: limpa o rascunho e mostra o aviso. */
   saved: (notice: string) => set({ ...initial, notice, noticeId: state.noticeId + 1 }),
+
+  /** Começa a mover um elemento existente: o marcador vira o do rascunho, arrastável. */
+  startMove: (el: { id: string; type: ElementType; lat: number; lng: number }) =>
+    set({
+      phase: 'mover',
+      type: el.type,
+      mode: 'manual',
+      capture: 'concluido',
+      elapsedMs: 0,
+      error: null,
+      position: { lat: el.lat, lng: el.lng, source: 'manual' },
+      movingId: el.id,
+      movingFrom: { lat: el.lat, lng: el.lng },
+    }),
+  setError: (error: string | null) => set({ error }),
 
   hintNeedsActivity: () => set({ needsActivityHint: true }),
   clearHint: () => set({ needsActivityHint: false }),

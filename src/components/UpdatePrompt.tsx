@@ -7,7 +7,7 @@ const CHECK_EVERY_MS = 60 * 60 * 1000;
 /** Avisa quando há versão nova do app e quando o app já pode ser usado offline. */
 export default function UpdatePrompt() {
   const {
-    needRefresh: [needRefresh],
+    needRefresh: [needRefresh, setNeedRefresh],
     offlineReady: [offlineReady, setOfflineReady],
     updateServiceWorker,
   } = useRegisterSW({
@@ -28,10 +28,16 @@ export default function UpdatePrompt() {
     return (
       <div className="update-toast" role="alert">
         <span>Nova versão disponível</span>
-        {/* Só atualiza quando o técnico toca: recarregar no meio de um formulário perderia o que foi digitado. */}
-        <button className="btn btn-primary btn-small" onClick={() => void updateServiceWorker(true)}>
-          Atualizar
-        </button>
+        {/* Só atualiza quando o técnico toca: recarregar no meio de um formulário perderia o que foi digitado.
+            "Depois" fecha o aviso; a versão nova entra sozinha na próxima vez que o app for aberto. */}
+        <div className="update-actions">
+          <button className="btn btn-small" onClick={() => setNeedRefresh(false)}>
+            Depois
+          </button>
+          <button className="btn btn-primary btn-small" onClick={() => void updateServiceWorker(true)}>
+            Atualizar
+          </button>
+        </div>
       </div>
     );
   }

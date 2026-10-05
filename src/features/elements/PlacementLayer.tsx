@@ -19,7 +19,9 @@ export default function PlacementLayer() {
   useMapEvents({
     click(e) {
       const s = draftStore.getState();
-      if (s.phase === 'posicao' && s.mode === 'manual') draftStore.setManualPosition(e.latlng.lat, e.latlng.lng);
+      if ((s.phase === 'posicao' && s.mode === 'manual') || s.phase === 'mover') {
+        draftStore.setManualPosition(e.latlng.lat, e.latlng.lng);
+      }
     },
   });
 
@@ -31,12 +33,20 @@ export default function PlacementLayer() {
     map.setView([s.position.lat, s.position.lng], Math.max(map.getZoom(), MIN_ZOOM));
   }, [map, phase, mode, capture, hasPosition]);
 
-  if (phase !== 'posicao' || !type || !position) return null;
+  // Ao começar a mover, mostra o elemento no centro (uma vez por movimentação).
+  const movingId = useDraft((s) => s.movingId);
+  useEffect(() => {
+    const s = draftStore.getState();
+    if (s.phase !== 'mover' || !s.position) return;
+    map.setView([s.position.lat, s.position.lng], Math.max(map.getZoom(), MIN_ZOOM));
+  }, [map, movingId]);
+
+  if ((phase !== 'posicao' && phase !== 'mover') || !type || !position) return null;
 
   const searching = mode === 'gps' && capture === 'buscando';
   const bad = position.accuracy !== undefined && classifyAccuracy(position.accuracy) === 'ruim';
   // Arrasta quando a posição é manual (ajuste fino) ou quando o GPS ficou impreciso (> 15 m).
-  const draggable = !searching && (position.source === 'manual' || bad);
+  const draggable = phase === 'mover' || (!searching && (position.source === 'manual' || bad));
   const color = bad ? '#ff9f0a' : '#1e90ff';
 
   return (

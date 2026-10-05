@@ -59,4 +59,24 @@ describe('rascunho de marcação', () => {
     draftStore.saved('Salvo: Poste');
     expect(s()).toMatchObject({ phase: 'idle', notice: 'Salvo: Poste', position: null });
   });
+
+  it('mover: o marcador começa onde o elemento está, manual e sem precisão', () => {
+    draftStore.startMove({ id: 'e1', type: 'poste', lat: 5, lng: 6 });
+    expect(s()).toMatchObject({
+      phase: 'mover',
+      type: 'poste',
+      movingId: 'e1',
+      movingFrom: { lat: 5, lng: 6 },
+      position: { lat: 5, lng: 6, source: 'manual' },
+    });
+    draftStore.dragTo(5.1, 6.1);
+    expect(s().position).toEqual({ lat: 5.1, lng: 6.1, source: 'manual' });
+    expect(s().movingFrom).toEqual({ lat: 5, lng: 6 });
+  });
+
+  it('cancelar a movimentação limpa o estado de mover', () => {
+    draftStore.startMove({ id: 'e1', type: 'cto', lat: 1, lng: 2 });
+    draftStore.cancel();
+    expect(s()).toMatchObject({ phase: 'idle', movingId: null, movingFrom: null, position: null });
+  });
 });

@@ -10,6 +10,7 @@ import AddButton from '../elements/AddButton';
 import { useDraft } from '../elements/draftStore';
 import ElementsLayer from '../elements/ElementsLayer';
 import GpsCaptureHost from '../elements/GpsCapture';
+import MovePanel from '../elements/MovePanel';
 import PlacementLayer from '../elements/PlacementLayer';
 import PlacementPanel from '../elements/PlacementPanel';
 import TypePicker from '../elements/TypePicker';
@@ -164,6 +165,10 @@ export default function MapScreen() {
   useEffect(() => {
     if (badGps) setLayerOverride('satelite');
   }, [badGps]);
+  // Mover um elemento é ajuste fino: satélite para enxergar onde ele realmente fica.
+  useEffect(() => {
+    if (phase === 'mover') setLayerOverride('satelite');
+  }, [phase]);
   useEffect(() => {
     if (!placing) setLayerOverride(null);
   }, [placing]);
@@ -234,6 +239,7 @@ export default function MapScreen() {
       <AddButton />
       <TypePicker />
       <PlacementPanel />
+      <MovePanel />
       <GpsCaptureHost />
       <SavedNotice />
     </div>

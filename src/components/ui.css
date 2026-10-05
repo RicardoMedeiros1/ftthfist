@@ -69,3 +69,4 @@
 .badge-status-aberta { background: #34c759; }
 .badge-status-concluida { background: #bbb; }
 .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.btn-danger { background: var(--danger); color: #000; border-color: var(--danger); }
