@@ -60,6 +60,9 @@ export const SETTING_KEYS = {
   baseLayer: 'baseLayer',
   lastBackupAt: 'lastBackupAt',
   backupDismissedAt: 'backupDismissedAt',
+  cableTypes: 'cableTypes',
+  cableDraft: 'cableDraft',
+  lastCable: 'lastCable',
 } as const;
 
 export async function getSetting<T>(key: string, fallback: T): Promise<T> {

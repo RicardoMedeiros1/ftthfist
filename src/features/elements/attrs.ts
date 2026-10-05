@@ -42,8 +42,8 @@ export function sanitizeAttrs(type: ElementType, raw: unknown): ElementAttrsByTy
     case 'ceo':
       return compact({ trays: num(r.trays, true), splices: num(r.splices, true) });
     case 'reserva':
-      // cableId só é preenchido pelo desenho de cabo (Fase 1B).
-      return compact({ meters: num(r.meters) });
+      // cableId liga a reserva ao cabo (a metragem dela entra no total do cabo).
+      return compact({ meters: num(r.meters), cableId: str(r.cableId) });
     case 'ocorrencia':
       return compact({ problem: oneOf(PROBLEMS, r.problem), actionTaken: str(r.actionTaken) });
     case 'outro':

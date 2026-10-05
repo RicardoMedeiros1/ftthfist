@@ -2,6 +2,7 @@ import { db, newBase, touch, type RotaFibraDB } from '../../db/db';
 import type { ElementType, NetworkElement, Photo, PositionSource } from '../../db/types';
 import { sanitizeAttrs } from './attrs';
 import { isElementType } from './meta';
+import { detachElementFromCables, moveElementWithCables, recomputeCable } from '../cables/cableLinks';
 import { buildPhoto, type NewPhotoInput } from './photoRepo';
 
 export type ElementRuleCode = 'NO_OPEN_ACTIVITY' | 'INVALID_POSITION' | 'INVALID_TYPE' | 'NOT_FOUND';
@@ -76,7 +77,7 @@ export function elementRepo(database: RotaFibraDB = db) {
       assertPosition(input);
       const gps = input.positionSource === 'gps';
 
-      return database.transaction('rw', database.activities, database.elements, database.photos, async () => {
+      return database.transaction('rw', database.activities, database.elements, database.photos, database.cables, async () => {
         const open = await database.activities
           .where('status')
           .equals('aberta')
@@ -99,6 +100,8 @@ export function elementRepo(database: RotaFibraDB = db) {
           attrs: sanitizeAttrs(input.type, input.attrs),
         };
         await database.elements.add(element);
+        const cableId = (element.attrs as { cableId?: string }).cableId;
+        if (element.type === 'reserva' && cableId) await recomputeCable(database, cableId);
         if (photos.length > 0) {
           const records: Photo[] = photos.map((p) => buildPhoto(element, p, createdBy));
           await database.photos.bulkAdd(records);
@@ -109,7 +112,7 @@ export function elementRepo(database: RotaFibraDB = db) {
 
     /** Edita identificação, observações e atributos. O tipo e a atividade não mudam. */
     async update(id: string, patch: ElementPatch): Promise<NetworkElement> {
-      return database.transaction('rw', database.elements, async () => {
+      return database.transaction('rw', database.elements, database.cables, async () => {
         const el = await database.elements.get(id);
         if (!el || el.deleted) throw new ElementRuleError('NOT_FOUND', 'Elemento não encontrado.');
         const changes: Partial<NetworkElement> = {};
@@ -117,6 +120,12 @@ export function elementRepo(database: RotaFibraDB = db) {
         if (patch.notes !== undefined) changes.notes = patch.notes.trim();
         if (patch.attrs !== undefined) changes.attrs = sanitizeAttrs(el.type, patch.attrs);
         await database.elements.update(id, touch<NetworkElement>(changes));
+        // Reserva: metros ou cabo mudaram, então o total do cabo antigo e do novo precisa ser refeito.
+        if (el.type === 'reserva') {
+          const before = (el.attrs as { cableId?: string }).cableId;
+          const after = changes.attrs ? (changes.attrs as { cableId?: string }).cableId : before;
+          for (const c of new Set([before, after])) if (c) await recomputeCable(database, c);
+        }
         return (await database.elements.get(id)) as NetworkElement;
       });
     },
@@ -124,30 +133,26 @@ export function elementRepo(database: RotaFibraDB = db) {
     /** Muda a posição. Posição manual não guarda precisão (ela só descreve uma leitura de GPS). */
     async move(id: string, pos: NewPositionInput): Promise<NetworkElement> {
       assertPosition(pos);
-      return database.transaction('rw', database.elements, async () => {
+      return database.transaction('rw', database.elements, database.cables, async () => {
         const el = await database.elements.get(id);
         if (!el || el.deleted) throw new ElementRuleError('NOT_FOUND', 'Elemento não encontrado.');
-        await database.elements.update(
-          id,
-          touch<NetworkElement>({
-            lat: pos.lat,
-            lng: pos.lng,
-            positionSource: pos.positionSource,
-            // `undefined` remove o campo no Dexie.
-            accuracy: pos.positionSource === 'gps' ? pos.accuracy : undefined,
-          }),
-        );
+        // Os cabos que passam por este elemento o acompanham.
+        await moveElementWithCables(database, id, pos);
         return (await database.elements.get(id)) as NetworkElement;
       });
     },
 
     /** Exclusão lógica do elemento e das fotos dele. */
     async remove(id: string): Promise<void> {
-      await database.transaction('rw', database.elements, database.photos, async () => {
+      await database.transaction('rw', database.elements, database.photos, database.cables, async () => {
         const el = await database.elements.get(id);
         if (!el || el.deleted) throw new ElementRuleError('NOT_FOUND', 'Elemento não encontrado.');
         const now = Date.now();
         await database.elements.update(id, touch<NetworkElement>({ deleted: true }, now));
+        // Cabos que passavam por ele mantêm o ponto no lugar (solto); a reserva excluída sai do total do cabo.
+        await detachElementFromCables(database, id);
+        const cableId = (el.attrs as { cableId?: string }).cableId;
+        if (el.type === 'reserva' && cableId) await recomputeCable(database, cableId);
         await database.photos
           .where('elementId')
           .equals(id)

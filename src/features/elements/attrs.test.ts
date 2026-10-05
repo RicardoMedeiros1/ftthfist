@@ -20,8 +20,9 @@ describe('sanitizeAttrs', () => {
     expect(sanitizeAttrs('ceo', { trays: 'abc', splices: '12' })).toEqual({ splices: 12 });
   });
 
-  it('reserva: metros aceitam vírgula decimal e cableId nunca é gravado aqui', () => {
-    expect(sanitizeAttrs('reserva', { meters: '12,5', cableId: 'x' })).toEqual({ meters: 12.5 });
+  it('reserva: metros aceitam vírgula decimal e guarda o cabo ao qual pertence', () => {
+    expect(sanitizeAttrs('reserva', { meters: '12,5', cableId: ' c-1 ' })).toEqual({ meters: 12.5, cableId: 'c-1' });
+    expect(sanitizeAttrs('reserva', { meters: '3', cableId: '' })).toEqual({ meters: 3 });
   });
 
   it('ocorrência: problema da lista e ação tomada', () => {
