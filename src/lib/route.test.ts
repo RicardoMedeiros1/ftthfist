@@ -5,6 +5,7 @@ describe('parseRoute', () => {
   it('reconhece as telas', () => {
     expect(parseRoute('#/atividades')).toBe('atividades');
     expect(parseRoute('#/atividades/nova')).toBe('nova-atividade');
+    expect(parseRoute('#/elemento/novo')).toBe('novo-elemento');
     expect(parseRoute('#/config')).toBe('config');
   });
   it('qualquer outra coisa abre o mapa', () => {

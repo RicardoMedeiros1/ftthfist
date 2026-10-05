@@ -2,12 +2,13 @@ import { useSyncExternalStore } from 'react';
 
 // Navegação por hash: funciona em qualquer subpasta (GitHub Pages) e o botão
 // "voltar" do celular segue o histórico do app.
-export type Route = 'map' | 'atividades' | 'nova-atividade' | 'config';
+export type Route = 'map' | 'atividades' | 'nova-atividade' | 'novo-elemento' | 'config';
 
 const HASH: Record<Route, string> = {
   map: '#/',
   atividades: '#/atividades',
   'nova-atividade': '#/atividades/nova',
+  'novo-elemento': '#/elemento/novo',
   config: '#/config',
 };
 
