@@ -15,5 +15,3 @@ body {
   font-size: 18px;
   -webkit-tap-highlight-color: transparent;
 }
-.splash { display: grid; place-content: center; height: 100%; text-align: center; padding: 16px; }
-.splash h1 { color: var(--accent); }

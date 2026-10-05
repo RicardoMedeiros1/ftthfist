@@ -56,7 +56,8 @@ export function touch<T extends BaseRecord>(patch: Partial<T>, now = Date.now())
 
 export const SETTING_KEYS = {
   technician: 'technician',
-  tileLimit: 'tileLimit',
+  mapView: 'mapView',
+  baseLayer: 'baseLayer',
 } as const;
 
 export async function getSetting<T>(key: string, fallback: T): Promise<T> {
