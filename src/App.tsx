@@ -12,6 +12,7 @@ import LayerScreen from './features/reference/LayerScreen';
 import ReferenceFeatureScreen from './features/reference/ReferenceFeatureScreen';
 import { requestPersistence } from './lib/storage';
 import ActivitiesScreen from './features/activities/ActivitiesScreen';
+import ActivityDetailScreen from './features/activities/ActivityDetailScreen';
 import NewActivityScreen from './features/activities/NewActivityScreen';
 import TrackScreen from './features/tracking/TrackScreen';
 import TrackSync from './features/tracking/TrackSync';
@@ -58,6 +59,7 @@ export default function App() {
         <MapScreen />
       </div>
       {route === 'atividades' && <ActivitiesScreen />}
+      {route === 'atividade' && <ActivityDetailScreen />}
       {route === 'nova-atividade' && <NewActivityScreen />}
       {route === 'novo-elemento' && <ElementFormScreen />}
       {route === 'elemento' && <ElementDetailScreen />}

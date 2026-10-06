@@ -1,6 +1,7 @@
 import { db, newBase, touch, type RotaFibraDB } from '../../db/db';
-import type { Activity, ActivityKind } from '../../db/types';
+import type { Activity, ActivityKind, Material } from '../../db/types';
 import { canEdit, isMine, notMineMessage } from '../../lib/ownership';
+import { MAX_DESCRIPTION, sanitizeMaterials } from './materials';
 
 export type ActivityRuleCode = 'ALREADY_OPEN' | 'TITLE_REQUIRED' | 'TECHNICIAN_REQUIRED' | 'NOT_FOUND' | 'NOT_OWNER';
 
@@ -13,6 +14,14 @@ export class ActivityRuleError extends Error {
     super(message);
     this.name = 'ActivityRuleError';
   }
+}
+
+export interface ActivityPatch {
+  title?: string;
+  /** Vazio remove o numero da OS. */
+  osNumber?: string;
+  description?: string;
+  materials?: Material[];
 }
 
 export interface NewActivityInput {
@@ -74,6 +83,26 @@ export function activityRepo(database: RotaFibraDB = db) {
         };
         await database.activities.add(activity);
         return activity;
+      });
+    },
+
+    /** Edita titulo, OS, descricao e materiais. O tipo, o tecnico e as datas nao mudam por aqui. Dono ou administrador. */
+    async update(id: string, patch: ActivityPatch): Promise<Activity> {
+      return database.transaction('rw', database.activities, async () => {
+        const a = await database.activities.get(id);
+        if (!a || a.deleted) throw new ActivityRuleError('NOT_FOUND', 'Atividade não encontrada.');
+        if (!canEdit(a)) throw new ActivityRuleError('NOT_OWNER', notMineMessage('atividade'));
+        const changes: Partial<Activity> = {};
+        if (patch.title !== undefined) {
+          const title = patch.title.trim().replace(/\s+/g, ' ');
+          if (!title) throw new ActivityRuleError('TITLE_REQUIRED', 'Dê um título para a atividade.');
+          changes.title = title.slice(0, 120);
+        }
+        if (patch.osNumber !== undefined) changes.osNumber = patch.osNumber.trim().slice(0, 40) || undefined; // `undefined` remove o campo
+        if (patch.description !== undefined) changes.description = patch.description.trim().slice(0, MAX_DESCRIPTION);
+        if (patch.materials !== undefined) changes.materials = sanitizeMaterials(patch.materials);
+        await database.activities.update(id, touch<Activity>(changes));
+        return (await database.activities.get(id)) as Activity;
       });
     },
 

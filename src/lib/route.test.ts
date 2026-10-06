@@ -22,6 +22,14 @@ describe('parseRoute', () => {
   });
 });
 
+describe('parseLocation (atividade por id)', () => {
+  it('lê o id da atividade, sem confundir com a lista', () => {
+    expect(parseLocation('#/atividade/abc-1')).toEqual({ route: 'atividade', id: 'abc-1' });
+    expect(parseRoute('#/atividades')).toBe('atividades');
+    expect(parseRoute('#/atividades/nova')).toBe('nova-atividade');
+  });
+});
+
 describe('parseLocation (elemento por id)', () => {
   it('lê o id do elemento', () => {
     expect(parseLocation('#/elemento/abc-123')).toEqual({ route: 'elemento', id: 'abc-123' });

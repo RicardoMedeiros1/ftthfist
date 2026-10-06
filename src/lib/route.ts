@@ -2,12 +2,12 @@ import { useSyncExternalStore } from 'react';
 
 // Navegação por hash: funciona em qualquer subpasta (GitHub Pages) e o botão
 // "voltar" do celular segue o histórico do app.
-export type Route = 'map' | 'atividades' | 'nova-atividade' | 'novo-elemento' | 'elemento' | 'novo-cabo' | 'cabo' | 'trilha' | 'backup' | 'exportar' | 'camadas' | 'camada' | 'referencia' | 'conta' | 'sincronizacao' | 'config';
+export type Route = 'map' | 'atividades' | 'nova-atividade' | 'novo-elemento' | 'elemento' | 'novo-cabo' | 'cabo' | 'atividade' | 'trilha' | 'backup' | 'exportar' | 'camadas' | 'camada' | 'referencia' | 'conta' | 'sincronizacao' | 'config';
 
-type IdRoute = 'elemento' | 'cabo' | 'exportar' | 'camada' | 'referencia';
+type IdRoute = 'elemento' | 'cabo' | 'atividade' | 'exportar' | 'camada' | 'referencia';
 
 // 'exportar' sem id exporta a rede inteira; com id, só aquela atividade.
-const STATIC_HASH: Record<Exclude<Route, 'elemento' | 'cabo' | 'camada' | 'referencia'>, string> = {
+const STATIC_HASH: Record<Exclude<Route, 'elemento' | 'cabo' | 'atividade' | 'camada' | 'referencia'>, string> = {
   map: '#/',
   atividades: '#/atividades',
   'nova-atividade': '#/atividades/nova',
@@ -31,6 +31,7 @@ export interface AppLocation {
 const WITH_ID: { route: IdRoute; re: RegExp }[] = [
   { route: 'elemento', re: /^#\/elemento\/([^/]+)$/ },
   { route: 'cabo', re: /^#\/cabo\/([^/]+)$/ },
+  { route: 'atividade', re: /^#\/atividade\/([^/]+)$/ },
   { route: 'exportar', re: /^#\/exportar\/([^/]+)$/ },
   { route: 'camada', re: /^#\/camada\/([^/]+)$/ },
   // id = `<camada>:<número>`; o ":" vai codificado (%3A)
@@ -57,7 +58,7 @@ export function parseRoute(hash: string): Route {
 }
 
 function hashFor(route: Route, id?: string): string {
-  if (route === 'elemento' || route === 'cabo' || route === 'camada' || route === 'referencia') {
+  if (route === 'elemento' || route === 'cabo' || route === 'atividade' || route === 'camada' || route === 'referencia') {
     return id ? `#/${route}/${encodeURIComponent(id)}` : STATIC_HASH.map;
   }
   if (route === 'exportar' && id) return `#/exportar/${encodeURIComponent(id)}`;
