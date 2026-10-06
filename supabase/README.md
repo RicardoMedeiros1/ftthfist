@@ -30,7 +30,11 @@ supabase/
    Supabase CLI, que só vale a pena se você tiver o repositório no seu computador. Duas opções:
    - *SQL Editor (a mais simples, não precisa instalar nada):* no painel do Supabase, **SQL Editor → New query**, cole o
      conteúdo de cada arquivo de `supabase/migrations/` **na ordem do nome** (`...150000_perfis`, `...150100_dados_de_campo`,
-     `...150200_fotos`, `...150300_painel`) e clique em **Run**. No GitHub os arquivos ficam em
+     `...150200_fotos`, `...150300_painel`) e clique em **Run**. O editor pode perguntar sobre "Row Level Security": o nosso SQL ja liga a RLS em todas as tabelas,
+     entao qualquer um dos dois botoes serve (se um deles der erro de sintaxe, use "Run without RLS"). Se o Run falhar,
+     nada e aplicado pela metade; confira com `select count(*) from information_schema.tables where table_schema = 'public'`
+     (0 = nada foi criado, pode rodar de novo). O SQL das migrations e **so ASCII** de proposito (sem acentos): o editor do
+     Supabase ja reescreveu um script com acentos e o quebrou. No GitHub os arquivos ficam em
      `supabase/migrations/` (na branch em que estiverem publicados).
    - *CLI* (com o repositório no computador, dentro da pasta do projeto): `npx supabase init`, `npx supabase login`,
      `npx supabase link --project-ref <ref>` e `npx supabase db push`. O `<ref>` é o trecho da URL do projeto

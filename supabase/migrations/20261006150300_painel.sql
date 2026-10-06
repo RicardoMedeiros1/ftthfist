@@ -1,9 +1,9 @@
--- RotaFibra · Fase 2 · passo 4/4: visões e totais usados pelo painel web (rodam com as permissões de quem consulta).
+-- RotaFibra - Fase 2 - passo 4/4: visoes e totais usados pelo painel web (rodam com as permissoes de quem consulta).
 
 set search_path = public, extensions;
 
--- Uma linha por atividade: a trilha como linhas separadas por trecho (pausa/tela apagada não liga dois trechos),
--- com início, fim e distância. Como é security_invoker, a RLS de track_points vale aqui também.
+-- Uma linha por atividade: a trilha como linhas separadas por trecho (pausa/tela apagada nao liga dois trechos),
+-- com inicio, fim e distancia. Como e security_invoker, a RLS de track_points vale aqui tambem.
 create view public.activity_tracks with (security_invoker = true) as
 select activity_id,
        owner_id,
@@ -22,8 +22,8 @@ from (
 ) s
 group by activity_id, owner_id;
 
--- Totais de cabo por técnico e período. Soma os metros que o técnico viu no app (length/reserve/total),
--- para o painel e o celular mostrarem o mesmo número.
+-- Totais de cabo por tecnico e periodo. Soma os metros que o tecnico viu no app (length/reserve/total),
+-- para o painel e o celular mostrarem o mesmo numero.
 create function public.cable_totals(p_from timestamptz, p_to timestamptz)
 returns table (owner_id uuid, technician text, cables bigint, length_m numeric, reserve_m numeric, total_m numeric)
 language sql stable security invoker set search_path = public as
