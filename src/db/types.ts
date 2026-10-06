@@ -128,6 +128,8 @@ export interface TrackPoint extends BaseRecord {
   accuracy: number;
   timestamp: number;
   speed?: number;
+  /** Trecho da gravação: pausar, retomar ou a tela apagar abre um trecho novo (não se liga com linha reta ao anterior). */
+  segment?: number;
 }
 
 /** Configurações do aparelho (uma linha por chave). */

@@ -63,6 +63,7 @@ export const SETTING_KEYS = {
   cableTypes: 'cableTypes',
   cableDraft: 'cableDraft',
   lastCable: 'lastCable',
+  trackState: 'trackState',
 } as const;
 
 export async function getSetting<T>(key: string, fallback: T): Promise<T> {
