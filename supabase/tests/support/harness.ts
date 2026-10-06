@@ -98,6 +98,8 @@ async function impersonate(c: pg.PoolClient, who: Who) {
 
 export interface TestDb {
   name: string;
+  /** URL de conexao deste banco de teste (o PostgREST dos testes de integracao usa esta). */
+  url: string;
   /** roda `fn` numa transação personificada como `who`; tudo é desfeito no fim (rollback) */
   run<T>(who: Who, fn: (tx: Tx) => Promise<T>): Promise<T>;
   /** SQL como superusuário, gravado de verdade (para montar cenários) */
@@ -157,6 +159,7 @@ export async function createTestDb(): Promise<TestDb> {
 
   return {
     name,
+    url: url.toString(),
     admin,
     async run(who, fn) {
       const c = await pool.connect();

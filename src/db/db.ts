@@ -80,6 +80,10 @@ export const SETTING_KEYS = {
   accountProfile: 'accountProfile',
   // primeira conta que usou o aparelho: dona dos registros feitos antes de existir login
   deviceOwner: 'deviceOwner',
+  // sincronizacao (Fase 2): ate onde ja baixamos de cada tabela, registros que o servidor recusou, ultimo resultado
+  syncCursor: 'syncCursor',
+  syncBlocked: 'syncBlocked',
+  syncLast: 'syncLast',
 } as const;
 
 export async function getSetting<T>(key: string, fallback: T): Promise<T> {

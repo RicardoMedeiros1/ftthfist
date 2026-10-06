@@ -13,7 +13,7 @@ export const BACKUP_VERSION = 1;
 const DATA_FILE = 'backup.json';
 
 /** Configurações que pertencem ao aparelho: nunca entram no backup nem são sobrescritas ao restaurar. */
-export const DEVICE_SETTINGS = new Set(['lastBackupAt', 'backupDismissedAt', 'mapView', 'cableDraft', 'trackState', 'account', 'accountProfile', 'deviceOwner']);
+export const DEVICE_SETTINGS = new Set(['lastBackupAt', 'backupDismissedAt', 'mapView', 'cableDraft', 'trackState', 'account', 'accountProfile', 'deviceOwner', 'syncCursor', 'syncBlocked', 'syncLast']);
 
 export type PhotoMeta = Omit<Photo, 'blob'> & { file: string; mime: string };
 
