@@ -49,6 +49,13 @@ export default function SettingsScreen() {
         {justSaved && <div className="ok-note" role="status">Salvo.</div>}
       </form>
       <CableTypesEditor />
+      <section className="card" aria-label="Exportar">
+        <div className="card-title">Exportar para Google Earth</div>
+        <div className="card-meta">Gera um arquivo KMZ (ou GeoJSON) com a rede, os cabos e as trilhas.</div>
+        <button className="btn btn-block" onClick={() => navigate('exportar')}>
+          Exportar rede
+        </button>
+      </section>
       <section className="card" aria-label="Backup">
         <div className="card-title">Backup e restauração</div>
         <div className="card-meta">

@@ -7,6 +7,7 @@ describe('parseRoute', () => {
     expect(parseRoute('#/atividades/nova')).toBe('nova-atividade');
     expect(parseRoute('#/elemento/novo')).toBe('novo-elemento');
     expect(parseRoute('#/backup')).toBe('backup');
+    expect(parseRoute('#/exportar')).toBe('exportar');
     expect(parseRoute('#/cabo/novo')).toBe('novo-cabo');
     expect(parseRoute('#/trilha')).toBe('trilha');
     expect(parseRoute('#/config')).toBe('config');
@@ -40,5 +41,14 @@ describe('parseLocation (cabo por id)', () => {
     expect(parseLocation('#/cabo/novo')).toEqual({ route: 'novo-cabo' });
     expect(parseLocation('#/cabo/a/b')).toEqual({ route: 'map' });
     expect(parseLocation('#/cabo/')).toEqual({ route: 'map' });
+  });
+});
+
+describe('parseLocation (exportar)', () => {
+  it('sem id exporta a rede; com id, uma atividade', () => {
+    expect(parseLocation('#/exportar')).toEqual({ route: 'exportar' });
+    expect(parseLocation('#/exportar/abc-1')).toEqual({ route: 'exportar', id: 'abc-1' });
+    expect(parseLocation('#/exportar/a/b')).toEqual({ route: 'map' });
+    expect(parseLocation('#/exportar/')).toEqual({ route: 'map' });
   });
 });

@@ -2,8 +2,11 @@ import { useSyncExternalStore } from 'react';
 
 // Navegação por hash: funciona em qualquer subpasta (GitHub Pages) e o botão
 // "voltar" do celular segue o histórico do app.
-export type Route = 'map' | 'atividades' | 'nova-atividade' | 'novo-elemento' | 'elemento' | 'novo-cabo' | 'cabo' | 'trilha' | 'backup' | 'config';
+export type Route = 'map' | 'atividades' | 'nova-atividade' | 'novo-elemento' | 'elemento' | 'novo-cabo' | 'cabo' | 'trilha' | 'backup' | 'exportar' | 'config';
 
+type IdRoute = 'elemento' | 'cabo' | 'exportar';
+
+// 'exportar' sem id exporta a rede inteira; com id, só aquela atividade.
 const STATIC_HASH: Record<Exclude<Route, 'elemento' | 'cabo'>, string> = {
   map: '#/',
   atividades: '#/atividades',
@@ -12,18 +15,20 @@ const STATIC_HASH: Record<Exclude<Route, 'elemento' | 'cabo'>, string> = {
   'novo-cabo': '#/cabo/novo',
   trilha: '#/trilha',
   backup: '#/backup',
+  exportar: '#/exportar',
   config: '#/config',
 };
 
 export interface AppLocation {
   route: Route;
-  /** Nas rotas 'elemento' e 'cabo': id do registro aberto. */
+  /** Nas rotas 'elemento', 'cabo' e 'exportar': id do registro aberto. */
   id?: string;
 }
 
-const WITH_ID: { route: 'elemento' | 'cabo'; re: RegExp }[] = [
+const WITH_ID: { route: IdRoute; re: RegExp }[] = [
   { route: 'elemento', re: /^#\/elemento\/([^/]+)$/ },
   { route: 'cabo', re: /^#\/cabo\/([^/]+)$/ },
+  { route: 'exportar', re: /^#\/exportar\/([^/]+)$/ },
 ];
 
 export function parseLocation(hash: string): AppLocation {
@@ -47,6 +52,7 @@ export function parseRoute(hash: string): Route {
 
 function hashFor(route: Route, id?: string): string {
   if (route === 'elemento' || route === 'cabo') return id ? `#/${route}/${encodeURIComponent(id)}` : STATIC_HASH.map;
+  if (route === 'exportar' && id) return `#/exportar/${encodeURIComponent(id)}`;
   return STATIC_HASH[route];
 }
 
@@ -84,7 +90,7 @@ export function useRoute(): Route {
   );
 }
 
-/** Id do elemento na rota 'elemento' (undefined nas outras). */
+/** Id do registro nas rotas com id: 'elemento', 'cabo' e 'exportar' (undefined nas outras). */
 export function useRouteId(): string | undefined {
   return useSyncExternalStore(
     subscribe,

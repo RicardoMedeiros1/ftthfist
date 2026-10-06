@@ -1,6 +1,7 @@
 import JSZip from 'jszip';
 import type { RotaFibraDB } from '../../db/db';
 import type { Activity, Cable, NetworkElement, Photo, SettingEntry, TrackPoint } from '../../db/types';
+import { plural } from '../../lib/format';
 import { isElementType } from '../elements/meta';
 
 // Backup completo do aparelho: um .zip com os dados em JSON e as fotos como arquivos.
@@ -379,7 +380,6 @@ export async function dataSummary(database: RotaFibraDB): Promise<DataSummary> {
   return { activities, elements, cables, photos, trackPoints, photoBytes, firstDataAt: first };
 }
 
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 /** "3 atividades · 12 elementos · 8 fotos" (só o que não é zero). */
 export function describeCounts(c: Pick<DataSummary, 'activities' | 'elements' | 'cables' | 'photos' | 'trackPoints'>): string {

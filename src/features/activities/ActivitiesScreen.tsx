@@ -46,6 +46,9 @@ function ActivityCard({
             Reabrir
           </button>
         )}
+        <button className="btn btn-small" onClick={() => navigate('exportar', { id: a.id })}>
+          Exportar
+        </button>
       </div>
     </article>
   );

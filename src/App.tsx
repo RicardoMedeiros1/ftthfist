@@ -2,6 +2,7 @@ import UpdatePrompt from './components/UpdatePrompt';
 import SavedNotice from './features/elements/SavedNotice';
 import BackupReminder from './features/export/BackupReminder';
 import BackupScreen from './features/export/BackupScreen';
+import ExportScreen from './features/export/ExportScreen';
 import { requestPersistence } from './lib/storage';
 import ActivitiesScreen from './features/activities/ActivitiesScreen';
 import NewActivityScreen from './features/activities/NewActivityScreen';
@@ -54,6 +55,7 @@ export default function App() {
       <TrackSync />
       {route === 'config' && <SettingsScreen />}
       {route === 'backup' && <BackupScreen />}
+      {route === 'exportar' && <ExportScreen />}
       <div className="toast-host">
         <SavedNotice />
         <UpdatePrompt />

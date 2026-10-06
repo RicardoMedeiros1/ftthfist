@@ -48,3 +48,6 @@ export function formatClock(ms: number): string {
 export function formatKm(meters: number): string {
   return meters < 1000 ? `${Math.round(meters)} m` : `${(meters / 1000).toFixed(2).replace('.', ',')} km`;
 }
+
+/** "1 foto" / "2 fotos". */
+export const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;

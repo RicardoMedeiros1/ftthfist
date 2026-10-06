@@ -29,3 +29,15 @@ export function downloadFile(file: File): void {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
+
+/**
+ * O Web Share só aceita alguns tipos de arquivo; o navegador decide. Tenta o tipo próprio do arquivo e,
+ * se não for aceito, tipos mais genéricos com o mesmo nome. Devolve null quando nenhum serve (→ baixar).
+ */
+export function shareableFile(blob: Blob, name: string, mimes: string[]): File | null {
+  for (const type of mimes) {
+    const file = new File([blob], name, { type });
+    if (canShareFile(file)) return file;
+  }
+  return null;
+}
