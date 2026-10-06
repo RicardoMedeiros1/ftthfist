@@ -26,9 +26,15 @@ supabase/
 1. No [supabase.com](https://supabase.com), crie um projeto (plano gratuito). Guarde a senha do banco.
 2. **Desligue o cadastro público:** *Authentication → Sign In / Providers* e desmarque *Allow new users to sign up*.
    (Os nomes dos menus mudam de vez em quando; o que importa é: ninguém de fora pode criar conta.)
-3. **Aplique as migrations, em ordem.** Duas opções:
-   - *SQL Editor:* abra cada arquivo de `supabase/migrations/` na ordem do nome, cole e clique em **Run**.
-   - *CLI:* `supabase login`, `supabase link --project-ref <ref>`, `supabase db push`.
+3. **Aplique as migrations, em ordem** (rode **uma vez só**). `supabase db push` não é um arquivo: é um comando do
+   Supabase CLI, que só vale a pena se você tiver o repositório no seu computador. Duas opções:
+   - *SQL Editor (a mais simples, não precisa instalar nada):* no painel do Supabase, **SQL Editor → New query**, cole o
+     conteúdo de cada arquivo de `supabase/migrations/` **na ordem do nome** (`...150000_perfis`, `...150100_dados_de_campo`,
+     `...150200_fotos`, `...150300_painel`) e clique em **Run**. No GitHub os arquivos ficam em
+     `supabase/migrations/` (na branch em que estiverem publicados).
+   - *CLI* (com o repositório no computador, dentro da pasta do projeto): `npx supabase init`, `npx supabase login`,
+     `npx supabase link --project-ref <ref>` e `npx supabase db push`. O `<ref>` é o trecho da URL do projeto
+     (`https://<ref>.supabase.co`).
 4. **Crie os usuários:** *Authentication → Users → Add user → Create new user*, com e-mail e senha
    (marque *Auto Confirm User*). O perfil nasce sozinho como `tecnico`; ajuste o nome em *Table Editor → profiles → full_name*.
 5. **Defina os papéis.** O primeiro admin você faz no *SQL Editor*:
