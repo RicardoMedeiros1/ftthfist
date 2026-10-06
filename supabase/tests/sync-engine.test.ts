@@ -1,8 +1,6 @@
 import 'fake-indexeddb/auto';
 import { PostgrestClient } from '@supabase/postgrest-js';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { spawn, type ChildProcess } from 'node:child_process';
-import { createHmac } from 'node:crypto';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { setActingUser } from '../../src/lib/ownership';
 import { CycleAbort, type Role, type Tuning } from '../../src/features/sync/engine';
@@ -15,50 +13,26 @@ import { SETTING_KEYS } from '../../src/db/db';
 import type { TrackPoint } from '../../src/db/types';
 import { newBase } from '../../src/db/db';
 import { IDS, createTestDb, type Person, type TestDb } from './support/harness';
+import { POSTGREST_BIN, mint, startPostgrest } from './support/postgrest';
 
 // O motor de sincronizacao do app (o mesmo codigo do celular) contra o que o Supabase tem de verdade:
 // Postgres 16 + PostGIS com as migrations, RLS e triggers, atras de um PostgREST real e do cliente supabase-js/postgrest-js.
 // Roda so com TEST_DATABASE_URL e POSTGREST_BIN (caminho do binario do PostgREST) definidos; veja supabase/README.md.
 
-const BIN = process.env.POSTGREST_BIN;
-const SECRET = 'segredo-so-para-teste-local-com-mais-de-32-caracteres';
-const enabled = Boolean(process.env.TEST_DATABASE_URL && BIN);
-
-const b64 = (o: unknown) => Buffer.from(JSON.stringify(o)).toString('base64url');
-function mint(sub: string) {
-  const h = b64({ alg: 'HS256', typ: 'JWT' });
-  const p = b64({ sub, role: 'authenticated', exp: Math.floor(Date.now() / 1000) + 3600 });
-  return `${h}.${p}.${createHmac('sha256', SECRET).update(`${h}.${p}`).digest('base64url')}`;
-}
+const enabled = Boolean(process.env.TEST_DATABASE_URL && POSTGREST_BIN);
 
 describe.skipIf(!enabled)('motor de sincronização contra Postgres + PostgREST de verdade', () => {
   let db: TestDb;
-  let pgrst: ChildProcess;
+  let stop: () => void;
   let rest: string;
-  let log = '';
 
   beforeAll(async () => {
     db = await createTestDb();
-    const port = 3200 + Math.floor(Math.random() * 500);
-    rest = `http://127.0.0.1:${port}`;
-    pgrst = spawn(BIN!, [], {
-      env: { ...process.env, PGRST_DB_URI: db.url, PGRST_DB_SCHEMAS: 'public', PGRST_DB_ANON_ROLE: 'anon', PGRST_JWT_SECRET: SECRET, PGRST_SERVER_HOST: '127.0.0.1', PGRST_SERVER_PORT: String(port) },
-    });
-    pgrst.stderr?.on('data', (d) => (log += String(d)));
-    pgrst.stdout?.on('data', (d) => (log += String(d)));
-    for (let i = 0; i < 100; i++) {
-      try {
-        if ((await fetch(`${rest}/`)).ok) return;
-      } catch {
-        /* ainda subindo */
-      }
-      await new Promise((r) => setTimeout(r, 150));
-    }
-    throw new Error(`PostgREST não subiu:\n${log}`);
+    ({ rest, stop } = await startPostgrest(db));
   }, 30_000);
 
   afterAll(async () => {
-    pgrst?.kill();
+    stop?.();
     await db?.drop();
   });
 

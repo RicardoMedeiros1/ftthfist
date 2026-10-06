@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react';
 
 // Navegação por hash: funciona em qualquer subpasta (GitHub Pages) e o botão
 // "voltar" do celular segue o histórico do app.
-export type Route = 'map' | 'atividades' | 'nova-atividade' | 'novo-elemento' | 'elemento' | 'novo-cabo' | 'cabo' | 'atividade' | 'trilha' | 'backup' | 'exportar' | 'camadas' | 'camada' | 'referencia' | 'conta' | 'sincronizacao' | 'config';
+export type Route = 'map' | 'atividades' | 'nova-atividade' | 'novo-elemento' | 'elemento' | 'novo-cabo' | 'cabo' | 'atividade' | 'trilha' | 'backup' | 'exportar' | 'camadas' | 'camada' | 'referencia' | 'conta' | 'sincronizacao' | 'pessoas' | 'alteracoes' | 'config';
 
 type IdRoute = 'elemento' | 'cabo' | 'atividade' | 'exportar' | 'camada' | 'referencia';
 
@@ -19,6 +19,8 @@ const STATIC_HASH: Record<Exclude<Route, 'elemento' | 'cabo' | 'atividade' | 'ca
   camadas: '#/camadas',
   conta: '#/conta',
   sincronizacao: '#/sincronizacao',
+  pessoas: '#/pessoas',
+  alteracoes: '#/alteracoes',
   config: '#/config',
 };
 

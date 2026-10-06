@@ -18,6 +18,8 @@ import MapCommandHost from './MapCommandHost';
 import ReferenceLayers from '../reference/ReferenceLayers';
 import { references } from '../reference/referenceRepo';
 import TrackLayer from '../tracking/TrackLayer';
+import RemoteTrackBar from '../admin/RemoteTrackBar';
+import RemoteTrackLayer from '../admin/RemoteTrackLayer';
 import { useTrack } from '../tracking/trackRecorder';
 import { navigate } from '../../lib/route';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -207,6 +209,7 @@ export default function MapScreen() {
         {fix && <LocationMarker fix={fix} />}
         <ReferenceLayers />
         <TrackLayer />
+        <RemoteTrackLayer />
         <CablesLayer />
         <ElementsLayer />
         <CableDrawLayer />
@@ -219,6 +222,7 @@ export default function MapScreen() {
       </MapContainer>
 
       <ActivityBar />
+      <RemoteTrackBar />
 
       <SyncPill />
 

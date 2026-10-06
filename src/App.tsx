@@ -6,6 +6,8 @@ import ExportScreen from './features/export/ExportScreen';
 import AccountScreen from './features/account/AccountScreen';
 import { accountStore } from './features/account/accountStore';
 import SyncScreen from './features/sync/SyncScreen';
+import AlteracoesScreen from './features/admin/AlteracoesScreen';
+import PessoasScreen from './features/admin/PessoasScreen';
 import { initSync } from './features/sync/syncRuntime';
 import CamadasScreen from './features/reference/CamadasScreen';
 import LayerScreen from './features/reference/LayerScreen';
@@ -72,6 +74,8 @@ export default function App() {
       {route === 'exportar' && <ExportScreen />}
       {route === 'conta' && <AccountScreen />}
       {route === 'sincronizacao' && <SyncScreen />}
+      {route === 'pessoas' && <PessoasScreen />}
+      {route === 'alteracoes' && <AlteracoesScreen />}
       {route === 'camadas' && <CamadasScreen />}
       {route === 'camada' && <LayerScreen />}
       {route === 'referencia' && <ReferenceFeatureScreen />}

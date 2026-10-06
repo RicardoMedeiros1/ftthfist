@@ -1,0 +1,14 @@
+.people-list, .change-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.person .chips button { min-height: 48px; }
+.person[data-group='pendente'] { border-color: var(--accent); }
+.change-fields { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 15px; overflow-wrap: anywhere; }
+.remote-track-bar {
+  position: absolute; z-index: 1000;
+  top: calc(76px + env(safe-area-inset-top));
+  left: calc(10px + env(safe-area-inset-left)); right: calc(10px + env(safe-area-inset-right));
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  padding: 8px 12px; border: 3px solid #000; border-radius: 14px;
+  background: #fff; color: #000; box-shadow: 0 2px 8px rgba(0,0,0,.5);
+}
+.remote-track-text { flex: 1 1 160px; min-width: 0; display: flex; flex-direction: column; font-size: 15px; overflow-wrap: anywhere; }
+.remote-track-bar .btn { min-height: 48px; }

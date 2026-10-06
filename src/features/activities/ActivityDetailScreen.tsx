@@ -2,6 +2,8 @@ import { useMemo, useState, type FormEvent } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { AdminBanner, EditedByNote } from '../../components/AdminNote';
 import NotMineNote from '../../components/NotMineNote';
+import { useAccount } from '../account/accountStore';
+import { adminApi, remoteTrackStore } from '../admin/adminRuntime';
 import ScreenShell from '../../components/ScreenShell';
 import { db } from '../../db/db';
 import type { Cable, NetworkElement, Photo } from '../../db/types';
@@ -32,6 +34,7 @@ export default function ActivityDetailScreen() {
   const photos = useLiveQuery(() => (id ? db.photos.where('activityId').equals(id).filter((p) => !p.deleted).toArray() : Promise.resolve([] as Photo[])), [id]);
   const mine = useIsMine(a);
   const editable = useCanEdit(a);
+  const isAdmin = useAccount((acc) => acc.status === 'ativo' && acc.profile?.role === 'admin');
 
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState('');
@@ -203,6 +206,17 @@ export default function ActivityDetailScreen() {
       <div className="detail-actions">
         <button className="btn" disabled={!bounds} onClick={seeOnMap}>Ver no mapa</button>
         <button className="btn" onClick={() => navigate('exportar', { id: a.id })}>Exportar</button>
+        {isAdmin && !mine && adminApi && (
+          <button
+            className="btn"
+            onClick={() => {
+              void remoteTrackStore.show(a.id, `${a.title} · ${a.technician}`);
+              navigate('map');
+            }}
+          >
+            Ver trilha GPS
+          </button>
+        )}
       </div>
 
       <EditedByNote record={a} />
