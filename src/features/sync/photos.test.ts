@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { setActingUser } from '../../lib/ownership';
+import { setActingRole, setActingUser } from '../../lib/ownership';
 import { photoRepo } from '../elements/photoRepo';
 import { CycleAbort, createSyncEngine, type Role } from './engine';
 import { createPhotoFiles, needsDownload } from './photoFiles';
@@ -19,7 +19,7 @@ beforeEach(() => {
   server.addUser('ana');
   server.addUser('bia');
 });
-afterEach(() => setActingUser(null));
+afterEach(() => { setActingUser(null); setActingRole(null); });
 
 /** Ana com o trabalho de campo e 2 fotos no poste P-1 (tudo ainda no aparelho). */
 async function anaWithPhotos(ana: Device) {
@@ -52,7 +52,7 @@ describe('enviar fotos', () => {
     const local = (await ana.db.photos.get(a.id))!;
     expect(local).toMatchObject({ syncStatus: 'synced', storagePath: `ana/${a.id}.jpg` });
     expect(await bytesOf(local.blob!)).toEqual([1, 2, 3]);
-    expect(await ana.counts()).toEqual({ pending: 0, blocked: 0 });
+    expect(await ana.counts()).toMatchObject({ pending: 0, blocked: 0 });
   });
 
   it('sem nada novo, não sobe arquivo nenhum de novo', async () => {
@@ -91,7 +91,7 @@ describe('falhas no envio de fotos', () => {
     await ana.sync();
     expect(callsOf('upload')).toHaveLength(1); // só o que faltava
     expect(server.files.size).toBe(2);
-    expect(await ana.counts()).toEqual({ pending: 0, blocked: 0 });
+    expect(await ana.counts()).toMatchObject({ pending: 0, blocked: 0 });
   });
 
   it('a resposta do REGISTRO se perdeu: tentar de novo não reenvia o arquivo nem duplica', async () => {
@@ -116,7 +116,7 @@ describe('falhas no envio de fotos', () => {
     await ana.sync();
     expect(callsOf('upload')).toEqual([]);
     expect(server.count('photos')).toBe(2);
-    expect(await ana.counts()).toEqual({ pending: 0, blocked: 0 });
+    expect(await ana.counts()).toMatchObject({ pending: 0, blocked: 0 });
     expect(server.conflicts).toEqual([]);
   });
 

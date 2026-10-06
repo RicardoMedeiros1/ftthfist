@@ -88,8 +88,12 @@ export function createSyncEngine(deps: SyncDeps, tuning: Partial<Tuning> = {}) {
   const getSetting = async <T>(k: string, fallback: T): Promise<T> => ((await db.settings.get(k))?.value as T | undefined) ?? fallback;
   const setSetting = (k: string, value: unknown) => db.settings.put({ key: k, value });
 
-  /** Pode ser enviado por quem esta logado? So o que e dele (ou ainda sem dono), e so se o papel permite escrever. */
-  const mine = (r: BaseRecord, who: Who) => !r.ownerId || r.ownerId === who.userId;
+  /**
+   * Pode ser enviado por quem esta logado? O que e dele (ou ainda sem dono). O ADMINISTRADOR tambem envia as suas
+   * alteracoes em registros de outros, mas so os que JA EXISTEM no servidor (vieram de la): um registro de outro tecnico que
+   * nunca chegou ao servidor (aparelho compartilhado) seria criado em nome do administrador.
+   */
+  const mine = (r: BaseRecord, who: Who) => !r.ownerId || r.ownerId === who.userId || (who.role === 'admin' && !!r.serverUpdatedAt);
   const canWrite = (who: Who) => who.role === 'tecnico' || who.role === 'admin';
 
   // Sem `async`: o liveQuery do Dexie so rastreia as tabelas lidas se a cadeia de promessas for a do proprio Dexie
@@ -99,11 +103,13 @@ export function createSyncEngine(deps: SyncDeps, tuning: Partial<Tuning> = {}) {
 
   // ---------- contagens (para o indicador "N pendentes") ----------
 
-  async function counts(who: Who): Promise<{ pending: number; blocked: number }> {
-    if (!canWrite(who)) return { pending: 0, blocked: 0 };
+  /** `tracks` = quantos dos pendentes sao pontos de trilha (gravam a cada poucos segundos: o envio deles e espacado). */
+  async function counts(who: Who): Promise<{ pending: number; blocked: number; tracks: number }> {
+    if (!canWrite(who)) return { pending: 0, blocked: 0, tracks: 0 };
     const map = await blockedMap();
     let pending = 0;
     let blocked = 0;
+    let tracks = 0;
     for (const t of PUSH_ORDER) {
       await table(t)
         .where('syncStatus')
@@ -111,10 +117,13 @@ export function createSyncEngine(deps: SyncDeps, tuning: Partial<Tuning> = {}) {
         .each((r) => {
           if (!mine(r, who)) return;
           if (isBlocked(map, t, r)) blocked++;
-          else pending++;
+          else {
+            pending++;
+            if (t === 'trackPoints') tracks++;
+          }
         });
     }
-    return { pending, blocked };
+    return { pending, blocked, tracks };
   }
 
   async function blockedList(who: Who): Promise<BlockedInfo[]> {

@@ -21,10 +21,13 @@ export function cableChoicesNear(
   cables: Cable[],
   maxMeters = RESERVE_LINK_METERS,
   include?: string,
+  /** Dono da reserva: ela so liga a cabo do MESMO dono (padrao: eu). O administrador editando a reserva de um tecnico passa o dono dela. */
+  ownerId?: string,
 ): CableChoice[] {
   const out: CableChoice[] = [];
+  const sameOwner = (c: Cable) => (ownerId !== undefined ? !c.ownerId || c.ownerId === ownerId : isMine(c));
   for (const c of cables) {
-    if (c.deleted || (!isMine(c) && c.id !== include)) continue; // reserva so liga a cabo meu
+    if (c.deleted || (!sameOwner(c) && c.id !== include)) continue; // reserva so liga a cabo do mesmo dono
     const near = nearestCableVertex(pos, [c], maxMeters);
     if (near) out.push({ id: c.id, label: cableLabel(c), distance: near.distance });
     else if (c.id === include) out.push({ id: c.id, label: cableLabel(c), distance: Infinity });

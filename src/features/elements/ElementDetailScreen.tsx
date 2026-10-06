@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import { AdminBanner, EditedByNote } from '../../components/AdminNote';
 import NotMineNote from '../../components/NotMineNote';
 import ScreenShell from '../../components/ScreenShell';
 import { db } from '../../db/db';
@@ -11,7 +12,8 @@ import { goBack, navigate, useRouteId } from '../../lib/route';
 import { useOnlineStatus } from '../../lib/useOnlineStatus';
 import { needsDownload } from '../sync/photoFiles';
 import { photoFiles } from '../sync/syncRuntime';
-import { useIsMine } from '../../lib/useOwnership';
+import { adminDeleteText } from '../../lib/ownership';
+import { useCanEdit, useIsMine } from '../../lib/useOwnership';
 import { KIND_LABEL } from '../activities/labels';
 import { cableChoicesNear } from '../cables/cableChoices';
 import { cableStore } from '../cables/cableRepo';
@@ -44,7 +46,8 @@ export default function ElementDetailScreen() {
     async () => (el ? ((await db.activities.get(el.activityId)) ?? null) : null),
     [el?.activityId],
   );
-  const mine = useIsMine(el);
+  const mine = useIsMine(el); // foto e dono: so o dono acrescenta foto
+  const editable = useCanEdit(el); // alterar/mover/excluir: o dono ou o administrador
   const technician = useTechnician();
   const cables = useLiveQuery(() => cableStore.list());
 
@@ -165,7 +168,7 @@ export default function ElementDetailScreen() {
             onChange={setValues}
             cableChoices={
               el.type === 'reserva' && cables
-                ? cableChoicesNear(el, cables, undefined, (el.attrs as { cableId?: string }).cableId)
+                ? cableChoicesNear(el, cables, undefined, (el.attrs as { cableId?: string }).cableId, el.ownerId)
                 : []
             }
           />
@@ -224,12 +227,16 @@ export default function ElementDetailScreen() {
 
       {error && <div className="alert" role="alert">{error}</div>}
 
-      {mine ? (
-        <div className="detail-actions">
-          <button className="btn" onClick={startEdit}>Editar</button>
-          <button className="btn" onClick={startMove}>Mover</button>
-          <button className="btn btn-danger" onClick={() => setConfirmDelete(true)}>Excluir</button>
-        </div>
+      <EditedByNote record={el} />
+      {editable ? (
+        <>
+          {!mine && <AdminBanner author={el.createdBy} what="elemento" />}
+          <div className="detail-actions">
+            <button className="btn" onClick={startEdit}>Editar</button>
+            <button className="btn" onClick={startMove}>Mover</button>
+            <button className="btn btn-danger" onClick={() => setConfirmDelete(true)}>Excluir</button>
+          </div>
+        </>
       ) : (
         <NotMineNote author={el.createdBy} what="elemento" />
       )}
@@ -238,16 +245,15 @@ export default function ElementDetailScreen() {
         <PhotoViewer
           item={viewing}
           onClose={() => setViewerId(null)}
-          onDelete={mine ? () => photoStore.remove(viewing.id) : undefined}
+          onDelete={editable ? () => photoStore.remove(viewing.id) : undefined}
         />
       )}
       {confirmDelete && (
         <ConfirmDialog
           title={`Excluir ${meta.label}${el.code ? ` ${el.code}` : ''}?`}
           message={
-            items.length > 0
-              ? `As ${items.length} foto(s) deste elemento também serão excluídas.`
-              : 'O elemento será removido do mapa.'
+            (!mine ? `${adminDeleteText('elemento', el.createdBy)} ` : '') +
+            (items.length > 0 ? `As ${items.length} foto(s) deste elemento também serão excluídas.` : 'O elemento será removido do mapa.')
           }
           confirmLabel="Excluir"
           danger

@@ -43,6 +43,8 @@ function fromCommon(row: RemoteRow): BaseRecord {
     deleted: row.deleted === true,
     syncStatus: 'synced',
     ...(row.owner_id ? { ownerId: String(row.owner_id) } : {}),
+    ...(row.updated_by ? { updatedBy: String(row.updated_by) } : {}),
+    ...(row.server_updated_at ? { serverUpdatedAt: String(row.server_updated_at) } : {}),
   };
 }
 

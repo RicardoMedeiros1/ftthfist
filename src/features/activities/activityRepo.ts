@@ -1,6 +1,6 @@
 import { db, newBase, touch, type RotaFibraDB } from '../../db/db';
 import type { Activity, ActivityKind } from '../../db/types';
-import { isMine, notMineMessage } from '../../lib/ownership';
+import { canEdit, isMine, notMineMessage } from '../../lib/ownership';
 
 export type ActivityRuleCode = 'ALREADY_OPEN' | 'TITLE_REQUIRED' | 'TECHNICIAN_REQUIRED' | 'NOT_FOUND' | 'NOT_OWNER';
 
@@ -81,7 +81,7 @@ export function activityRepo(database: RotaFibraDB = db) {
       await database.transaction('rw', database.activities, async () => {
         const a = await database.activities.get(id);
         if (!a || a.deleted) throw new ActivityRuleError('NOT_FOUND', 'Atividade não encontrada.');
-        if (!isMine(a)) throw new ActivityRuleError('NOT_OWNER', notMineMessage('atividade'));
+        if (!canEdit(a)) throw new ActivityRuleError('NOT_OWNER', notMineMessage('atividade'));
         if (a.status === 'concluida') return;
         await database.activities.update(id, touch<Activity>({ status: 'concluida', endedAt: Date.now() }));
       });
@@ -91,9 +91,14 @@ export function activityRepo(database: RotaFibraDB = db) {
       await database.transaction('rw', database.activities, async () => {
         const a = await database.activities.get(id);
         if (!a || a.deleted) throw new ActivityRuleError('NOT_FOUND', 'Atividade não encontrada.');
-        if (!isMine(a)) throw new ActivityRuleError('NOT_OWNER', notMineMessage('atividade'));
+        if (!canEdit(a)) throw new ActivityRuleError('NOT_OWNER', notMineMessage('atividade'));
         if (a.status === 'aberta') return;
-        const open = await findOpen();
+        // Uma aberta por TECNICO: reabrir a atividade de alguem (administrador) so e barrado se ESSE tecnico ja tem outra aberta.
+        const open = await database.activities
+          .where('status')
+          .equals('aberta')
+          .filter((x) => !x.deleted && (x.ownerId ?? null) === (a.ownerId ?? null))
+          .first();
         if (open) throw alreadyOpen(open);
         // `undefined` remove o campo no Dexie.
         await database.activities.update(id, touch<Activity>({ status: 'aberta', endedAt: undefined }));

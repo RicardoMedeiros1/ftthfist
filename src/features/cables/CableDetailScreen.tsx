@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import { AdminBanner, EditedByNote } from '../../components/AdminNote';
 import NotMineNote from '../../components/NotMineNote';
 import ScreenShell from '../../components/ScreenShell';
 import { db } from '../../db/db';
@@ -8,7 +9,8 @@ import type { NetworkElement } from '../../db/types';
 import { formatDateTime } from '../../lib/format';
 import { distanceMeters, formatMeters } from '../../lib/geo';
 import { goBack, navigate, useRouteId } from '../../lib/route';
-import { useIsMine } from '../../lib/useOwnership';
+import { adminDeleteText } from '../../lib/ownership';
+import { useCanEdit, useIsMine } from '../../lib/useOwnership';
 import { KIND_LABEL } from '../activities/labels';
 import { draftStore } from '../elements/draftStore';
 import { elementStore } from '../elements/elementRepo';
@@ -51,6 +53,7 @@ export default function CableDetailScreen() {
   }, [cable]);
   const types = useCableTypes();
   const mine = useIsMine(cable);
+  const editable = useCanEdit(cable); // o dono ou o administrador
 
   const [editing, setEditing] = useState(false);
   const [cableType, setCableType] = useState('');
@@ -205,12 +208,16 @@ export default function CableDetailScreen() {
 
       {error && <div className="alert" role="alert">{error}</div>}
 
-      {mine ? (
-        <div className="detail-actions">
-          <button className="btn" onClick={startEdit}>Editar</button>
-          <button className="btn" onClick={editPath}>Traçado</button>
-          <button className="btn btn-danger" onClick={() => setConfirmDelete(true)}>Excluir</button>
-        </div>
+      <EditedByNote record={cable} />
+      {editable ? (
+        <>
+          {!mine && <AdminBanner author={cable.createdBy} what="cabo" />}
+          <div className="detail-actions">
+            <button className="btn" onClick={startEdit}>Editar</button>
+            <button className="btn" onClick={editPath}>Traçado</button>
+            <button className="btn btn-danger" onClick={() => setConfirmDelete(true)}>Excluir</button>
+          </div>
+        </>
       ) : (
         <NotMineNote author={cable.createdBy} what="cabo" />
       )}
@@ -224,9 +231,10 @@ export default function CableDetailScreen() {
         <ConfirmDialog
           title={`Excluir cabo ${cable.cableType} · ${cable.fiberCount} fibras?`}
           message={
-            reserves && reserves.length > 0
+            (!mine ? `${adminDeleteText('cabo', cable.createdBy)} ` : '') +
+            (reserves && reserves.length > 0
               ? `As ${reserves.length} reserva(s) continuam no mapa, sem cabo. Os postes não são excluídos.`
-              : 'O cabo será removido do mapa. Os postes não são excluídos.'
+              : 'O cabo será removido do mapa. Os postes não são excluídos.')
           }
           confirmLabel="Excluir"
           danger

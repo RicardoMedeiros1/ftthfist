@@ -12,8 +12,8 @@ function harness(over: Partial<SyncStoreDeps> = {}) {
   let who: Who | null = ANA;
   const timers: Array<{ at: number; fn: () => void; dead: boolean }> = [];
   const saved = new Map<string, unknown>();
-  const counts = { pending: 0, blocked: 0 };
-  let onCounts: ((c: { pending: number; blocked: number }) => void) | null = null;
+  const counts = { pending: 0, blocked: 0, tracks: 0 };
+  let onCounts: ((c: { pending: number; blocked: number; tracks?: number }) => void) | null = null;
   const cb: Record<'online' | 'visible' | 'every' | 'hidden', Array<() => void>> = { online: [], visible: [], every: [], hidden: [] };
   let bgRequests = 0;
   const cycles: string[] = [];
@@ -79,10 +79,11 @@ function harness(over: Partial<SyncStoreDeps> = {}) {
       now = end;
     },
     /** O banco local mudou: avisa as novas contagens (como o liveQuery do Dexie). */
-    changeCounts(pending: number, blocked = 0) {
+    changeCounts(pending: number, blocked = 0, tracks = 0) {
       counts.pending = pending;
       counts.blocked = blocked;
-      onCounts?.({ pending, blocked });
+      counts.tracks = tracks;
+      onCounts?.({ pending, blocked, tracks });
     },
     fire: (kind: 'online' | 'visible' | 'every' | 'hidden') => cb[kind].forEach((f) => f()),
     pendingTimers: () => timers.filter((t) => !t.dead).length,
@@ -165,7 +166,7 @@ describe('enviar quando grava algo', () => {
     let pending = 0;
     for (let i = 0; i < 40; i++) {
       pending++;
-      h.changeCounts(pending);
+      h.changeCounts(pending, 0, pending); // todos pontos de trilha
       await h.tick(5_000); // um ponto a cada 5 s, por mais de 3 min
     }
     expect(h.cycles.length).toBeGreaterThan(0);
@@ -192,6 +193,35 @@ describe('enviar quando grava algo', () => {
     h.changeCounts(0);
     await h.tick(MIN_AUTO_INTERVAL_MS * 2);
     expect(h.cycles).toEqual([]);
+  });
+});
+
+describe('alteração comum não espera o intervalo da trilha', () => {
+  it('um poste gravado logo depois de um ciclo automático sobe em poucos segundos (não espera 30 s)', async () => {
+    await h.store.start();
+    await flush();
+    h.changeCounts(1);
+    await h.tick(CHANGE_DEBOUNCE_MS); // ciclo automático
+    h.cycles.length = 0;
+    await h.tick(2_000);
+    h.changeCounts(1); // o ciclo enviou; entra algo novo
+    h.changeCounts(2);
+    await h.tick(CHANGE_DEBOUNCE_MS);
+    expect(h.cycles).toHaveLength(1);
+  });
+
+  it('mas ponto de trilha continua limitado: logo depois de um ciclo, espera o intervalo mínimo', async () => {
+    await h.store.start();
+    await flush();
+    h.changeCounts(1);
+    await h.tick(CHANGE_DEBOUNCE_MS);
+    h.cycles.length = 0;
+    h.changeCounts(0);
+    h.changeCounts(1, 0, 1); // um ponto de trilha
+    await h.tick(CHANGE_DEBOUNCE_MS);
+    expect(h.cycles).toHaveLength(0);
+    await h.tick(MIN_AUTO_INTERVAL_MS);
+    expect(h.cycles).toHaveLength(1);
   });
 });
 

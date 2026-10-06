@@ -46,7 +46,7 @@ export interface SyncStoreDeps {
   /** Agenda `fn` daqui a `ms`; devolve como cancelar. */
   after(ms: number, fn: () => void): () => void;
   /** Acompanha as contagens de pendentes (reage a cada gravacao local). Devolve como parar. */
-  watchCounts(who: Who, onCounts: (c: { pending: number; blocked: number }) => void): () => void;
+  watchCounts(who: Who, onCounts: (c: { pending: number; blocked: number; tracks?: number }) => void): () => void;
   /** Gatilhos externos: voltou a internet, o app voltou para a tela, relogio periodico. */
   onOnline(cb: () => void): () => void;
   onVisible(cb: () => void): () => void;
@@ -82,6 +82,7 @@ export function createSyncStore(deps: SyncStoreDeps) {
   let watched: string | null = null;
   let started = false;
   let lastPending = 0;
+  let lastOther = 0; // pendentes que NAO sao ponto de trilha
   let generation = 0; // muda quando troca de conta: ciclos antigos nao mexem no estado novo
 
   const set = (patch: Partial<SyncState>) => {
@@ -103,15 +104,19 @@ export function createSyncStore(deps: SyncStoreDeps) {
     });
   }
 
-  function setCounts(c: { pending: number; blocked: number }) {
+  function setCounts(c: { pending: number; blocked: number; tracks?: number }) {
     const grew = c.pending > lastPending;
+    const other = c.pending - (c.tracks ?? 0);
+    const grewOther = other > lastOther;
     lastPending = c.pending;
+    lastOther = other;
     set({ pending: c.pending, blocked: c.blocked });
     // sem internet: o app nao tem como enviar agora; deixa o navegador acordar o envio quando a internet voltar
     if (c.pending > 0 && deps.who() && !deps.isOnline()) deps.backgroundSync?.();
     if (grew && !running && deps.who() && deps.isOnline()) {
-      // gravou algo novo: envia logo, mas junta gravacoes seguidas e nao passa de um ciclo a cada MIN_AUTO_INTERVAL_MS
-      const wait = Math.max(CHANGE_DEBOUNCE_MS, lastAutoAt + MIN_AUTO_INTERVAL_MS - deps.now());
+      // Gravou algo novo: envia logo (junta gravacoes seguidas). So o ponto de TRILHA (grava a cada poucos segundos) fica
+      // limitado a um ciclo a cada MIN_AUTO_INTERVAL_MS; poste, cabo, foto e atividade sobem apos o agrupamento.
+      const wait = grewOther ? CHANGE_DEBOUNCE_MS : Math.max(CHANGE_DEBOUNCE_MS, lastAutoAt + MIN_AUTO_INTERVAL_MS - deps.now());
       schedule(wait, 'mudanca');
     }
   }
@@ -213,6 +218,7 @@ export function createSyncStore(deps: SyncStoreDeps) {
     if (!who || !engine) return;
     const c = await engine.counts(who);
     lastPending = c.pending;
+    lastOther = c.pending - (c.tracks ?? 0);
     set({ pending: c.pending, blocked: c.blocked });
   }
 

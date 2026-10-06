@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { AdminBanner, EditedByNote } from '../../components/AdminNote';
 import NotMineNote from '../../components/NotMineNote';
 import ScreenShell from '../../components/ScreenShell';
 import type { Activity } from '../../db/types';
 import { formatDateTime, formatDuration } from '../../lib/format';
 import { goBack, navigate } from '../../lib/route';
 import { isMine } from '../../lib/ownership';
-import { useIsMine } from '../../lib/useOwnership';
+import { useCanEdit, useIsMine } from '../../lib/useOwnership';
 import { ActivityRuleError, activities } from './activityRepo';
 import { KIND_LABEL } from './labels';
 
@@ -21,6 +22,7 @@ function ActivityCard({
 }) {
   const open = a.status === 'aberta';
   const mine = useIsMine(a);
+  const editable = useCanEdit(a); // concluir/reabrir: o dono ou o administrador
   return (
     <article className={`card ${open ? 'card-open' : ''}`}>
       <div className="row">
@@ -36,9 +38,11 @@ function ActivityCard({
         Início {formatDateTime(a.startedAt)}
         {a.endedAt ? ` · Fim ${formatDateTime(a.endedAt)} · ${formatDuration(a.endedAt - a.startedAt)}` : ''}
       </div>
-      {!mine && <NotMineNote author={a.technician} what="atividade" />}
+      <EditedByNote record={a} />
+      {!editable && <NotMineNote author={a.technician} what="atividade" />}
+      {editable && !mine && <AdminBanner author={a.technician} what="atividade" />}
       <div className="card-actions">
-        {!mine ? null : open ? (
+        {!editable ? null : open ? (
           <button className="btn btn-primary btn-small" onClick={() => onAction(() => activities.complete(a.id))}>
             Concluir
           </button>
@@ -65,6 +69,8 @@ export default function ActivitiesScreen() {
 
   // so a MINHA atividade aberta impede de iniciar outra (a de um colega e dele)
   const hasOpen = list?.some((a) => a.status === 'aberta' && isMine(a)) ?? false;
+  // reabrir: so se o DONO daquela atividade nao tiver outra aberta (o administrador reabre a de um tecnico)
+  const ownersWithOpen = new Set((list ?? []).filter((a) => a.status === 'aberta').map((a) => a.ownerId ?? ''));
 
   function run(fn: () => Promise<void>) {
     setError(null);
@@ -84,7 +90,7 @@ export default function ActivitiesScreen() {
       {list === undefined ? null : list.length === 0 ? (
         <p className="hint">Nenhuma atividade ainda. Toque em “Nova atividade” para começar.</p>
       ) : (
-        list.map((a) => <ActivityCard key={a.id} a={a} canReopen={!hasOpen} onAction={run} />)
+        list.map((a) => <ActivityCard key={a.id} a={a} canReopen={!ownersWithOpen.has(a.ownerId ?? '')} onAction={run} />)
       )}
     </ScreenShell>
   );

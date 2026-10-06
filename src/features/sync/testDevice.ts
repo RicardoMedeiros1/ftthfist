@@ -1,6 +1,6 @@
 import { RotaFibraDB, newBase } from '../../db/db';
 import type { TrackPoint } from '../../db/types';
-import { setActingUser } from '../../lib/ownership';
+import { setActingRole, setActingUser } from '../../lib/ownership';
 import { activityRepo } from '../activities/activityRepo';
 import { cableRepo } from '../cables/cableRepo';
 import { elementRepo } from '../elements/elementRepo';
@@ -35,6 +35,7 @@ export class Device {
   /** Executa como esta pessoa (o dono dos novos registros vem de quem esta agindo). */
   as<T>(fn: () => Promise<T>): Promise<T> {
     setActingUser(this.userId);
+    setActingRole(this.role);
     return fn();
   }
   sync(): Promise<CycleReport> {

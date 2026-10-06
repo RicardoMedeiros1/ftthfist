@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { SETTING_KEYS } from '../../db/db';
-import { setActingUser } from '../../lib/ownership';
+import { setActingRole, setActingUser } from '../../lib/ownership';
 import { photoRepo } from '../elements/photoRepo';
 import { TOKEN_SKEW_MS, readAuthMirror, tokenUsable, writeAuthMirror, type AuthMirror } from './authMirror';
 import { BUSY, runBackgroundSync, type BackgroundDeps, type Notice } from './background';
@@ -33,7 +33,7 @@ beforeEach(async () => {
     { key: SETTING_KEYS.authMirror, value: mirror() },
   ]);
 });
-afterEach(() => setActingUser(null));
+afterEach(() => { setActingUser(null); setActingRole(null); });
 
 const deps = (over: Partial<BackgroundDeps> = {}): BackgroundDeps => ({
   db: ana.db,
@@ -52,7 +52,7 @@ describe('envio com o app fechado', () => {
     expect([server.count('activities'), server.count('elements'), server.count('cables'), server.count('track_points')]).toEqual([1, 2, 1, 3]);
     expect(server.calls.some((c) => c.fn === 'pull')).toBe(false);
     expect(notices).toEqual([]);
-    expect(await ana.counts()).toEqual({ pending: 0, blocked: 0 });
+    expect(await ana.counts()).toMatchObject({ pending: 0, blocked: 0 });
   });
 
   it('as fotos também sobem (arquivo e registro)', async () => {
@@ -141,7 +141,7 @@ describe('falhas e concorrência', () => {
     server.down = true;
     expect(await runBackgroundSync(deps())).toBe('tentar-depois');
     expect(notices).toEqual([]);
-    expect(await ana.counts()).toEqual({ pending: 7, blocked: 0 });
+    expect(await ana.counts()).toMatchObject({ pending: 7, blocked: 0 });
   });
 
   it('servidor fora do ar (503): tentar depois', async () => {

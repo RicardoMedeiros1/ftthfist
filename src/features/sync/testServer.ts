@@ -27,6 +27,8 @@ export class TestServer {
   conflicts: Array<{ table: string; id: string; incoming: RemoteRow; kept: RemoteRow }> = [];
   /** Bucket de fotos: caminho -> arquivo. */
   files = new Map<string, Blob>();
+  /** Registro das alteracoes feitas por quem nao e o dono (so o administrador altera o de outros). */
+  adminEdits: Array<{ table: string; id: string; ownerId: string; editedBy: string; before: RemoteRow; after: RemoteRow }> = [];
   calls: Call[] = [];
   profiles = new Map<string, { role: Role; active: boolean }>();
   /** Relogio do servidor (ms). Avanca sozinho a cada gravacao (monotonico). */
@@ -79,13 +81,16 @@ export class TestServer {
         if (!p || !p.active || p.role === 'escritorio') throw denied();
         const t = this.rows[table]!;
         // validacao do lote inteiro antes de gravar (um erro derruba tudo, como um unico INSERT)
+        const isAdmin = p.role === 'admin';
         for (const r of rows) {
           const old = t.get(String(r.id));
-          if (old && old.owner_id !== userId) throw denied();
+          if (old && old.owner_id !== userId && !isAdmin) throw denied();
           if (CHILD.has(table)) {
             const act = this.rows.activities!.get(String(r.activity_id));
             if (!act) throw new SyncHttpError('dependency', 'violates foreign key constraint', 409, '23503');
-            if (act.owner_id !== userId) throw denied();
+            // registro NOVO so em atividade propria (para todos, administrador inclusive); alterar o de outro e so do administrador
+            if (!old && act.owner_id !== userId) throw denied();
+            if (old && !isAdmin && act.owner_id !== userId) throw denied();
           }
           if (table === 'elements' && !ELEMENT_TYPES.has(String(r.type))) throw new SyncHttpError('permanent', 'check constraint', 400, '23514');
           if (table === 'cables') {
@@ -116,7 +121,9 @@ export class TestServer {
             }
           }
           next.server_updated_at = this.stamp();
+          next.updated_by = userId;
           t.set(id, next);
+          if (old && old.owner_id !== userId) this.adminEdits.push({ table, id, ownerId: String(old.owner_id), editedBy: userId, before: old, after: next });
           written.push(id);
         }
         await this.beforeRespond?.();

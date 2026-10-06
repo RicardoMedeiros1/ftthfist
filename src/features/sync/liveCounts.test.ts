@@ -1,14 +1,14 @@
 import 'fake-indexeddb/auto';
 import { liveQuery } from 'dexie';
 import { afterEach, expect, it } from 'vitest';
-import { setActingUser } from '../../lib/ownership';
+import { setActingRole, setActingUser } from '../../lib/ownership';
 import { Device, fieldWork, pole } from './testDevice';
 import { TestServer } from './testServer';
 
 // O indicador "N pend." depende do liveQuery do Dexie enxergar as tabelas lidas por engine.counts / blockedList.
 // (Uma funcao async nativa no meio da cadeia faz o Dexie perder o rastro: a contagem ficava parada em 0.)
 
-afterEach(() => setActingUser(null));
+afterEach(() => { setActingUser(null); setActingRole(null); });
 const pause = (ms = 150) => new Promise((r) => setTimeout(r, ms));
 
 async function setup() {
@@ -23,10 +23,10 @@ async function setup() {
 
 it('a contagem reage a gravações locais', async () => {
   const { d, seen, last, stop } = await setup();
-  expect(seen[0]).toEqual({ pending: 0, blocked: 0 });
+  expect(seen[0]).toMatchObject({ pending: 0, blocked: 0 });
   await fieldWork(d, 'Ana');
   await pause();
-  expect(last()).toEqual({ pending: 7, blocked: 0 });
+  expect(last()).toMatchObject({ pending: 7, blocked: 0 });
   stop();
 });
 
@@ -35,7 +35,7 @@ it('a contagem cai para zero quando o envio termina', async () => {
   await fieldWork(d, 'Ana');
   await d.sync();
   await pause();
-  expect(last()).toEqual({ pending: 0, blocked: 0 });
+  expect(last()).toMatchObject({ pending: 0, blocked: 0 });
   stop();
 });
 
@@ -46,10 +46,10 @@ it('um registro recusado passa de "pendente" para "recusado" na contagem', async
   await d.db.elements.update(bad.id, { lat: 999 });
   await d.sync();
   await pause();
-  expect(last()).toEqual({ pending: 0, blocked: 1 });
+  expect(last()).toMatchObject({ pending: 0, blocked: 1 });
   await d.engine.clearBlocked();
   await pause();
-  expect(last()).toEqual({ pending: 1, blocked: 0 });
+  expect(last()).toMatchObject({ pending: 1, blocked: 0 });
   stop();
 });
 

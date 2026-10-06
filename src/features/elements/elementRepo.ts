@@ -1,6 +1,6 @@
 import { db, newBase, touch, type RotaFibraDB } from '../../db/db';
 import type { ElementType, NetworkElement, Photo, PositionSource } from '../../db/types';
-import { isMine, notMineMessage } from '../../lib/ownership';
+import { canEdit, isMine, notMineMessage } from '../../lib/ownership';
 import { sanitizeAttrs } from './attrs';
 import { isElementType } from './meta';
 import { detachElementFromCables, moveElementWithCables, recomputeCable } from '../cables/cableLinks';
@@ -116,7 +116,7 @@ export function elementRepo(database: RotaFibraDB = db) {
       return database.transaction('rw', database.elements, database.cables, async () => {
         const el = await database.elements.get(id);
         if (!el || el.deleted) throw new ElementRuleError('NOT_FOUND', 'Elemento não encontrado.');
-        if (!isMine(el)) throw new ElementRuleError('NOT_OWNER', notMineMessage('elemento'));
+        if (!canEdit(el)) throw new ElementRuleError('NOT_OWNER', notMineMessage('elemento'));
         const changes: Partial<NetworkElement> = {};
         if (patch.code !== undefined) changes.code = patch.code.trim();
         if (patch.notes !== undefined) changes.notes = patch.notes.trim();
@@ -138,7 +138,7 @@ export function elementRepo(database: RotaFibraDB = db) {
       return database.transaction('rw', database.elements, database.cables, async () => {
         const el = await database.elements.get(id);
         if (!el || el.deleted) throw new ElementRuleError('NOT_FOUND', 'Elemento não encontrado.');
-        if (!isMine(el)) throw new ElementRuleError('NOT_OWNER', notMineMessage('elemento'));
+        if (!canEdit(el)) throw new ElementRuleError('NOT_OWNER', notMineMessage('elemento'));
         // Os cabos que passam por este elemento o acompanham.
         await moveElementWithCables(database, id, pos);
         return (await database.elements.get(id)) as NetworkElement;
@@ -150,7 +150,7 @@ export function elementRepo(database: RotaFibraDB = db) {
       await database.transaction('rw', database.elements, database.photos, database.cables, async () => {
         const el = await database.elements.get(id);
         if (!el || el.deleted) throw new ElementRuleError('NOT_FOUND', 'Elemento não encontrado.');
-        if (!isMine(el)) throw new ElementRuleError('NOT_OWNER', notMineMessage('elemento'));
+        if (!canEdit(el)) throw new ElementRuleError('NOT_OWNER', notMineMessage('elemento'));
         const now = Date.now();
         await database.elements.update(id, touch<NetworkElement>({ deleted: true }, now));
         // Cabos que passavam por ele mantêm o ponto no lugar (solto); a reserva excluída sai do total do cabo.

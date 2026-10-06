@@ -12,6 +12,10 @@ export interface BaseRecord {
   syncStatus: SyncStatus;
   /** Quem registrou (id da conta no servidor). Ausente = criado neste aparelho antes de haver conta. */
   ownerId?: string;
+  /** Quem fez a ultima alteracao no servidor (id da conta). Diferente do dono = alteracao do administrador. So vem do servidor. */
+  updatedBy?: string;
+  /** Marca de que o registro EXISTE no servidor (texto `server_updated_at` da ultima versao baixada). Registro criado aqui nao tem. */
+  serverUpdatedAt?: string;
 }
 
 export type ActivityKind = 'implantacao' | 'manutencao';

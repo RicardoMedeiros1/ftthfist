@@ -37,6 +37,8 @@
 }
 .field input[type='text']:focus, .field input[type='email']:focus, .field input[type='password']:focus { outline: 4px solid var(--accent); outline-offset: 2px; }
 .hint { color: #bbb; font-size: 15px; margin: 0; }
+.admin-banner { border-left: 4px solid var(--accent); padding-left: 10px; color: #fff3b0; }
+.edited-by-note { border-left: 4px solid #8ab4f8; padding-left: 10px; color: #d6e4ff; }
 .not-mine-note { border-left: 4px solid #8ab4f8; padding-left: 10px; color: #d6e4ff; }
 
 .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }

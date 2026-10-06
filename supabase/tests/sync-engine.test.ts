@@ -64,7 +64,7 @@ describe.skipIf(!enabled)('motor de sincronização contra Postgres + PostgREST 
 
   // cada teste parte de um servidor vazio (os papéis e os usuários continuam)
   beforeEach(async () => {
-    await db.admin('truncate public.track_points, public.photos, public.cables, public.elements, public.activities, public.sync_conflicts');
+    await db.admin('truncate public.track_points, public.photos, public.cables, public.elements, public.activities, public.sync_conflicts, public.admin_edits');
   });
   afterEach(() => setActingUser(null));
 
@@ -81,7 +81,7 @@ describe.skipIf(!enabled)('motor de sincronização contra Postgres + PostgREST 
     const { cable, p1 } = await fieldWork(ana, 'Ana');
     const r = await ana.sync();
     expect(r.pushed).toBe(7);
-    expect(await ana.counts()).toEqual({ pending: 0, blocked: 0 });
+    expect(await ana.counts()).toMatchObject({ pending: 0, blocked: 0 });
     expect([await count('activities'), await count('elements'), await count('cables'), await count('track_points')]).toEqual([1, 2, 1, 3]);
     const owners = await db.admin<{ owner_id: string }>(`select owner_id from public.elements union all select owner_id from public.cables`);
     expect(owners.every((o) => o.owner_id === IDS.ana)).toBe(true);
@@ -128,7 +128,7 @@ describe.skipIf(!enabled)('motor de sincronização contra Postgres + PostgREST 
     await ana.sync();
     expect([await count('activities'), await count('elements'), await count('cables'), await count('track_points')]).toEqual([1, 2, 1, 3]);
     expect(await count('sync_conflicts')).toBe(0);
-    expect(await ana.counts()).toEqual({ pending: 0, blocked: 0 });
+    expect(await ana.counts()).toMatchObject({ pending: 0, blocked: 0 });
   });
 
   it('edição atrasada do outro aparelho perde, vai para o log de conflitos e o aparelho passa a mostrar a que valeu', async () => {
@@ -253,7 +253,7 @@ describe.skipIf(!enabled)('motor de sincronização contra Postgres + PostgREST 
     const r = await eva.sync();
     expect(r.newlyBlocked).toBe(1); // a atividade; o resto espera por ela
     expect(await count('activities')).toBe(0);
-    expect(await eva.counts()).toEqual({ pending: 6, blocked: 1 });
+    expect(await eva.counts()).toMatchObject({ pending: 6, blocked: 1 });
   });
 
   it('relógio do aparelho 3 h adiantado: o servidor limita a +5 min e o aparelho não entra em loop', async () => {
@@ -349,6 +349,131 @@ describe.skipIf(!enabled)('motor de sincronização contra Postgres + PostgREST 
       await ana.sync();
       expect((await db.admin<{ deleted: boolean }>(`select deleted from public.photos where id = $1`, [photo.id]))[0]!.deleted).toBe(true);
       expect(bucket.has(`${IDS.ana}/${photo.id}.jpg`)).toBe(true);
+    });
+  });
+
+  describe('administrador', () => {
+    const adminRows = () => db.admin<{ table_name: string; record_id: string; owner_id: string; edited_by: string; before: Record<string, unknown>; after: Record<string, unknown> }>(
+      `select table_name, record_id, owner_id, edited_by, before, after from public.admin_edits order by id`);
+
+    it('o administrador baixa, edita o poste da Ana e envia: o servidor grava, o dono continua a Ana e fica o registro antes/depois', async () => {
+      const ana = await device('ana');
+      const { p1 } = await fieldWork(ana, 'Ana');
+      await ana.sync();
+      const davi = await device('davi', 'admin');
+      await davi.sync();
+      await davi.as(() => davi.els.update(p1.id, { code: 'P-DO-ADMIN' }));
+      const r = await davi.sync();
+      expect(r.pushed).toBe(1);
+      expect(r.newlyBlocked).toBe(0);
+      const [row] = await db.admin<{ code: string; owner_id: string; updated_by: string }>(`select code, owner_id, updated_by from public.elements where id = $1`, [p1.id]);
+      expect(row).toEqual({ code: 'P-DO-ADMIN', owner_id: IDS.ana, updated_by: IDS.davi });
+      const log = await adminRows();
+      expect(log).toHaveLength(1);
+      expect(log[0]).toMatchObject({ table_name: 'elements', record_id: p1.id, owner_id: IDS.ana, edited_by: IDS.davi });
+      expect(log[0]!.before.code).toBe(p1.code); // era o codigo original
+      expect(log[0]!.after.code).toBe('P-DO-ADMIN');
+    });
+
+    it('a Ana recebe a alteracao do administrador e continua dona; nada fica pendente', async () => {
+      const ana = await device('ana');
+      const { p1 } = await fieldWork(ana, 'Ana');
+      await ana.sync();
+      const davi = await device('davi', 'admin');
+      await davi.sync();
+      await davi.as(() => davi.els.update(p1.id, { code: 'P-NOVO' }));
+      await davi.sync();
+      await ana.sync();
+      const got = (await ana.db.elements.get(p1.id))!;
+      expect(got).toMatchObject({ code: 'P-NOVO', ownerId: IDS.ana, updatedBy: IDS.davi, syncStatus: 'synced' });
+      expect(await ana.counts()).toMatchObject({ pending: 0, blocked: 0 });
+    });
+
+    it('mover o poste de um tecnico leva o cabo dele; a geometria do cabo acompanha no servidor', async () => {
+      const ana = await device('ana');
+      const { p1, cable } = await fieldWork(ana, 'Ana');
+      await ana.sync();
+      const davi = await device('davi', 'admin');
+      await davi.sync();
+      await davi.as(() => davi.els.move(p1.id, { lat: -23.56, lng: -46.64, positionSource: 'manual' }));
+      const r = await davi.sync();
+      expect(r.pushed).toBe(2);
+      const [c] = await db.admin<{ first_lat: number; owner_id: string }>(
+        `select st_y(st_startpoint(geom::geometry)) as first_lat, owner_id from public.cables where id = $1`, [cable.id]);
+      expect(c!.owner_id).toBe(IDS.ana);
+      expect(Math.abs(c!.first_lat - -23.56)).toBeLessThan(1e-6);
+      expect((await adminRows()).map((x) => x.table_name).sort()).toEqual(['cables', 'elements']);
+    });
+
+    it('exclusao logica do administrador chega a tecnica como excluida', async () => {
+      const ana = await device('ana');
+      const { p1 } = await fieldWork(ana, 'Ana');
+      await ana.sync();
+      const davi = await device('davi', 'admin');
+      await davi.sync();
+      await davi.as(() => davi.els.remove(p1.id));
+      await davi.sync();
+      expect((await db.admin<{ deleted: boolean }>(`select deleted from public.elements where id = $1`, [p1.id]))[0]!.deleted).toBe(true);
+      await ana.sync();
+      expect((await ana.db.elements.get(p1.id))?.deleted).toBe(true);
+    });
+
+    it('registro NOVO do administrador em atividade de um tecnico e recusado pelo banco (gatilho), sem criar nada', async () => {
+      const ana = await device('ana');
+      const { act } = await fieldWork(ana, 'Ana');
+      await ana.sync();
+      const davi = await device('davi', 'admin');
+      await davi.sync();
+      // forca (defeito): elemento novo do administrador apontando para a atividade da Ana
+      const own = await davi.as(() => davi.acts.create({ kind: 'manutencao', title: 'Do admin' }, 'Davi'));
+      const el = await davi.as(() => davi.els.create(pole(3), 'Davi'));
+      await davi.db.elements.update(el.id, { activityId: act.id, updatedAt: Date.now() + 5, syncStatus: 'pending' });
+      const r = await davi.sync();
+      expect(r.newlyBlocked).toBe(1);
+      expect((await db.admin(`select 1 from public.elements where id = $1`, [el.id]))).toHaveLength(0);
+      expect(own.ownerId).toBe(IDS.davi);
+      expect((await davi.engine.blockedList(davi.who))[0]!.message).toMatch(/atividade propria|row-level security/i);
+    });
+
+    it('registro de outro tecnico que nunca chegou ao servidor NAO e enviado pelo administrador', async () => {
+      const ana = await device('ana');
+      await fieldWork(ana, 'Ana'); // pendente no aparelho da Ana, nunca sincronizado
+      const davi = await device('davi', 'admin');
+      await davi.db.activities.bulkAdd(await ana.db.activities.toArray());
+      await davi.db.elements.bulkAdd(await ana.db.elements.toArray());
+      const r = await davi.sync();
+      expect(r.pushed).toBe(0);
+      expect(await count('activities')).toBe(0);
+    });
+
+    it('edicao do administrador mais antiga que a da tecnica: perde, vira conflito, e o administrador passa a ver a da tecnica', async () => {
+      const ana = await device('ana');
+      const { p1 } = await fieldWork(ana, 'Ana');
+      await ana.sync();
+      const davi = await device('davi', 'admin');
+      await davi.sync();
+      const t0 = (await ana.db.elements.get(p1.id))!.updatedAt;
+      await davi.db.elements.update(p1.id, { code: 'DO-ADMIN', updatedAt: t0 + 1000, syncStatus: 'pending' });
+      await ana.db.elements.update(p1.id, { code: 'DA-TECNICA', updatedAt: t0 + 2000, syncStatus: 'pending' });
+      await ana.sync();
+      const r = await davi.sync();
+      expect(r.lostEdits).toBe(1);
+      expect((await davi.db.elements.get(p1.id))?.code).toBe('DA-TECNICA');
+      expect(await adminRows()).toHaveLength(0);
+      expect(await count('sync_conflicts')).toBe(1);
+    });
+
+    it('escritorio e tecnico nao conseguem alterar o que e de outro pelo servidor', async () => {
+      const ana = await device('ana');
+      const { p1 } = await fieldWork(ana, 'Ana');
+      await ana.sync();
+      const bruno = await device('bruno');
+      await bruno.sync();
+      await bruno.db.elements.update(p1.id, { code: 'HACK', updatedAt: Date.now() + 1000, syncStatus: 'pending', ownerId: undefined });
+      const r = await bruno.sync();
+      expect(r.newlyBlocked).toBe(1);
+      expect((await db.admin<{ code: string }>(`select code from public.elements where id = $1`, [p1.id]))[0]!.code).not.toBe('HACK');
+      expect(await adminRows()).toHaveLength(0);
     });
   });
 

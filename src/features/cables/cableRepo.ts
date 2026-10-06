@@ -1,7 +1,7 @@
 import { db, newBase, touch, type RotaFibraDB } from '../../db/db';
 import type { Cable, CableVertex, FiberCount } from '../../db/types';
 import { round2 } from '../../lib/geo';
-import { isMine, notMineMessage } from '../../lib/ownership';
+import { canEdit, isMine, notMineMessage } from '../../lib/ownership';
 import { moveElementWithCables, recomputeCable, totalsFor, unlinkReserves } from './cableLinks';
 import { isFiberCount } from './style';
 
@@ -71,7 +71,7 @@ export function cableRepo(database: RotaFibraDB = db) {
   async function mustGet(id: string): Promise<Cable> {
     const c = await database.cables.get(id);
     if (!c || c.deleted) throw notFound();
-    if (!isMine(c)) throw new CableRuleError('NOT_OWNER', notMineMessage('cabo'));
+    if (!canEdit(c)) throw new CableRuleError('NOT_OWNER', notMineMessage('cabo'));
     return c;
   }
 
@@ -148,7 +148,7 @@ export function cableRepo(database: RotaFibraDB = db) {
         if (v.elementId) {
           const el = await database.elements.get(v.elementId);
           if (el && !el.deleted) {
-            if (!isMine(el)) throw new CableRuleError('NOT_OWNER', notMineMessage('elemento'));
+            if (!canEdit(el)) throw new CableRuleError('NOT_OWNER', notMineMessage('elemento'));
             await moveElementWithCables(database, el.id, { ...pos, positionSource: 'manual' });
             return (await database.cables.get(id)) as Cable;
           }

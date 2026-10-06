@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { SETTING_KEYS } from '../../db/db';
 import type { NetworkElement } from '../../db/types';
-import { setActingUser } from '../../lib/ownership';
+import { setActingRole, setActingUser } from '../../lib/ownership';
 import { activityRepo } from '../activities/activityRepo';
 import { elementRepo } from '../elements/elementRepo';
 import { CycleAbort, createSyncEngine, type Role, type Tuning } from './engine';
@@ -24,7 +24,7 @@ beforeEach(async () => {
   ana2 = await dev('ana').open();
   bia = await dev('bia').open();
 });
-afterEach(() => setActingUser(null));
+afterEach(() => { setActingUser(null); setActingRole(null); });
 
 const pendingCount = async (d: Device) => (await d.counts()).pending;
 
@@ -144,7 +144,7 @@ describe('falhas de rede', () => {
     server.failNext = new SyncHttpError('auth', 'JWT expired', 401, 'PGRST301');
     const e = await ana.sync().then(() => null, (x: unknown) => x);
     expect((e as CycleAbort).reason).toBe('auth');
-    expect(await ana.counts()).toEqual({ pending: 7, blocked: 0 });
+    expect(await ana.counts()).toMatchObject({ pending: 7, blocked: 0 });
   });
 
   it('erro 503 do servidor: tenta depois, sem culpar nenhum registro', async () => {
@@ -152,7 +152,7 @@ describe('falhas de rede', () => {
     server.failNext = new SyncHttpError('transient', 'Service Unavailable', 503, '');
     const e = await ana.sync().then(() => null, (x: unknown) => x);
     expect((e as CycleAbort).reason).toBe('server');
-    expect(await ana.counts()).toEqual({ pending: 7, blocked: 0 });
+    expect(await ana.counts()).toMatchObject({ pending: 7, blocked: 0 });
   });
 });
 
@@ -189,7 +189,7 @@ describe('registro que o servidor recusa', () => {
     const r = await ana.sync();
     expect(r.pushed).toBe(1);
     expect(server.get('elements', bad.id)).toMatchObject({ lat: -23.56 });
-    expect(await ana.counts()).toEqual({ pending: 0, blocked: 0 });
+    expect(await ana.counts()).toMatchObject({ pending: 0, blocked: 0 });
   });
 
   it('"tentar de novo" esquece os bloqueios', async () => {
@@ -199,7 +199,7 @@ describe('registro que o servidor recusa', () => {
     await ana.sync();
     expect((await ana.counts()).blocked).toBe(1);
     await ana.engine.clearBlocked();
-    expect(await ana.counts()).toEqual({ pending: 1, blocked: 0 });
+    expect(await ana.counts()).toMatchObject({ pending: 1, blocked: 0 });
   });
 
   it('muitos recusados no mesmo ciclo: para (provável problema de conta, não dos dados)', async () => {
@@ -226,7 +226,7 @@ describe('registro que o servidor recusa', () => {
     expect(server.count('elements') + server.count('cables') + server.count('track_points')).toBe(0);
     // nem tentou enviar os registros dela: esperam a atividade (não geram uma recusa por registro)
     expect(server.calls.filter((c) => c.fn === 'upsert' && c.table !== 'activities')).toEqual([]);
-    expect(await ana.counts()).toEqual({ pending: 6, blocked: 1 });
+    expect(await ana.counts()).toMatchObject({ pending: 6, blocked: 1 });
   });
 
   it('registro que depende de outro ainda ausente espera sem ser bloqueado', async () => {
@@ -237,7 +237,7 @@ describe('registro que o servidor recusa', () => {
     await ana.as(() => ana.els.update(p1.id, { code: 'P-1' }));
     const r = await ana.sync();
     expect(r.waiting).toBe(1);
-    expect(await ana.counts()).toEqual({ pending: 1, blocked: 0 });
+    expect(await ana.counts()).toMatchObject({ pending: 1, blocked: 0 });
   });
 });
 
@@ -249,7 +249,7 @@ describe('só o dono envia', () => {
     const r = await asBia.runCycle({ userId: 'bia', role: 'tecnico' });
     expect(r.pushed).toBe(0);
     expect(server.count('activities')).toBe(0);
-    expect(await asBia.counts({ userId: 'bia', role: 'tecnico' })).toEqual({ pending: 0, blocked: 0 });
+    expect(await asBia.counts({ userId: 'bia', role: 'tecnico' })).toMatchObject({ pending: 0, blocked: 0 });
   });
 
   it('escritório não envia (só baixa), mesmo com registro pendente no aparelho', async () => {
@@ -263,7 +263,7 @@ describe('só o dono envia', () => {
     expect(r.pushed).toBe(0);
     expect(server.calls.filter((c) => c.fn === 'upsert')).toEqual([]);
     expect(r.pulled).toBe(1 + 2 + 1);
-    expect(await clara.counts()).toEqual({ pending: 0, blocked: 0 }); // nao ha o que "esperar enviar"
+    expect(await clara.counts()).toMatchObject({ pending: 0, blocked: 0 }); // nao ha o que "esperar enviar"
   });
 });
 
@@ -542,5 +542,14 @@ describe('ciclo só de envio (app fechado)', () => {
     expect(r.pulled).toBe(0);
     expect(server.calls.filter((c) => c.fn === 'pull')).toEqual([]);
     expect(await ana.db.activities.count()).toBe(1); // a atividade da Bia não veio
+  });
+});
+
+describe('contagem separa pontos de trilha', () => {
+  it('"tracks" são os pendentes que são pontos de trilha (o envio deles é espaçado)', async () => {
+    await fieldWork(ana);
+    expect(await ana.counts()).toEqual({ pending: 7, blocked: 0, tracks: 3 });
+    await ana.sync();
+    expect(await ana.counts()).toEqual({ pending: 0, blocked: 0, tracks: 0 });
   });
 });

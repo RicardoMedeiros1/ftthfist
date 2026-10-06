@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { SETTING_KEYS, getSetting, setSetting } from '../../db/db';
 import { AuthApiError, translateAuthError, type AccountProfile, type AuthApi, type AuthSession } from './authApi';
+import { setActingRole } from '../../lib/ownership';
 import { applyIdentity } from './deviceOwner';
 import { isSupabaseConfigured, loadAuthApi } from './supabaseClient';
 
@@ -43,6 +44,8 @@ export interface AccountDeps {
   onActive?(profile: AccountProfile): Promise<void>;
   /** Quem esta usando o aparelho mudou (id da conta, ou null ao sair). Define o dono dos novos registros. */
   onIdentity?(userId: string | null): Promise<void>;
+  /** O perfil conhecido mudou (null = sem conta ou sem perfil). So um perfil ATIVO vale como papel. */
+  onProfile?(profile: AccountProfile | null): void;
   /** Inscreve um aviso de "voltou a internet". Devolve como cancelar. */
   onOnline?(cb: () => void): () => void;
 }
@@ -74,7 +77,9 @@ export function createAccountStore(deps: AccountDeps) {
   let signingOut = false;
 
   const set = (patch: Partial<AccountState>) => {
+    const before = state.profile;
     state = { ...state, ...patch };
+    if (state.profile !== before) deps.onProfile?.(state.profile);
     listeners.forEach((l) => l());
   };
 
@@ -306,6 +311,8 @@ export const accountStore: AccountStore = createAccountStore({
   now: () => Date.now(),
   onActive: (p) => setSetting(SETTING_KEYS.technician, p.fullName),
   onIdentity: (id) => applyIdentity(id),
+  // so o perfil ATIVO vale como papel (o administrador desativado perde o poder de alterar na hora)
+  onProfile: (p) => setActingRole(p?.active ? p.role : null),
   onOnline: (cb) => {
     window.addEventListener('online', cb);
     return () => window.removeEventListener('online', cb);
