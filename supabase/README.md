@@ -54,8 +54,10 @@ supabase/
      (`https://<ref>.supabase.co`). Nao misture: se aplicou pelo SQL Editor, nao use `db push` depois para as mesmas migrations.
 4. **Como as pessoas entram:** pelo app (passo 2 da Fase 2) elas pedem acesso com nome, e-mail e senha. Quem for criado
    direto em *Authentication -> Users -> Add user* tambem nasce pendente.
-5. **Aprovar e definir papeis.** Em *Table Editor -> profiles*, a fila de pendentes e `active = false` e `reviewed_at`
-   vazio. Para aprovar, mude `active` para `true`; ajuste `full_name` e `role` (`tecnico`, `escritorio` ou `admin`) se precisar.
+5. **Aprovar e definir papeis.** Depois que existir um administrador, **tudo isso se faz no proprio app**: *Configuracoes ->
+   Administracao -> Pessoas* (aprovar, recusar, desativar, reativar e mudar o papel, com confirmacao). Sem o app, vale o
+   *Table Editor -> profiles*: a fila de pendentes e `active = false` e `reviewed_at` vazio; para aprovar, mude `active`
+   para `true`; ajuste `role` (`tecnico`, `escritorio` ou `admin`) se precisar.
    O **primeiro admin** voce faz no *SQL Editor* (a conta dele precisa existir):
    ```sql
    update public.profiles set role = 'admin', active = true
@@ -91,7 +93,7 @@ O esperado é `TUDO OK`. O script tenta, pela API e como o usuário B: editar, s
 promover a si mesmo, ler sem login, enviar foto para a pasta de A. **Se alguma linha disser `FALHA`, não siga em frente.**
 Ele deixa registros marcados `[verificação RLS]` (já como excluídos) e uma foto de 1 pixel no bucket.
 
-## O administrador (migrations 10 e 11)
+## O administrador (migrations 10, 11 e 12)
 
 O administrador **ativo** pode alterar qualquer atividade, elemento, cabo, foto e ponto de trilha de qualquer tecnico
 (inclusive "excluir", que e sempre logico: continua nao existindo DELETE para ninguem). O que garante o resto:
@@ -106,6 +108,20 @@ O administrador **ativo** pode alterar qualquer atividade, elemento, cabo, foto 
   `check_child_owner` (so dispara em insercao de verdade) exige que registro NOVO entre em atividade do mesmo dono.
 - **Conflito com o tecnico:** vale a alteracao mais recente (`updated_at`); a atrasada vai para `sync_conflicts`, como sempre.
 - Escritorio continua so leitura; administrador desativado perde tudo na hora (`my_role()` fica nulo).
+- **Pessoas (migration 12):** `admin_list_people()` devolve o cadastro com e-mail (o e-mail vem de `auth.users`, que a API
+  nao expoe) **so para administrador ativo**; para os demais, lista vazia. O gatilho `keep_one_admin` impede desativar ou
+  rebaixar o **ultimo administrador ativo** (erro `23514`), ate pelo SQL Editor: antes, torne outra pessoa administradora.
+  Aprovar ou mudar papel registra `reviewed_by` e `reviewed_at`.
+
+### O que o app faz com isso (so administrador, so com internet)
+
+- **Pessoas:** pendentes, com acesso e desativados; aprovar (escolhendo o papel), recusar, desativar, reativar e mudar papel.
+  O administrador nao altera o proprio acesso pela tela.
+- **Alteracoes e conflitos:** `admin_edits` (quem alterou o que de quem, antes -> depois, em portugues) e `sync_conflicts`
+  (a edicao atrasada que o servidor recusou: "ficou ..." / "chegou ..."), das mais novas para as mais antigas, em paginas.
+- **Trilha GPS de um tecnico:** em *Atividade -> Ver trilha GPS*. Baixa os `track_points` da atividade em paginas de 500
+  (ate 20 mil pontos), so quando pedido, guarda **so na memoria** (nada vai para o IndexedDB do administrador) e desenha no
+  mapa em azul tracejado, com "Esconder trilha". A trilha continua um registro de deslocamento: nunca vira cabo.
 
 ## Testes do banco (para quem for mexer no SQL)
 
@@ -120,6 +136,7 @@ Cada arquivo de teste cria um banco novo, aplica um *stub* do Supabase (`tests/s
 teste**, nunca aplicar no projeto real) e as migrations de verdade, e personifica cada usuário como o PostgREST faz.
 Sem `TEST_DATABASE_URL` esses testes são pulados e `npm test` segue normal.
 
+O teste `tests/admin-api.test.ts` roda as **ferramentas do administrador do app** (Pessoas, Alteracoes, trilha) do mesmo jeito.
 O teste `tests/sync-engine.test.ts` roda o **motor de sincronização do app** contra esse banco, atrás de um PostgREST de
 verdade e do cliente `supabase-js`/`postgrest-js`. Ele sobe o próprio PostgREST (um por execução, num banco novo) e só
 roda se `POSTGREST_BIN` apontar para o binário ([download](https://github.com/PostgREST/postgrest/releases)):
