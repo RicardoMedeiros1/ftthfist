@@ -27,8 +27,9 @@ describe('sem segredos no codigo do app', () => {
   });
 
   it('so o cliente do Supabase e importado, e so dentro da pasta account (carregado sob demanda)', () => {
-    const importers = files.filter((f) => /from '@supabase\/supabase-js'|import\('@supabase\/supabase-js'\)/.test(readFileSync(f, 'utf8')));
-    expect(importers.every((f) => f.includes('/features/account/'))).toBe(true);
+    // `import type` some no build (nao entra no pacote), entao pode aparecer em qualquer pasta; importar o VALOR so na pasta account
+    const importers = files.filter((f) => /^import (?!type\b)[^;]*from '@supabase\/supabase-js'|import\('@supabase\/supabase-js'\)/m.test(readFileSync(f, 'utf8')));
+    expect(importers.map((f) => f.replace(root, '')).filter((f) => !f.includes('/features/account/'))).toEqual([]);
     const staticValueImport = files.filter((f) => /^import (?!type)[^;]*from '@supabase\/supabase-js'/m.test(readFileSync(f, 'utf8')));
     expect(staticValueImport.map((f) => f.replace(root, ''))).toEqual([]); // import estatico de valor entraria no pacote inicial
   });
