@@ -31,6 +31,10 @@ jobs:
         env:
           # Site em https://<usuário>.github.io/<repositório>/
           BASE_PATH: /${{ github.event.repository.name }}/
+          # Chaves PUBLICAS do Supabase (variaveis do repositorio, nao segredos). Se a chave SECRETA for colada
+          # aqui por engano, o build falha antes de publicar (ver src/features/account/supabaseKey.ts).
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

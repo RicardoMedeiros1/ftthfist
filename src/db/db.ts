@@ -73,6 +73,9 @@ export const SETTING_KEYS = {
   cableDraft: 'cableDraft',
   lastCable: 'lastCable',
   trackState: 'trackState',
+  // conta (Fase 2): quem esta logado neste aparelho e o ultimo perfil conhecido (para funcionar sem internet)
+  account: 'account',
+  accountProfile: 'accountProfile',
 } as const;
 
 export async function getSetting<T>(key: string, fallback: T): Promise<T> {

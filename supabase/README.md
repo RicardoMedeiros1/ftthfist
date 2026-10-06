@@ -116,3 +116,30 @@ Descobertas dos testes que o app precisa respeitar:
 - **Cursor do "puxar":** guardar `server_updated_at` **como texto** (o servidor tem microssegundos; um `Date` do
   JavaScript os perde e a última linha voltaria) e puxar com ~5 minutos de sobreposição.
 - A trilha dos colegas **não** chega ao celular (RLS); fotos chegam só como registro, sem o arquivo.
+
+## Login no app (passo 2 da Fase 2)
+
+O app so liga a conta quando o build recebe as duas variaveis (`VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`, a
+**Publishable key**). Sem elas, nada muda: o cartao "Conta" nem aparece nas Configuracoes.
+
+- **Onde fica:** Configuracoes -> *Conta* (`#/conta`): *Entrar* ou *Pedir acesso* (nome, e-mail e senha de 8+ caracteres).
+- **Estados:** *aguardando aprovacao* (pediu e o admin ainda nao aprovou), *acesso aprovado*, *acesso desativado*, *verificando*
+  (logado, mas sem internet para confirmar). Depois de aprovado o nome do tecnico passa a ser o do cadastro e fica travado.
+- **Sem internet:** vale o ultimo estado conhecido, sem esperar o servidor. Entrar, pedir acesso e trocar a senha precisam
+  de internet (o app avisa). Sair da conta **nunca apaga dados do aparelho**.
+- **Seguranca do build:** se alguem colar a **Secret key** (`sb_secret_...` ou `service_role`) numa variavel, o build **falha**
+  com mensagem clara (nada e publicado) e o app recusa usa-la. Testes vigiam o codigo e o workflow contra segredos; o
+  workflow le as chaves de **variaveis** do repositorio, nunca de segredos.
+
+Descoberta importante (testada com o `supabase-js` de verdade): com o **token vencido e sem internet**, `getSession()` leva
+cerca de **25 segundos** (8 tentativas) e devolve "sem sessao". O app nao espera por isso: usa o ultimo estado guardado,
+limita a espera a 10 s e so trata como "saiu" o evento `SIGNED_OUT`.
+
+### Para testar no celular
+
+1. Cadastre as 2 variaveis no GitHub (*Settings -> Secrets and variables -> Actions -> Variables*) e publique.
+2. Configuracoes -> Conta -> **Pedir acesso** com um e-mail de teste: deve ficar *Aguardando aprovacao*.
+3. No Supabase (*Table Editor -> profiles*), marque `active = true` para esse e-mail. No app, **Verificar agora**:
+   *Acesso aprovado*, e o nome do tecnico passa a ser o do cadastro.
+4. Ative o modo aviao e reabra o app: a conta continua ativa, na hora.
+5. **Sair da conta**: os dados (atividades, elementos, fotos) continuam la.

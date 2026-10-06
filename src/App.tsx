@@ -3,6 +3,8 @@ import SavedNotice from './features/elements/SavedNotice';
 import BackupReminder from './features/export/BackupReminder';
 import BackupScreen from './features/export/BackupScreen';
 import ExportScreen from './features/export/ExportScreen';
+import AccountScreen from './features/account/AccountScreen';
+import { accountStore } from './features/account/accountStore';
 import CamadasScreen from './features/reference/CamadasScreen';
 import LayerScreen from './features/reference/LayerScreen';
 import ReferenceFeatureScreen from './features/reference/ReferenceFeatureScreen';
@@ -28,6 +30,11 @@ export default function App() {
   // Pede ao navegador para não apagar os dados do app (a tela de backup mostra o resultado).
   useEffect(() => {
     void requestPersistence();
+  }, []);
+
+  // Conta (Fase 2): carrega o ultimo estado conhecido e confirma a sessao sem bloquear nada. Sem variaveis, nao faz nada.
+  useEffect(() => {
+    void accountStore.init();
   }, []);
 
   // Reabriu o app com um cabo em lançamento? Retoma de onde parou.
@@ -59,6 +66,7 @@ export default function App() {
       {route === 'config' && <SettingsScreen />}
       {route === 'backup' && <BackupScreen />}
       {route === 'exportar' && <ExportScreen />}
+      {route === 'conta' && <AccountScreen />}
       {route === 'camadas' && <CamadasScreen />}
       {route === 'camada' && <LayerScreen />}
       {route === 'referencia' && <ReferenceFeatureScreen />}

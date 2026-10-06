@@ -1,0 +1,9 @@
+.pass-row { display: flex; gap: 8px; align-items: stretch; }
+.pass-row input { flex: 1; min-width: 0; }
+.pass-row .btn { min-width: 96px; padding: 0 12px; }
+.account-line { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.account-label { color: #bbb; font-size: 14px; font-weight: 700; }
+.badge-state { align-self: flex-start; padding: 4px 12px; border-radius: 999px; font: 800 14px/1.4 system-ui, sans-serif; color: #000; }
+.badge-state-ativo { background: #34c759; }
+.badge-state-pendente, .badge-state-verificando { background: var(--accent); }
+.badge-state-desativado { background: #ff9f0a; }

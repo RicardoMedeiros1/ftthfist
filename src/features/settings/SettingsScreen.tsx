@@ -4,6 +4,8 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { SETTING_KEYS, getSetting, setSetting } from '../../db/db';
 import { formatAgo } from '../../lib/format';
 import { goBack, navigate } from '../../lib/route';
+import AccountCard from '../account/AccountCard';
+import { useAccount } from '../account/accountStore';
 import CableTypesEditor from '../cables/CableTypesEditor';
 import { useTechnician } from './useTechnician';
 
@@ -12,6 +14,8 @@ export default function SettingsScreen() {
   const lastBackupAt = useLiveQuery(() => getSetting<number | null>(SETTING_KEYS.lastBackupAt, null));
   const [name, setName] = useState('');
   const [justSaved, setJustSaved] = useState(false);
+  // Depois de aprovado, o nome vem do cadastro (e o que vai para o servidor): nao se edita aqui.
+  const locked = useAccount((a) => a.status === 'ativo');
 
   useEffect(() => {
     if (saved !== undefined) setName(saved);
@@ -35,19 +39,21 @@ export default function SettingsScreen() {
             id="technician"
             type="text"
             autoComplete="name"
+            disabled={locked}
             value={name}
             onChange={(e) => {
               setName(e.target.value);
               setJustSaved(false);
             }}
           />
-          <p className="hint">Aparece em tudo o que você registrar. Defina uma vez só.</p>
+          <p className="hint">{locked ? 'Definido pelo seu cadastro. Para mudar, fale com o administrador.' : 'Aparece em tudo o que você registrar. Defina uma vez só.'}</p>
         </div>
-        <button className="btn btn-primary btn-block" type="submit" disabled={name.trim() === saved}>
+        <button className="btn btn-primary btn-block" type="submit" disabled={locked || name.trim() === saved}>
           Salvar
         </button>
         {justSaved && <div className="ok-note" role="status">Salvo.</div>}
       </form>
+      <AccountCard />
       <CableTypesEditor />
       <section className="card" aria-label="Camadas de referência">
         <div className="card-title">Camadas de referência</div>
