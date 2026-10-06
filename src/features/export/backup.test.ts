@@ -60,6 +60,8 @@ async function seed(db: RotaFibraDB) {
     { key: 'baseLayer', value: 'satelite' },
     { key: 'lastBackupAt', value: 123 },
     { key: 'mapView', value: { lat: 1, lng: 2, zoom: 3 } },
+    { key: 'trackState', value: { status: 'gravando' } },
+    { key: 'cableDraft', value: { cableId: 'x' } },
   ]);
   return { a1, a2, e1, e2, cable, tp };
 }

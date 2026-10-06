@@ -8,6 +8,7 @@ describe('parseRoute', () => {
     expect(parseRoute('#/elemento/novo')).toBe('novo-elemento');
     expect(parseRoute('#/backup')).toBe('backup');
     expect(parseRoute('#/cabo/novo')).toBe('novo-cabo');
+    expect(parseRoute('#/trilha')).toBe('trilha');
     expect(parseRoute('#/config')).toBe('config');
   });
   it('qualquer outra coisa abre o mapa', () => {

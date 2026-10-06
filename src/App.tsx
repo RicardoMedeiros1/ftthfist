@@ -1,9 +1,12 @@
 import UpdatePrompt from './components/UpdatePrompt';
+import SavedNotice from './features/elements/SavedNotice';
 import BackupReminder from './features/export/BackupReminder';
 import BackupScreen from './features/export/BackupScreen';
 import { requestPersistence } from './lib/storage';
 import ActivitiesScreen from './features/activities/ActivitiesScreen';
 import NewActivityScreen from './features/activities/NewActivityScreen';
+import TrackScreen from './features/tracking/TrackScreen';
+import TrackSync from './features/tracking/TrackSync';
 import CableDetailScreen from './features/cables/CableDetailScreen';
 import CableSetupScreen from './features/cables/CableSetupScreen';
 import { cableDraftStore } from './features/cables/cableDraft';
@@ -47,9 +50,12 @@ export default function App() {
       {route === 'elemento' && <ElementDetailScreen />}
       {route === 'novo-cabo' && <CableSetupScreen />}
       {route === 'cabo' && <CableDetailScreen />}
+      {route === 'trilha' && <TrackScreen />}
+      <TrackSync />
       {route === 'config' && <SettingsScreen />}
       {route === 'backup' && <BackupScreen />}
       <div className="toast-host">
+        <SavedNotice />
         <UpdatePrompt />
         <BackupReminder />
       </div>

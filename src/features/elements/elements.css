@@ -51,13 +51,12 @@
 .map-screen.phase-tipo .map-controls { display: none; }
 
 .saved-notice {
-  position: absolute; z-index: 1000; left: 50%; transform: translateX(-50%);
-  /* Acima de todos os botões do rodapé (zoom, camada, ◎ e "+"), sem cobrir nenhum. */
-  bottom: calc(160px + env(safe-area-inset-bottom));
-  max-width: calc(100% - 32px);
+  /* Dentro do bloco de avisos do topo (.toast-host): empilha com os outros avisos sem se sobrepor. */
+  align-self: center; max-width: 100%;
   padding: 10px 16px; border-radius: 12px;
   background: #0d2f12; border: 3px solid #34c759; color: #fff;
   font: 700 16px/1.3 system-ui, sans-serif;
+  box-shadow: 0 4px 16px rgba(0,0,0,.6);
 }
 
 /* Formulário */
@@ -102,8 +101,7 @@
 .map-screen.phase-cabo .leaflet-bottom { margin-bottom: calc(225px + env(safe-area-inset-bottom)); }
 .map-screen.legend-open .map-btn-group,
 .map-screen.legend-open .map-controls,
-.map-screen.legend-open .add-btn,
-.map-screen.legend-open .saved-notice { display: none; }
+.map-screen.legend-open .add-btn { display: none; }
 /* A atribuição fica acima da legenda (altura fixa) */
 .map-screen.legend-open .leaflet-bottom { margin-bottom: calc(279px + env(safe-area-inset-bottom)); }
 

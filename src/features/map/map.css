@@ -45,6 +45,7 @@
   padding: 8px 14px; border-radius: 10px;
   background: rgba(0,0,0,.85); color: #fff;
   font: 600 15px/1.3 system-ui, sans-serif;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; /* uma linha só: não invade os avisos abaixo */
 }
 .gps-banner.gps-warn { background: #ff9f0a; color: #000; }
 
@@ -68,4 +69,4 @@
 }
 .activity-main-open { background: var(--accent); }
 .activity-title { font: 800 18px/1.2 system-ui, sans-serif; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.activity-sub { font: 600 14px/1.2 system-ui, sans-serif; }
+.activity-sub { font: 600 14px/1.2 system-ui, sans-serif; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

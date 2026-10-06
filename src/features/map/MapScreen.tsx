@@ -14,6 +14,9 @@ import CablePanel from '../cables/CablePanel';
 import CablesLayer from '../cables/CablesLayer';
 import { cableStore } from '../cables/cableRepo';
 import { LegendSheet } from '../cables/Legend';
+import TrackLayer from '../tracking/TrackLayer';
+import { useTrack } from '../tracking/trackRecorder';
+import { navigate } from '../../lib/route';
 import { useLiveQuery } from 'dexie-react-hooks';
 import AddButton from '../elements/AddButton';
 import { useDraft } from '../elements/draftStore';
@@ -27,6 +30,7 @@ import '../elements/elements.css';
 import { BASE_LAYERS, type BaseLayerId } from './layers';
 import { useGeolocation, type LocateMode, type LocationFix } from './useGeolocation';
 import './map.css';
+import '../tracking/tracking.css';
 
 interface MapView {
   lat: number;
@@ -37,7 +41,6 @@ interface MapView {
 // Brasil inteiro até o primeiro GPS ou até haver uma visão salva.
 const DEFAULT_VIEW: MapView = { lat: -14.2, lng: -51.9, zoom: 4 };
 const FOLLOW_MIN_ZOOM = 17;
-const NOTICE_MS = 3500;
 
 /** Salva a última visão (para reabrir offline no mesmo lugar). */
 function PersistView() {
@@ -112,29 +115,6 @@ function ZoomButtons() {
   );
 }
 
-/** Aviso rápido (ex.: "Salvo: Poste"). */
-function SavedNotice() {
-  const idle = useDraft((s) => s.phase === 'idle');
-  const notice = useDraft((s) => s.notice);
-  const id = useDraft((s) => s.noticeId);
-  const [visibleId, setVisibleId] = useState(0);
-
-  useEffect(() => {
-    if (!id) return;
-    setVisibleId(id);
-    const t = setTimeout(() => setVisibleId(0), NOTICE_MS);
-    return () => clearTimeout(t);
-  }, [id]);
-
-  // Some assim que uma nova marcação começa (ficaria por cima do painel).
-  if (!idle || !notice || visibleId !== id) return null;
-  return (
-    <div className="saved-notice" role="status">
-      {notice}
-    </div>
-  );
-}
-
 export default function MapScreen() {
   const [initial, setInitial] = useState<{ view: MapView } | null>(null);
   const [layerId, setLayerId] = useState<BaseLayerId>('ruas');
@@ -155,6 +135,7 @@ export default function MapScreen() {
   const lancando = phase === 'cabo' || phase === 'cabo-editar';
   const hasCables = (useLiveQuery(() => cableStore.list())?.length ?? 0) > 0;
   const [legendOpen, setLegendOpen] = useState(false);
+  const trackStatus = useTrack((t) => t.status);
 
   useEffect(() => {
     void (async () => {
@@ -220,6 +201,7 @@ export default function MapScreen() {
           crossOrigin="anonymous"
         />
         {fix && <LocationMarker fix={fix} />}
+        <TrackLayer />
         <CablesLayer />
         <ElementsLayer />
         <CableDrawLayer />
@@ -243,6 +225,16 @@ export default function MapScreen() {
             Legenda
           </button>
         )}
+        {phase === 'idle' && (
+          <button
+            className="map-btn map-btn-wide"
+            onClick={() => navigate('trilha')}
+            aria-label={trackStatus === 'parada' ? 'Trilha GPS' : trackStatus === 'gravando' ? 'Trilha GPS: gravando' : 'Trilha GPS: pausada'}
+          >
+            {trackStatus !== 'parada' && <span className={`rec-dot ${trackStatus === 'pausada' ? 'rec-dot-pause' : ''}`} aria-hidden="true" />}
+            Trilha
+          </button>
+        )}
         <button className="map-btn map-btn-wide" onClick={switchLayer} aria-label={`Trocar para ${nextLayerLabel}`}>
           {nextLayerLabel}
         </button>
@@ -258,7 +250,7 @@ export default function MapScreen() {
 
       {!placing && (fix || error) && (
         <div className={`gps-banner ${fix && classifyAccuracy(fix.accuracy) === 'ruim' ? 'gps-warn' : ''}`} role="status">
-          {error ?? (fix ? `GPS ${formatAccuracy(fix.accuracy)}${classifyAccuracy(fix.accuracy) === 'ruim' ? ' — precisão baixa' : ''}` : '')}
+          {error ?? (fix ? `GPS ${formatAccuracy(fix.accuracy)}${classifyAccuracy(fix.accuracy) === 'ruim' ? ' · baixa' : ''}` : '')}
         </div>
       )}
 
@@ -271,7 +263,6 @@ export default function MapScreen() {
       <CableGps />
       {legendOpen && <LegendSheet onClose={() => setLegendOpen(false)} />}
       <GpsCaptureHost />
-      <SavedNotice />
     </div>
   );
 }
