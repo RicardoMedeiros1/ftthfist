@@ -5,7 +5,9 @@
 //
 //   SUPABASE_URL=https://xxxx.supabase.co SUPABASE_ANON_KEY=sb_publishable_...  (a Publishable key; nunca a Secret) \
 //   USER_A_EMAIL=... USER_A_PASSWORD=... USER_B_EMAIL=... USER_B_PASSWORD=... \
-//   [USER_C_EMAIL=... USER_C_PASSWORD=...] node supabase/tests/api-check.mjs
+//   [USER_C_EMAIL=... USER_C_PASSWORD=...]   (escritorio, opcional) \
+//   [USER_P_EMAIL=... USER_P_PASSWORD=...]   (cadastro PENDENTE, opcional: alguem que pediu acesso pelo app e ainda nao foi aprovado) \
+//   node supabase/tests/api-check.mjs
 //
 // Cria alguns registros marcados "[verificação RLS]" e os marca como excluídos no fim (ninguém apaga linha).
 // A foto de teste (1 pixel) permanece no bucket: o app também não apaga fotos.
@@ -64,6 +66,7 @@ const iso = (offsetMs = 0) => new Date(NOW + offsetMs).toISOString();
 const A = await login('USER_A');
 const B = await login('USER_B');
 const C = await login('USER_C'); // opcional (escritório)
+const P = await login('USER_P'); // opcional (cadastro pendente, ainda nao aprovado)
 if (!A || !B) {
   console.error('Preciso de USER_A_* e USER_B_* (e-mail+senha, ou _TOKEN).');
   process.exit(2);
@@ -151,6 +154,26 @@ if (C) {
   check(rows.length === 0, `escritório NÃO edita dados de campo (HTTP ${r.status}, ${rows.length} linhas)`);
 } else {
   console.log('(sem USER_C: etapa do escritório pulada)');
+}
+
+// ---- cadastro pendente (opcional): pediu acesso pelo app e ainda nao foi aprovado ----
+if (P) {
+  r = await call(P, 'GET', '/profiles?select=id,active');
+  rows = r.ok ? await r.json() : [];
+  check(rows.length === 1 && rows[0].id === P.id && rows[0].active === false, `o pendente enxerga SO o proprio perfil, marcado como inativo (${rows.length} perfil)`);
+  r = await call(P, 'GET', `/elements?id=eq.${elId}&select=id`);
+  rows = r.ok ? await r.json() : [];
+  check(rows.length === 0, 'o pendente NAO le a rede (elementos)');
+  r = await call(P, 'GET', '/activities?select=id');
+  rows = r.ok ? await r.json() : [];
+  check(rows.length === 0, 'o pendente NAO le atividades');
+  r = await call(P, 'POST', '/activities', { ...activity, id: randomUUID(), owner_id: P.id }, { prefer: 'return=minimal' });
+  check(r.status === 403 || r.status === 401, `o pendente NAO cria nada (HTTP ${r.status})`);
+  r = await call(P, 'PATCH', `/profiles?id=eq.${P.id}`, { active: true, role: 'admin' }, { prefer: 'return=representation' });
+  rows = r.ok ? await r.json() : [];
+  check(rows.length === 0, `o pendente NAO se aprova nem se promove (HTTP ${r.status}, ${rows.length} linhas)`);
+} else {
+  console.log('(sem USER_P: etapa do cadastro pendente pulada)');
 }
 
 // ---- Storage (só no Supabase de verdade) ----

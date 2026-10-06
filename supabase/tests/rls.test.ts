@@ -12,15 +12,15 @@ describe.skipIf(!DB_URL)('perfis e papéis', () => {
   beforeAll(async () => { db = await createTestDb(); });
   afterAll(async () => { await db?.drop(); });
 
-  it('usuário novo ganha perfil de técnico, com o nome do cadastro (ou o começo do e-mail)', async () => {
+  it('usuário novo ganha perfil de técnico PENDENTE (inativo), com o nome do cadastro (ou o começo do e-mail)', async () => {
     await db.run('postgres', async (tx) => {
       await tx.q(`insert into auth.users (id, email, raw_user_meta_data) values ('00000000-0000-4000-8000-0000000000a1', 'joana@x.com', '{"full_name":"Joana Silva"}')`);
       await tx.q(`insert into auth.users (id, email) values ('00000000-0000-4000-8000-0000000000a2', 'sem.nome@x.com')`);
       const p = await tx.q<{ id: string; full_name: string; role: string; active: boolean }>(
         `select id, full_name, role, active from public.profiles where id in ('00000000-0000-4000-8000-0000000000a1','00000000-0000-4000-8000-0000000000a2') order by id`);
       expect(p).toEqual([
-        { id: '00000000-0000-4000-8000-0000000000a1', full_name: 'Joana Silva', role: 'tecnico', active: true },
-        { id: '00000000-0000-4000-8000-0000000000a2', full_name: 'sem.nome', role: 'tecnico', active: true },
+        { id: '00000000-0000-4000-8000-0000000000a1', full_name: 'Joana Silva', role: 'tecnico', active: false },
+        { id: '00000000-0000-4000-8000-0000000000a2', full_name: 'sem.nome', role: 'tecnico', active: false },
       ]);
     });
   });
@@ -46,9 +46,9 @@ describe.skipIf(!DB_URL)('perfis e papéis', () => {
     });
   });
 
-  it('conta desativada vira ex-usuário: não lê perfis nem dados da rede', async () => {
+  it('conta desativada: enxerga só o próprio perfil (para saber que está inativa), nenhum dado da rede', async () => {
     await db.run('eva', async (tx) => {
-      expect(await tx.q(`select 1 from public.profiles`)).toHaveLength(0);
+      expect(await tx.q(`select id from public.profiles`)).toEqual([{ id: IDS.eva }]);
       expect(await tx.q(`select 1 from public.elements`)).toHaveLength(0);
       expect(await tx.q(`select 1 from public.activities`)).toHaveLength(0);
     });
@@ -79,6 +79,117 @@ describe.skipIf(!DB_URL)('perfis e papéis', () => {
         await tx.denied(`select 1 from public.${t}`);
       }
       await tx.denied(...(Object.values(insertSql('elements', elementRow(ID.fresh(2), 'ana', ID.actAna))) as [string, unknown[]]));
+    });
+  });
+});
+
+describe.skipIf(!DB_URL)('cadastro com aprovação', () => {
+  let db: TestDb;
+  const NEW = '00000000-0000-4000-8000-0000000000b1';
+  beforeAll(async () => { db = await createTestDb(); });
+  afterAll(async () => { await db?.drop(); });
+
+  /** cria o usuário como o Supabase Auth faz ao se cadastrar e devolve a pessoa "pendente" */
+  const signUp = (tx: import('./support/harness').Tx, meta: object = { full_name: 'Nova Pessoa' }, id = NEW) =>
+    tx.q(`insert into auth.users (id, email, raw_user_meta_data) values ($1, 'nova@x.com', $2)`, [id, JSON.stringify(meta)]);
+  const asNew = async (tx: import('./support/harness').Tx, id = NEW) => {
+    await tx.q(`select set_config('role', 'authenticated', true), set_config('request.jwt.claims', $1, true)`, [JSON.stringify({ sub: id, role: 'authenticated' })]);
+  };
+
+  it('papel e "ativo" digitados no cadastro são ignorados: nasce técnico pendente', async () => {
+    await db.run('postgres', async (tx) => {
+      await signUp(tx, { full_name: 'Esperta', role: 'admin', active: true, app_role: 'admin' });
+      const [p] = await tx.q<{ role: string; active: boolean }>(`select role, active from public.profiles where id = $1`, [NEW]);
+      expect(p).toEqual({ role: 'tecnico', active: false });
+    });
+  });
+
+  it('o nome pedido é aparado e limitado a 100 letras; sem nome, usa o começo do e-mail', async () => {
+    await db.run('postgres', async (tx) => {
+      await signUp(tx, { full_name: `  ${'x'.repeat(300)}  ` });
+      const [p] = await tx.q<{ full_name: string }>(`select full_name from public.profiles where id = $1`, [NEW]);
+      expect(p!.full_name).toHaveLength(100);
+      await signUp(tx, { full_name: '   ' }, '00000000-0000-4000-8000-0000000000b2');
+      const [q] = await tx.q<{ full_name: string }>(`select full_name from public.profiles where id = '00000000-0000-4000-8000-0000000000b2'`);
+      expect(q!.full_name).toBe('nova');
+    });
+  });
+
+  it('o pendente enxerga só o PRÓPRIO perfil (para o app mostrar "aguardando aprovação")', async () => {
+    await db.run('postgres', async (tx) => {
+      await signUp(tx);
+      await asNew(tx);
+      const rows = await tx.q<{ id: string; active: boolean }>(`select id, active from public.profiles`);
+      expect(rows).toEqual([{ id: NEW, active: false }]);
+    });
+  });
+
+  it('o pendente não lê nada da rede, não grava e não lê fotos', async () => {
+    await db.run('postgres', async (tx) => {
+      await signUp(tx);
+      await asNew(tx);
+      for (const t of ['activities', 'elements', 'cables', 'photos', 'track_points', 'sync_conflicts']) {
+        expect(await tx.q(`select 1 from public.${t}`), t).toHaveLength(0);
+      }
+      expect(await tx.q(`select 1 from storage.objects`)).toHaveLength(0);
+      const ins = insertSql('activities', activityRow(ID.fresh(60), 'ana', { owner_id: NEW }));
+      await tx.denied(ins.sql, ins.params);
+      expect(await tx.q(`select * from public.cable_totals('2000-01-01', '2100-01-01')`)).toHaveLength(0);
+    });
+  });
+
+  it('o pendente não se aprova nem mexe no registro de aprovação', async () => {
+    await db.run('postgres', async (tx) => {
+      await signUp(tx);
+      await asNew(tx);
+      expect(await tx.count(`update public.profiles set active = true, role = 'admin' where id = $1`, [NEW])).toBe(0);
+      expect(await tx.count(`update public.profiles set reviewed_at = now() where id = $1`, [NEW])).toBe(0);
+      await tx.as('postgres');
+      expect((await tx.q<{ active: boolean; role: string }>(`select active, role from public.profiles where id = $1`, [NEW]))[0]).toEqual({ active: false, role: 'tecnico' });
+    });
+  });
+
+  it('técnico e escritório também não aprovam ninguém', async () => {
+    for (const who of ['ana', 'clara'] as const) {
+      await db.run('postgres', async (tx) => {
+        await signUp(tx);
+        await tx.as(who);
+        expect(await tx.count(`update public.profiles set active = true where id = $1`, [NEW])).toBe(0);
+      });
+    }
+  });
+
+  it('o admin aprova: registra quem e quando, e a pessoa passa a ler a rede e a gravar o que é dela', async () => {
+    await db.run('postgres', async (tx) => {
+      await signUp(tx);
+      await tx.as('davi');
+      const seen = await tx.q<{ id: string; active: boolean }>(`select id, active from public.profiles where active = false and reviewed_at is null`);
+      expect(seen.map((r) => r.id)).toContain(NEW); // a fila de pendentes que a tela do admin vai mostrar
+      expect(await tx.count(`update public.profiles set active = true where id = $1`, [NEW])).toBe(1);
+      const [p] = await tx.q<{ reviewed_by: string; reviewed_at: Date }>(`select reviewed_by, reviewed_at from public.profiles where id = $1`, [NEW]);
+      expect(p!.reviewed_by).toBe(IDS.davi);
+      expect(p!.reviewed_at).toBeInstanceOf(Date);
+      await tx.as('postgres');
+      await asNew(tx);
+      expect((await tx.q(`select 1 from public.elements`)).length).toBeGreaterThan(0);
+      await tx.q(`insert into public.activities (id, created_by, created_at, updated_at, kind, title, technician, started_at, status)
+                  values ($1, 'Nova', now(), now(), 'implantacao', 't', 'Nova', now(), 'aberta')`, [ID.fresh(61)]);
+    });
+  });
+
+  it('desativar de novo corta o acesso na hora; o registro de aprovação não pode ser editado à mão', async () => {
+    await db.run('postgres', async (tx) => {
+      await signUp(tx);
+      await tx.q(`update public.profiles set active = true where id = $1`, [NEW]);
+      await tx.as('davi');
+      expect(await tx.count(`update public.profiles set reviewed_at = '2000-01-01', reviewed_by = $2 where id = $1`, [NEW, IDS.ana])).toBe(1);
+      const [p] = await tx.q<{ reviewed_at: Date | null; reviewed_by: string | null }>(`select reviewed_at, reviewed_by from public.profiles where id = $1`, [NEW]);
+      expect(p!.reviewed_at!.getFullYear()).toBeGreaterThanOrEqual(2026); // a tentativa de forjar foi ignorada
+      expect(p!.reviewed_by).not.toBe(IDS.ana);
+      expect(await tx.count(`update public.profiles set active = false where id = $1`, [NEW])).toBe(1);
+      await tx.as('postgres');
+      await asNew(tx);
+      expect(await tx.q(`select 1 from public.elements`)).toHaveLength(0);
     });
   });
 });
@@ -291,8 +402,16 @@ describe.skipIf(!DB_URL)('conferir-passo-1.sql (o que o usuario roda para saber 
   it('num banco com todas as migrations, todas as linhas dizem OK', async () => {
     const sql = readFileSync(new URL('../conferir-passo-1.sql', import.meta.url), 'utf8');
     const rows = await db.admin<{ item: string; esperado: string; encontrado: string; resultado: string }>(sql);
-    expect(rows).toHaveLength(12);
+    expect(rows).toHaveLength(16);
     expect(rows.filter((r) => r.resultado !== 'OK')).toEqual([]);
+  });
+
+  it('o arquivo de aprovação pode ser rodado de novo sem erro e sem alterar nada', async () => {
+    const mig = readFileSync(new URL('../migrations/20261006150400_aprovacao_de_acesso.sql', import.meta.url), 'utf8');
+    await db.admin(mig);
+    await db.admin(mig);
+    const sql = readFileSync(new URL('../conferir-passo-1.sql', import.meta.url), 'utf8');
+    expect((await db.admin<{ resultado: string }>(sql)).filter((r) => r.resultado !== 'OK')).toEqual([]);
   });
 
   it('e acusa FALTA quando uma migration nao foi aplicada ate o fim (simulando uma colagem cortada)', async () => {

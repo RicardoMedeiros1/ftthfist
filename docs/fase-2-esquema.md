@@ -1,5 +1,9 @@
 # Fase 2 — esquema SQL (RASCUNHO para aprovação)
 
+> **Atualização:** o cadastro agora é **com aprovação** (a pessoa pede acesso pelo app e o admin aprova), não mais
+> "o admin cria os usuários". As migrations reais estão em `supabase/migrations/` e são a fonte da verdade; este
+> rascunho ficou desatualizado em vários pontos (arquivos divididos, geometria calculada no servidor, perfil pendente).
+
 > Isto **não é** a migration. É o desenho para você revisar. Depois da sua confirmação ele vira
 > `supabase/migrations/0001_*.sql` e é testado em um Postgres 16 + PostGIS local.
 

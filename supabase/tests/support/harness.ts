@@ -128,6 +128,8 @@ export async function createTestDb(): Promise<TestDb> {
   }
 
   const pool = new pg.Pool({ connectionString: url.toString(), max: 4 });
+  // ao apagar o banco de teste (drop ... with force) o Postgres derruba conexoes ociosas: isso nao e erro do teste
+  pool.on('error', () => undefined);
   const admin = async <T = Row>(sql: string, params: unknown[] = []) => (await pool.query(sql, params)).rows as T[];
 
   // ---------- cenário ----------

@@ -1,4 +1,4 @@
--- RotaFibra - Fase 2 - passo 1: CONFERENCIA. Rode depois de aplicar todas as migrations.
+-- RotaFibra - Fase 2 - passo 1: CONFERENCIA. Rode depois de aplicar TODAS as migrations (arquivos 1 a 10).
 -- Mostra cada item esperado e o que foi encontrado. Se TODAS as linhas disserem OK, o banco esta completo.
 -- Se alguma disser FALTA, uma migration nao foi aplicada ate o fim: me diga qual linha falhou.
 
@@ -12,7 +12,7 @@ from (
   union all select 3, 'tabelas com RLS ligada', '7',
          (select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace
           where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity)::text
-  union all select 4, 'politicas de acesso nas tabelas', '18',
+  union all select 4, 'politicas de acesso nas tabelas', '19',
          (select count(*) from pg_policies where schemaname = 'public')::text
   union all select 5, 'politicas de acesso as fotos (storage)', '3',
          (select count(*) from pg_policies where schemaname = 'storage' and policyname in ('fotos_read', 'fotos_insert', 'fotos_update'))::text
@@ -32,5 +32,15 @@ from (
   union all select 12, 'ninguem logado pode apagar linhas (privilegio DELETE em tabelas de dados)', '0',
          (select count(*) from information_schema.role_table_grants
           where table_schema = 'public' and grantee in ('anon', 'authenticated') and privilege_type = 'DELETE')::text
+  union all select 13, 'novos perfis nascem PENDENTES (active padrao = false)', 'false',
+         coalesce((select column_default from information_schema.columns
+                   where table_schema = 'public' and table_name = 'profiles' and column_name = 'active'), '?')
+  union all select 14, 'registro de aprovacao em profiles (reviewed_at, reviewed_by)', '2',
+         (select count(*) from information_schema.columns
+          where table_schema = 'public' and table_name = 'profiles' and column_name in ('reviewed_at', 'reviewed_by'))::text
+  union all select 15, 'trigger do registro de aprovacao', '1',
+         (select count(*) from pg_trigger where not tgisinternal and tgname = 'profiles_review_audit')::text
+  union all select 16, 'o pendente le o proprio perfil (politica profiles_read_self)', '1',
+         (select count(*) from pg_policies where schemaname = 'public' and policyname = 'profiles_read_self')::text
 ) x
 order by n;

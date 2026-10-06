@@ -5,7 +5,7 @@ aqui está só o esquema, as regras de acesso (RLS) e os testes que provam que e
 
 ```
 supabase/
-  migrations/   8 arquivos SQL pequenos, aplicar em ordem
+  migrations/   9 arquivos SQL pequenos, aplicar em ordem
   conferir-passo-1.sql   diz, item por item, se o banco ficou completo
   tests/        testes do banco (Postgres local) e o script de verificação direto na API
 ```
@@ -16,6 +16,9 @@ supabase/
   a partir de `lat`/`lng` e dos `vertices` do cabo.
 - **Quem pode o quê:** técnico lê a rede toda e cria/edita **só o que é dele**; escritório lê tudo e não edita dados
   de campo; admin gerencia perfis. A trilha GPS de um técnico só é lida por ele, pelo escritório e pelo admin.
+- **Cadastro com aprovação:** quem pede acesso pelo app nasce **pendente** (`active = false`): não lê nem grava nada,
+  só enxerga o próprio perfil. O admin aprova marcando `active = true`; o banco registra quem aprovou e quando
+  (`reviewed_by`, `reviewed_at`). Papel e "ativo" digitados no cadastro são ignorados: só o nome vale.
 - **Ninguém apaga linha.** A exclusão é lógica (`deleted = true`), como no app.
 - **Reenviar nunca duplica:** o envio é um *upsert* por `id` (UUID gerado no aparelho).
 - **Conflito:** vence o `updated_at` mais recente; o envio atrasado e diferente vai para `sync_conflicts` (só o admin lê).
@@ -25,31 +28,39 @@ supabase/
 ## Preparar o projeto (uma vez)
 
 1. No [supabase.com](https://supabase.com), crie um projeto (plano gratuito). Guarde a senha do banco.
-2. **Desligue o cadastro público:** *Authentication → Sign In / Providers* e desmarque *Allow new users to sign up*.
-   (Os nomes dos menus mudam de vez em quando; o que importa é: ninguém de fora pode criar conta.)
+2. **Cadastro com aprovacao** (*Authentication -> Sign In / Providers*; os nomes dos menus mudam de vez em quando):
+   - **Ligue** *Allow new users to sign up*: o tecnico pede acesso pelo proprio app. Ele nasce pendente e nao ve nada ate voce aprovar.
+   - **Desligue** *Confirm email*: o e-mail embutido do Supabase so entrega para a equipe do projeto, entao a confirmacao
+     por e-mail nao chegaria aos tecnicos. Como o e-mail nao e verificado, **aprove so quem voce conhece** (confira o
+     nome e o e-mail do pedido por outro canal).
+   - Em *Password* (ou *Password security*), defina a **senha minima em 8 caracteres** ou mais.
 3. **Aplique as migrations, em ordem** (cada uma **uma vez só**). `supabase db push` nao e um arquivo: e um comando do
    Supabase CLI, que so vale a pena se voce tiver o repositorio no seu computador. O caminho simples nao instala nada:
    - *SQL Editor:* no painel do Supabase, **SQL Editor -> New query**, cole o conteudo de **um arquivo de
-     `supabase/migrations/` por vez, na ordem do nome**, e clique em **Run**. Sao 8 arquivos (`...150000_perfis`,
+     `supabase/migrations/` por vez, na ordem do nome**, e clique em **Run**. Sao 9 arquivos (`...150000_perfis`,
      `...150100_tabelas_atividades_elementos`, `...150110_tabelas_cabos_fotos`, `...150120_tabelas_trilha_indices`,
-     `...150130_regras_de_conflito`, `...150140_permissoes_e_rls`, `...150200_fotos`, `...150300_painel`).
+     `...150130_regras_de_conflito`, `...150140_permissoes_e_rls`, `...150200_fotos`, `...150300_painel`, `...150400_aprovacao_de_acesso`).
      Cada um termina com uma linha `-- fim: ...`: **confira no editor se ela esta la** antes de rodar. Os arquivos tem
      menos de 100 linhas de proposito: um colar a partir de um visualizador que corta em 100 linhas ja chegou truncado
      ao editor (erro de sintaxe no fim do texto), e as migrations sao so ASCII porque o editor ja reescreveu um script
      com acentos e o quebrou. Se o editor perguntar sobre "Row Level Security", o nosso SQL ja liga a RLS em todas as
      tabelas: qualquer botao serve (se der erro de sintaxe, use "Run without RLS").
-   - **Confira o resultado:** rode `supabase/conferir-passo-1.sql`. Todas as 12 linhas devem dizer `OK`; `FALTA` indica
+   - **Confira o resultado:** rode `supabase/conferir-passo-1.sql`. Todas as 16 linhas devem dizer `OK`; `FALTA` indica
      qual parte nao foi aplicada ate o fim.
    - *CLI* (com o repositorio no computador, dentro da pasta do projeto): `npx supabase init`, `npx supabase login`,
      `npx supabase link --project-ref <ref>` e `npx supabase db push`. O `<ref>` e o trecho da URL do projeto
      (`https://<ref>.supabase.co`). Nao misture: se aplicou pelo SQL Editor, nao use `db push` depois para as mesmas migrations.
-4. **Crie os usuários:** *Authentication → Users → Add user → Create new user*, com e-mail e senha
-   (marque *Auto Confirm User*). O perfil nasce sozinho como `tecnico`; ajuste o nome em *Table Editor → profiles → full_name*.
-5. **Defina os papéis.** O primeiro admin você faz no *SQL Editor*:
+4. **Como as pessoas entram:** pelo app (passo 2 da Fase 2) elas pedem acesso com nome, e-mail e senha. Quem for criado
+   direto em *Authentication -> Users -> Add user* tambem nasce pendente.
+5. **Aprovar e definir papeis.** Em *Table Editor -> profiles*, a fila de pendentes e `active = false` e `reviewed_at`
+   vazio. Para aprovar, mude `active` para `true`; ajuste `full_name` e `role` (`tecnico`, `escritorio` ou `admin`) se precisar.
+   O **primeiro admin** voce faz no *SQL Editor* (a conta dele precisa existir):
    ```sql
-   update public.profiles set role = 'admin' where id = (select id from auth.users where email = 'voce@empresa.com');
+   update public.profiles set role = 'admin', active = true
+   where id = (select id from auth.users where email = 'voce@empresa.com');
    ```
-   Os demais (`escritorio`, `admin`) podem ser alterados em *Table Editor → profiles → role*.
+   Limite conhecido: sem e-mail configurado (SMTP proprio), "esqueci minha senha" nao funciona. Se alguem esquecer, o admin
+   apaga o usuario em *Authentication -> Users* e a pessoa pede acesso de novo.
 6. **Guarde a URL e a chave publica** (*Project Settings*): a **Project URL** fica em *Data API* (ou na pagina inicial do
    projeto) e a chave em *API Keys*, na secao **Publishable key** (linha `default`, comeca com `sb_publishable_`). E o
    novo nome da antiga *anon key* e foi feita para ficar no app. Coloque as duas em `.env.local` (que nao vai para o Git)
