@@ -3,6 +3,9 @@ import SavedNotice from './features/elements/SavedNotice';
 import BackupReminder from './features/export/BackupReminder';
 import BackupScreen from './features/export/BackupScreen';
 import ExportScreen from './features/export/ExportScreen';
+import CamadasScreen from './features/reference/CamadasScreen';
+import LayerScreen from './features/reference/LayerScreen';
+import ReferenceFeatureScreen from './features/reference/ReferenceFeatureScreen';
 import { requestPersistence } from './lib/storage';
 import ActivitiesScreen from './features/activities/ActivitiesScreen';
 import NewActivityScreen from './features/activities/NewActivityScreen';
@@ -56,6 +59,9 @@ export default function App() {
       {route === 'config' && <SettingsScreen />}
       {route === 'backup' && <BackupScreen />}
       {route === 'exportar' && <ExportScreen />}
+      {route === 'camadas' && <CamadasScreen />}
+      {route === 'camada' && <LayerScreen />}
+      {route === 'referencia' && <ReferenceFeatureScreen />}
       <div className="toast-host">
         <SavedNotice />
         <UpdatePrompt />

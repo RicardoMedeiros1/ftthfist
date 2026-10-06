@@ -8,6 +8,7 @@ describe('parseRoute', () => {
     expect(parseRoute('#/elemento/novo')).toBe('novo-elemento');
     expect(parseRoute('#/backup')).toBe('backup');
     expect(parseRoute('#/exportar')).toBe('exportar');
+    expect(parseRoute('#/camadas')).toBe('camadas');
     expect(parseRoute('#/cabo/novo')).toBe('novo-cabo');
     expect(parseRoute('#/trilha')).toBe('trilha');
     expect(parseRoute('#/config')).toBe('config');
@@ -50,5 +51,18 @@ describe('parseLocation (exportar)', () => {
     expect(parseLocation('#/exportar/abc-1')).toEqual({ route: 'exportar', id: 'abc-1' });
     expect(parseLocation('#/exportar/a/b')).toEqual({ route: 'map' });
     expect(parseLocation('#/exportar/')).toEqual({ route: 'map' });
+  });
+});
+
+describe('parseLocation (camadas de referência)', () => {
+  it('camada e ponto de referência por id; o ":" do id composto vai codificado', () => {
+    expect(parseLocation('#/camada/abc-1')).toEqual({ route: 'camada', id: 'abc-1' });
+    expect(parseLocation('#/camada/')).toEqual({ route: 'map' });
+    expect(parseLocation('#/referencia/abc-1%3A12')).toEqual({ route: 'referencia', id: 'abc-1:12' });
+    expect(parseLocation('#/referencia/a/b')).toEqual({ route: 'map' });
+  });
+  it('navegar monta o mesmo endereço', () => {
+    const id = encodeURIComponent('abc-1:12');
+    expect(`#/referencia/${id}`).toBe('#/referencia/abc-1%3A12');
   });
 });

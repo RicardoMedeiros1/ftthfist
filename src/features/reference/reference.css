@@ -1,0 +1,29 @@
+.ref-dot { display: inline-block; width: 16px; height: 16px; margin-right: 8px; border: 2px solid #fff; border-radius: 50%; vertical-align: -1px; }
+.card-actions .btn[aria-pressed='true'] { background: var(--accent); color: #000; border-color: var(--accent); }
+
+/* Botão "Referência" do mapa: ligado = destacado */
+.map-btn[aria-pressed='true'].map-btn-wide { background: var(--accent); }
+
+.pre-wrap { white-space: pre-wrap; overflow-wrap: anywhere; }
+.ref-desc { max-height: 40vh; overflow-y: auto; padding: 10px 12px; border: 2px solid #444; border-radius: 12px; background: #000; }
+
+.ref-list { display: flex; flex-direction: column; gap: 6px; }
+.ref-row {
+  display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 6px 12px;
+  border: 3px solid #555; border-radius: 12px; background: #111; text-align: left; width: 100%;
+  color: #fff; font: 600 17px/1.25 system-ui, sans-serif; touch-action: manipulation;
+}
+.ref-row[aria-pressed='true'] { border-color: var(--accent); background: #2a2400; }
+.ref-box {
+  flex: none; width: 28px; height: 28px; border: 3px solid #fff; border-radius: 6px;
+  display: grid; place-items: center; font-weight: 900; color: #000; line-height: 1;
+}
+.ref-row[aria-pressed='true'] .ref-box { background: var(--accent); border-color: var(--accent); }
+.ref-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ref-badge { flex: none; font-size: 13px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: #34c759; color: #000; }
+.ref-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.ref-actions .btn { flex: 1; min-width: 140px; }
+
+/* 2 colunas: "Ocorrência" não cabe em 3 colunas numa tela de 360 px */
+.chips.chips-types { grid-template-columns: repeat(2, 1fr); }
+.chips.chips-types button { min-height: 52px; }

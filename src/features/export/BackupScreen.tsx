@@ -126,7 +126,7 @@ export default function BackupScreen() {
           Neste aparelho: {summary ? describeCounts(summary) : '…'}
           {summary && summary.photoBytes > 0 ? ` (fotos: ${formatBytes(summary.photoBytes)})` : ''}
         </div>
-        <p className="hint">Os dados ficam só neste aparelho. Se ele for perdido ou o navegador limpar os dados, sem backup não há como recuperar.</p>
+        <p className="hint">Os dados ficam só neste aparelho. Se ele for perdido ou o navegador limpar os dados, sem backup não há como recuperar. As camadas de referência (KML/KMZ importados) não entram no backup: se precisar, importe o arquivo de novo.</p>
       </section>
 
       <section className="section" aria-label="Fazer backup">
@@ -211,7 +211,7 @@ export default function BackupScreen() {
             <p className="hint">
               {restore.mode === 'merge'
                 ? 'Junta o backup com o que já está aqui. Em caso de conflito, fica o registro mais recente.'
-                : 'Apaga tudo o que está neste aparelho e deixa só o conteúdo do backup.'}
+                : 'Apaga os dados de campo deste aparelho (atividades, elementos, cabos, trilhas e fotos) e deixa só o conteúdo do backup. As camadas de referência não são afetadas.'}
             </p>
             <div className="placement-row">
               <button className="btn" onClick={() => setRestore({ s: 'idle' })}>Cancelar</button>

@@ -5,6 +5,8 @@ import type {
   Cable,
   NetworkElement,
   Photo,
+  ReferenceFeature,
+  ReferenceLayer,
   SettingEntry,
   TrackPoint,
 } from './types';
@@ -16,6 +18,8 @@ export class RotaFibraDB extends Dexie {
   photos!: EntityTable<Photo, 'id'>;
   trackPoints!: EntityTable<TrackPoint, 'id'>;
   settings!: EntityTable<SettingEntry, 'key'>;
+  referenceLayers!: EntityTable<ReferenceLayer, 'id'>;
+  referenceFeatures!: EntityTable<ReferenceFeature, 'id'>;
 
   constructor(name = 'rotafibra') {
     super(name);
@@ -29,6 +33,11 @@ export class RotaFibraDB extends Dexie {
       photos: 'id, elementId, activityId, updatedAt, syncStatus',
       trackPoints: 'id, activityId, timestamp, syncStatus',
       settings: 'key',
+    });
+    // v2: camadas de referência importadas (KML/KMZ). Só tabelas novas: o que já está gravado não muda.
+    this.version(2).stores({
+      referenceLayers: 'id, updatedAt',
+      referenceFeatures: 'id, layerId',
     });
   }
 }

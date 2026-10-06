@@ -14,6 +14,9 @@ import CablePanel from '../cables/CablePanel';
 import CablesLayer from '../cables/CablesLayer';
 import { cableStore } from '../cables/cableRepo';
 import { LegendSheet } from '../cables/Legend';
+import MapCommandHost from './MapCommandHost';
+import ReferenceLayers from '../reference/ReferenceLayers';
+import { references } from '../reference/referenceRepo';
 import TrackLayer from '../tracking/TrackLayer';
 import { useTrack } from '../tracking/trackRecorder';
 import { navigate } from '../../lib/route';
@@ -134,6 +137,8 @@ export default function MapScreen() {
   const placing = phase !== 'idle';
   const lancando = phase === 'cabo' || phase === 'cabo-editar';
   const hasCables = (useLiveQuery(() => cableStore.list())?.length ?? 0) > 0;
+  const refLayers = useLiveQuery(() => references.list());
+  const refVisible = refLayers?.some((l) => l.visible) ?? false;
   const [legendOpen, setLegendOpen] = useState(false);
   const trackStatus = useTrack((t) => t.status);
 
@@ -201,6 +206,7 @@ export default function MapScreen() {
           crossOrigin="anonymous"
         />
         {fix && <LocationMarker fix={fix} />}
+        <ReferenceLayers />
         <TrackLayer />
         <CablesLayer />
         <ElementsLayer />
@@ -208,6 +214,7 @@ export default function MapScreen() {
         <CableEditLayer />
         <PlacementLayer />
         <FollowLocation fix={fix} mode={mode} onRelease={release} />
+        <MapCommandHost onBeforeMove={release} />
         <PersistView />
         <ZoomButtons />
       </MapContainer>
@@ -223,6 +230,16 @@ export default function MapScreen() {
         {hasCables && phase === 'idle' && (
           <button className="map-btn map-btn-wide" onClick={() => setLegendOpen(true)}>
             Legenda
+          </button>
+        )}
+        {phase === 'idle' && refLayers !== undefined && refLayers.length > 0 && (
+          <button
+            className="map-btn map-btn-wide"
+            aria-pressed={refVisible}
+            aria-label={refVisible ? 'Ocultar camada de referência' : 'Mostrar camada de referência'}
+            onClick={() => void references.setAllVisible(!refVisible)}
+          >
+            Referência
           </button>
         )}
         {phase === 'idle' && (

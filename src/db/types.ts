@@ -132,6 +132,43 @@ export interface TrackPoint extends BaseRecord {
   segment?: number;
 }
 
+// ---- Camadas de referência (KML/KMZ importado) ----
+// São dados de terceiros, só para consulta: ficam no aparelho e não entram no backup
+// (dá para importar o arquivo de novo). Coordenadas sempre [lng, lat].
+
+export type RefCoord = [number, number];
+
+export type RefGeometry =
+  | { kind: 'point'; coord: RefCoord }
+  | { kind: 'line'; parts: RefCoord[][] }
+  /** Só o anel externo de cada polígono (furos são ignorados). */
+  | { kind: 'polygon'; rings: RefCoord[][] };
+
+export interface ReferenceLayer extends BaseRecord {
+  name: string;
+  fileName: string;
+  color: string;
+  visible: boolean;
+  counts: { points: number; lines: number; polygons: number };
+  /** Elementos do arquivo que não puderam ser usados (sem coordenadas ou inválidos). */
+  skipped: number;
+  /** [sul, oeste, norte, leste] */
+  bounds: [number, number, number, number];
+  /** Índices (`n`) dos pontos já convertidos em elementos. */
+  converted: number[];
+}
+
+export interface ReferenceFeature {
+  id: string; // `${layerId}:${n}`
+  layerId: string;
+  n: number;
+  /** Texto puro: nada do arquivo de terceiros é tratado como HTML. */
+  name: string;
+  description: string;
+  props: [string, string][];
+  geom: RefGeometry;
+}
+
 /** Configurações do aparelho (uma linha por chave). */
 export interface SettingEntry {
   key: string;

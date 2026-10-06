@@ -2,12 +2,12 @@ import { useSyncExternalStore } from 'react';
 
 // Navegação por hash: funciona em qualquer subpasta (GitHub Pages) e o botão
 // "voltar" do celular segue o histórico do app.
-export type Route = 'map' | 'atividades' | 'nova-atividade' | 'novo-elemento' | 'elemento' | 'novo-cabo' | 'cabo' | 'trilha' | 'backup' | 'exportar' | 'config';
+export type Route = 'map' | 'atividades' | 'nova-atividade' | 'novo-elemento' | 'elemento' | 'novo-cabo' | 'cabo' | 'trilha' | 'backup' | 'exportar' | 'camadas' | 'camada' | 'referencia' | 'config';
 
-type IdRoute = 'elemento' | 'cabo' | 'exportar';
+type IdRoute = 'elemento' | 'cabo' | 'exportar' | 'camada' | 'referencia';
 
 // 'exportar' sem id exporta a rede inteira; com id, só aquela atividade.
-const STATIC_HASH: Record<Exclude<Route, 'elemento' | 'cabo'>, string> = {
+const STATIC_HASH: Record<Exclude<Route, 'elemento' | 'cabo' | 'camada' | 'referencia'>, string> = {
   map: '#/',
   atividades: '#/atividades',
   'nova-atividade': '#/atividades/nova',
@@ -16,12 +16,13 @@ const STATIC_HASH: Record<Exclude<Route, 'elemento' | 'cabo'>, string> = {
   trilha: '#/trilha',
   backup: '#/backup',
   exportar: '#/exportar',
+  camadas: '#/camadas',
   config: '#/config',
 };
 
 export interface AppLocation {
   route: Route;
-  /** Nas rotas 'elemento', 'cabo' e 'exportar': id do registro aberto. */
+  /** Nas rotas com id: id do registro aberto. */
   id?: string;
 }
 
@@ -29,10 +30,13 @@ const WITH_ID: { route: IdRoute; re: RegExp }[] = [
   { route: 'elemento', re: /^#\/elemento\/([^/]+)$/ },
   { route: 'cabo', re: /^#\/cabo\/([^/]+)$/ },
   { route: 'exportar', re: /^#\/exportar\/([^/]+)$/ },
+  { route: 'camada', re: /^#\/camada\/([^/]+)$/ },
+  // id = `<camada>:<número>`; o ":" vai codificado (%3A)
+  { route: 'referencia', re: /^#\/referencia\/([^/]+)$/ },
 ];
 
 export function parseLocation(hash: string): AppLocation {
-  const fixed = (Object.keys(STATIC_HASH) as Exclude<Route, 'elemento' | 'cabo'>[]).find((r) => STATIC_HASH[r] === hash);
+  const fixed = (Object.keys(STATIC_HASH) as (keyof typeof STATIC_HASH)[]).find((r) => STATIC_HASH[r] === hash);
   if (fixed) return { route: fixed };
   for (const { route, re } of WITH_ID) {
     const m = re.exec(hash);
@@ -51,7 +55,9 @@ export function parseRoute(hash: string): Route {
 }
 
 function hashFor(route: Route, id?: string): string {
-  if (route === 'elemento' || route === 'cabo') return id ? `#/${route}/${encodeURIComponent(id)}` : STATIC_HASH.map;
+  if (route === 'elemento' || route === 'cabo' || route === 'camada' || route === 'referencia') {
+    return id ? `#/${route}/${encodeURIComponent(id)}` : STATIC_HASH.map;
+  }
   if (route === 'exportar' && id) return `#/exportar/${encodeURIComponent(id)}`;
   return STATIC_HASH[route];
 }
