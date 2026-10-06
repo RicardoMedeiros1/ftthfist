@@ -1,6 +1,7 @@
 import { db, newBase, touch, type RotaFibraDB } from '../../db/db';
 import type { Cable, CableVertex, FiberCount } from '../../db/types';
 import { round2 } from '../../lib/geo';
+import { isMine, notMineMessage } from '../../lib/ownership';
 import { moveElementWithCables, recomputeCable, totalsFor, unlinkReserves } from './cableLinks';
 import { isFiberCount } from './style';
 
@@ -11,7 +12,8 @@ export type CableRuleCode =
   | 'INVALID_POSITION'
   | 'INVALID_FIBERS'
   | 'INVALID_TYPE'
-  | 'NOT_FOUND';
+  | 'NOT_FOUND'
+  | 'NOT_OWNER';
 
 export class CableRuleError extends Error {
   constructor(
@@ -65,9 +67,11 @@ export function cableRepo(database: RotaFibraDB = db) {
     return { lat: v.lat, lng: v.lng };
   }
 
+  /** O cabo que vai ser alterado: precisa existir e ser meu. */
   async function mustGet(id: string): Promise<Cable> {
     const c = await database.cables.get(id);
     if (!c || c.deleted) throw notFound();
+    if (!isMine(c)) throw new CableRuleError('NOT_OWNER', notMineMessage('cabo'));
     return c;
   }
 
@@ -98,7 +102,7 @@ export function cableRepo(database: RotaFibraDB = db) {
         const open = await database.activities
           .where('status')
           .equals('aberta')
-          .filter((a) => !a.deleted)
+          .filter((a) => !a.deleted && isMine(a))
           .first();
         if (!open) throw new CableRuleError('NO_OPEN_ACTIVITY', 'Inicie uma atividade antes de lançar um cabo.');
 
@@ -144,6 +148,7 @@ export function cableRepo(database: RotaFibraDB = db) {
         if (v.elementId) {
           const el = await database.elements.get(v.elementId);
           if (el && !el.deleted) {
+            if (!isMine(el)) throw new CableRuleError('NOT_OWNER', notMineMessage('elemento'));
             await moveElementWithCables(database, el.id, { ...pos, positionSource: 'manual' });
             return (await database.cables.get(id)) as Cable;
           }

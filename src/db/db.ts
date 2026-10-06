@@ -10,6 +10,7 @@ import type {
   SettingEntry,
   TrackPoint,
 } from './types';
+import { actingUserId } from '../lib/ownership';
 
 export class RotaFibraDB extends Dexie {
   activities!: EntityTable<Activity, 'id'>;
@@ -53,6 +54,7 @@ export function newBase(createdBy: string, now = Date.now()): BaseRecord {
     createdBy,
     deleted: false,
     syncStatus: 'pending',
+    ...(actingUserId() ? { ownerId: actingUserId()! } : {}),
   };
 }
 
@@ -76,6 +78,8 @@ export const SETTING_KEYS = {
   // conta (Fase 2): quem esta logado neste aparelho e o ultimo perfil conhecido (para funcionar sem internet)
   account: 'account',
   accountProfile: 'accountProfile',
+  // primeira conta que usou o aparelho: dona dos registros feitos antes de existir login
+  deviceOwner: 'deviceOwner',
 } as const;
 
 export async function getSetting<T>(key: string, fallback: T): Promise<T> {

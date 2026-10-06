@@ -1,5 +1,6 @@
 import type { Cable } from '../../db/types';
 import { formatMeters, type LatLng } from '../../lib/geo';
+import { isMine } from '../../lib/ownership';
 import { nearestCableVertex } from './nearestVertex';
 
 export interface CableChoice {
@@ -23,7 +24,7 @@ export function cableChoicesNear(
 ): CableChoice[] {
   const out: CableChoice[] = [];
   for (const c of cables) {
-    if (c.deleted) continue;
+    if (c.deleted || (!isMine(c) && c.id !== include)) continue; // reserva so liga a cabo meu
     const near = nearestCableVertex(pos, [c], maxMeters);
     if (near) out.push({ id: c.id, label: cableLabel(c), distance: near.distance });
     else if (c.id === include) out.push({ id: c.id, label: cableLabel(c), distance: Infinity });

@@ -1,9 +1,10 @@
 import { db, newBase, touch, type RotaFibraDB } from '../../db/db';
 import type { NetworkElement, Photo } from '../../db/types';
+import { isMine, notMineMessage } from '../../lib/ownership';
 
 export class PhotoRuleError extends Error {
   constructor(
-    readonly code: 'ELEMENT_NOT_FOUND' | 'PHOTO_NOT_FOUND',
+    readonly code: 'ELEMENT_NOT_FOUND' | 'PHOTO_NOT_FOUND' | 'NOT_OWNER',
     message: string,
   ) {
     super(message);
@@ -46,6 +47,7 @@ export function photoRepo(database: RotaFibraDB = db) {
       return database.transaction('rw', database.elements, database.photos, async () => {
         const el = await database.elements.get(elementId);
         if (!el || el.deleted) throw new PhotoRuleError('ELEMENT_NOT_FOUND', 'Elemento não encontrado.');
+        if (!isMine(el)) throw new PhotoRuleError('NOT_OWNER', notMineMessage('elemento'));
         const photo = buildPhoto(el, input, technician.trim() || el.createdBy);
         await database.photos.add(photo);
         return photo;
@@ -57,6 +59,7 @@ export function photoRepo(database: RotaFibraDB = db) {
       await database.transaction('rw', database.photos, async () => {
         const p = await database.photos.get(id);
         if (!p || p.deleted) throw new PhotoRuleError('PHOTO_NOT_FOUND', 'Foto não encontrada.');
+        if (!isMine(p)) throw new PhotoRuleError('NOT_OWNER', notMineMessage('registro'));
         await database.photos.update(id, touch<Photo>({ deleted: true }));
       });
     },

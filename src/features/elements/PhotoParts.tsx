@@ -65,7 +65,8 @@ export function PhotoViewer({
 }: {
   item: BlobItem;
   onClose: () => void;
-  onDelete: () => Promise<void> | void;
+  /** Sem isto, a foto abre só para ver (foto de outro técnico). */
+  onDelete?: () => Promise<void> | void;
 }) {
   const items = useMemo(() => [item], [item]);
   const urls = useObjectUrls(items);
@@ -77,9 +78,11 @@ export function PhotoViewer({
         <button className="btn btn-small" onClick={onClose}>
           Fechar
         </button>
-        <button className="btn btn-small btn-danger" onClick={() => setConfirming(true)}>
-          Excluir foto
-        </button>
+        {onDelete && (
+          <button className="btn btn-small btn-danger" onClick={() => setConfirming(true)}>
+            Excluir foto
+          </button>
+        )}
       </div>
       {urls[item.id] && <img src={urls[item.id]} alt="Foto ampliada" />}
       {confirming && (
@@ -91,7 +94,7 @@ export function PhotoViewer({
           onCancel={() => setConfirming(false)}
           onConfirm={async () => {
             setConfirming(false);
-            await onDelete();
+            await onDelete?.();
             onClose();
           }}
         />

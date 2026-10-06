@@ -10,6 +10,8 @@ export interface BaseRecord {
   createdBy: string;
   deleted: boolean; // exclusão sempre lógica
   syncStatus: SyncStatus;
+  /** Quem registrou (id da conta no servidor). Ausente = criado neste aparelho antes de haver conta. */
+  ownerId?: string;
 }
 
 export type ActivityKind = 'implantacao' | 'manutencao';

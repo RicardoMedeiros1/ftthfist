@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
+import NotMineNote from '../../components/NotMineNote';
 import ScreenShell from '../../components/ScreenShell';
 import type { Activity } from '../../db/types';
 import { formatDateTime, formatDuration } from '../../lib/format';
 import { goBack, navigate } from '../../lib/route';
+import { isMine } from '../../lib/ownership';
+import { useIsMine } from '../../lib/useOwnership';
 import { ActivityRuleError, activities } from './activityRepo';
 import { KIND_LABEL } from './labels';
 
@@ -17,6 +20,7 @@ function ActivityCard({
   onAction: (fn: () => Promise<void>) => void;
 }) {
   const open = a.status === 'aberta';
+  const mine = useIsMine(a);
   return (
     <article className={`card ${open ? 'card-open' : ''}`}>
       <div className="row">
@@ -32,8 +36,9 @@ function ActivityCard({
         Início {formatDateTime(a.startedAt)}
         {a.endedAt ? ` · Fim ${formatDateTime(a.endedAt)} · ${formatDuration(a.endedAt - a.startedAt)}` : ''}
       </div>
+      {!mine && <NotMineNote author={a.technician} what="atividade" />}
       <div className="card-actions">
-        {open ? (
+        {!mine ? null : open ? (
           <button className="btn btn-primary btn-small" onClick={() => onAction(() => activities.complete(a.id))}>
             Concluir
           </button>
@@ -58,7 +63,8 @@ export default function ActivitiesScreen() {
   const list = useLiveQuery(() => activities.list());
   const [error, setError] = useState<string | null>(null);
 
-  const hasOpen = list?.some((a) => a.status === 'aberta') ?? false;
+  // so a MINHA atividade aberta impede de iniciar outra (a de um colega e dele)
+  const hasOpen = list?.some((a) => a.status === 'aberta' && isMine(a)) ?? false;
 
   function run(fn: () => Promise<void>) {
     setError(null);

@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { SETTING_KEYS, getSetting, setSetting } from '../../db/db';
 import { AuthApiError, translateAuthError, type AccountProfile, type AuthApi, type AuthSession } from './authApi';
+import { applyIdentity } from './deviceOwner';
 import { isSupabaseConfigured, loadAuthApi } from './supabaseClient';
 
 // Estado da conta neste aparelho. Regras de ouro: (1) o app nunca depende de conta para funcionar em campo;
@@ -40,6 +41,8 @@ export interface AccountDeps {
   now(): number;
   /** Chamado quando o perfil esta ativo (grava o nome do tecnico no aparelho). */
   onActive?(profile: AccountProfile): Promise<void>;
+  /** Quem esta usando o aparelho mudou (id da conta, ou null ao sair). Define o dono dos novos registros. */
+  onIdentity?(userId: string | null): Promise<void>;
   /** Inscreve um aviso de "voltou a internet". Devolve como cancelar. */
   onOnline?(cb: () => void): () => void;
 }
@@ -82,6 +85,7 @@ export function createAccountStore(deps: AccountDeps) {
     const changedUser = identity !== null && identity.userId !== s.userId;
     identity = { userId: s.userId, email: s.email };
     await deps.set(SETTING_KEYS.account, identity);
+    await deps.onIdentity?.(s.userId);
     if (changedUser) await deps.set(SETTING_KEYS.accountProfile, null); // outra pessoa entrou: o perfil antigo nao vale
     showIdentity(changedUser ? null : state.profile?.id === s.userId ? state.profile : null);
   }
@@ -90,6 +94,7 @@ export function createAccountStore(deps: AccountDeps) {
     identity = null;
     await deps.set(SETTING_KEYS.account, null);
     await deps.set(SETTING_KEYS.accountProfile, null);
+    await deps.onIdentity?.(null);
     set({ status: 'deslogado', email: null, profile: null, checkedAt: null });
   }
 
@@ -177,6 +182,7 @@ export function createAccountStore(deps: AccountDeps) {
         const cachedIdentity = await deps.get<StoredIdentity | null>(SETTING_KEYS.account, null);
         let cachedProfile = await deps.get<AccountProfile | null>(SETTING_KEYS.accountProfile, null);
         if (cachedIdentity && cachedProfile?.id !== cachedIdentity.userId) cachedProfile = null;
+        await deps.onIdentity?.(cachedIdentity?.userId ?? null); // antes de qualquer registro novo
         if (cachedIdentity) {
           identity = cachedIdentity;
           showIdentity(cachedProfile); // ja mostra o ultimo estado conhecido, sem esperar rede
@@ -299,6 +305,7 @@ export const accountStore: AccountStore = createAccountStore({
   isOnline: () => navigator.onLine,
   now: () => Date.now(),
   onActive: (p) => setSetting(SETTING_KEYS.technician, p.fullName),
+  onIdentity: (id) => applyIdentity(id),
   onOnline: (cb) => {
     window.addEventListener('online', cb);
     return () => window.removeEventListener('online', cb);

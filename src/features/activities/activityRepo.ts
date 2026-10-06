@@ -1,7 +1,8 @@
 import { db, newBase, touch, type RotaFibraDB } from '../../db/db';
 import type { Activity, ActivityKind } from '../../db/types';
+import { isMine, notMineMessage } from '../../lib/ownership';
 
-export type ActivityRuleCode = 'ALREADY_OPEN' | 'TITLE_REQUIRED' | 'TECHNICIAN_REQUIRED' | 'NOT_FOUND';
+export type ActivityRuleCode = 'ALREADY_OPEN' | 'TITLE_REQUIRED' | 'TECHNICIAN_REQUIRED' | 'NOT_FOUND' | 'NOT_OWNER';
 
 /** Erro de regra de negócio, com mensagem pronta para mostrar ao técnico. */
 export class ActivityRuleError extends Error {
@@ -25,7 +26,7 @@ export function activityRepo(database: RotaFibraDB = db) {
     database.activities
       .where('status')
       .equals('aberta')
-      .filter((a) => !a.deleted)
+      .filter((a) => !a.deleted && isMine(a)) // a atividade aberta de outro técnico não é a minha
       .first();
 
   const alreadyOpen = (open: Activity) =>
@@ -80,6 +81,7 @@ export function activityRepo(database: RotaFibraDB = db) {
       await database.transaction('rw', database.activities, async () => {
         const a = await database.activities.get(id);
         if (!a || a.deleted) throw new ActivityRuleError('NOT_FOUND', 'Atividade não encontrada.');
+        if (!isMine(a)) throw new ActivityRuleError('NOT_OWNER', notMineMessage('atividade'));
         if (a.status === 'concluida') return;
         await database.activities.update(id, touch<Activity>({ status: 'concluida', endedAt: Date.now() }));
       });
@@ -89,6 +91,7 @@ export function activityRepo(database: RotaFibraDB = db) {
       await database.transaction('rw', database.activities, async () => {
         const a = await database.activities.get(id);
         if (!a || a.deleted) throw new ActivityRuleError('NOT_FOUND', 'Atividade não encontrada.');
+        if (!isMine(a)) throw new ActivityRuleError('NOT_OWNER', notMineMessage('atividade'));
         if (a.status === 'aberta') return;
         const open = await findOpen();
         if (open) throw alreadyOpen(open);

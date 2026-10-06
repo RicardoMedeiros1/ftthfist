@@ -458,3 +458,57 @@ describe('trocar a senha', () => {
     expect(s.getState().error).toMatch(/Entre na conta/);
   });
 });
+
+describe('quem esta agindo (dono dos novos registros)', () => {
+  const spy = () => {
+    const calls: Array<string | null> = [];
+    return { calls, onIdentity: async (id: string | null) => void calls.push(id) };
+  };
+
+  it('abrir o app sem conta: avisa que ninguem entrou (antes de qualquer registro)', async () => {
+    const { calls, onIdentity } = spy();
+    await make({ onIdentity }).init();
+    expect(calls).toEqual([null]);
+  });
+
+  it('abrir o app SEM internet com conta conhecida: ja sabe quem age, sem esperar o servidor', async () => {
+    api.addUser('ana@x.com', 'senha1234', { active: true, reviewed: true });
+    await make().init();
+    await make().signIn('ana@x.com', 'senha1234');
+    // reabre sem rede
+    online = false;
+    loaded = false; // nem carrega o supabase-js: so o que esta guardado
+    const { calls, onIdentity } = spy();
+    await make({ onIdentity }).init();
+    expect(calls[0]).toBe('u-1');
+  });
+
+  it('entrar, sair e entrar como outra pessoa', async () => {
+    api.addUser('ana@x.com', 'senha1234', { active: true, reviewed: true });
+    api.addUser('bia@x.com', 'senha1234', { active: true, reviewed: true });
+    const { calls, onIdentity } = spy();
+    const s = make({ onIdentity });
+    await s.init();
+    await s.signIn('ana@x.com', 'senha1234');
+    await s.signOut();
+    await s.signIn('bia@x.com', 'senha1234');
+    expect(calls).toEqual([null, 'u-1', null, 'u-2']);
+  });
+
+  it('sessao revogada no servidor: volta a "ninguem"', async () => {
+    api.addUser('ana@x.com', 'senha1234', { active: true, reviewed: true });
+    const { calls, onIdentity } = spy();
+    const s = make({ onIdentity });
+    await s.init();
+    await s.signIn('ana@x.com', 'senha1234');
+    api.emit(null);
+    await new Promise((r) => setTimeout(r, 10));
+    expect(calls.at(-1)).toBeNull();
+  });
+
+  it('sem configuracao: nunca chama (o app sem conta segue como sempre)', async () => {
+    const { calls, onIdentity } = spy();
+    await make({ configured: false, onIdentity }).init();
+    expect(calls).toEqual([]);
+  });
+});

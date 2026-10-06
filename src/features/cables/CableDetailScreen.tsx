@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import NotMineNote from '../../components/NotMineNote';
 import ScreenShell from '../../components/ScreenShell';
 import { db } from '../../db/db';
 import type { NetworkElement } from '../../db/types';
 import { formatDateTime } from '../../lib/format';
 import { distanceMeters, formatMeters } from '../../lib/geo';
 import { goBack, navigate, useRouteId } from '../../lib/route';
+import { useIsMine } from '../../lib/useOwnership';
 import { KIND_LABEL } from '../activities/labels';
 import { draftStore } from '../elements/draftStore';
 import { elementStore } from '../elements/elementRepo';
@@ -48,6 +50,7 @@ export default function CableDetailScreen() {
     return new Map(found.flatMap((e) => (e ? [[e.id, e] as const] : [])));
   }, [cable]);
   const types = useCableTypes();
+  const mine = useIsMine(cable);
 
   const [editing, setEditing] = useState(false);
   const [cableType, setCableType] = useState('');
@@ -202,11 +205,15 @@ export default function CableDetailScreen() {
 
       {error && <div className="alert" role="alert">{error}</div>}
 
-      <div className="detail-actions">
-        <button className="btn" onClick={startEdit}>Editar</button>
-        <button className="btn" onClick={editPath}>Traçado</button>
-        <button className="btn btn-danger" onClick={() => setConfirmDelete(true)}>Excluir</button>
-      </div>
+      {mine ? (
+        <div className="detail-actions">
+          <button className="btn" onClick={startEdit}>Editar</button>
+          <button className="btn" onClick={editPath}>Traçado</button>
+          <button className="btn btn-danger" onClick={() => setConfirmDelete(true)}>Excluir</button>
+        </div>
+      ) : (
+        <NotMineNote author={cable.createdBy} what="cabo" />
+      )}
 
       <section className="field" aria-label="Legenda">
         <span className="label">Legenda</span>

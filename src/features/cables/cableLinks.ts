@@ -2,6 +2,7 @@ import type { RotaFibraDB } from '../../db/db';
 import { touch } from '../../db/db';
 import type { Cable, CableVertex, NetworkElement, PositionSource } from '../../db/types';
 import { pathLengthMeters, round2 } from '../../lib/geo';
+import { isMine } from '../../lib/ownership';
 
 // Regras que ligam cabos e elementos. As funções abaixo NÃO abrem transação: quem chama
 // precisa estar dentro de uma transação 'rw' que inclua as tabelas `elements` e `cables`.
@@ -30,15 +31,15 @@ export function totalsFor(vertices: CableVertex[], reserveMeters: number) {
 /** Recalcula traçado, reservas e total do cabo e grava se algo mudou. Não faz nada se o cabo não existe/foi excluído. */
 export async function recomputeCable(database: Tables, cableId: string): Promise<void> {
   const cable = await database.cables.get(cableId);
-  if (!cable || cable.deleted) return;
+  if (!cable || cable.deleted || !isMine(cable)) return; // cabo de outro técnico: só ele recalcula
   const t = totalsFor(cable.vertices, await linkedReserveMeters(database, cableId));
   if (t.lengthMeters === cable.lengthMeters && t.reserveMeters === cable.reserveMeters && t.totalMeters === cable.totalMeters) return;
   await database.cables.update(cableId, touch<Cable>(t));
 }
 
-/** Cabos não excluídos que passam por este elemento. */
+/** Cabos MEUS, não excluídos, que passam por este elemento (os de outros técnicos ficam como estão: só o dono altera). */
 export function cablesThrough(database: Tables, elementId: string): Promise<Cable[]> {
-  return database.cables.filter((c) => !c.deleted && c.vertices.some((v) => v.elementId === elementId)).toArray();
+  return database.cables.filter((c) => !c.deleted && isMine(c) && c.vertices.some((v) => v.elementId === elementId)).toArray();
 }
 
 /** Move o elemento e leva junto o vértice de todos os cabos que passam por ele. Posição manual não guarda precisão. */
@@ -78,7 +79,7 @@ export async function unlinkReserves(database: Tables, cableId: string): Promise
   await database.elements
     .where('type')
     .equals('reserva')
-    .filter((e) => (e.attrs as { cableId?: string }).cableId === cableId)
+    .filter((e) => isMine(e) && (e.attrs as { cableId?: string }).cableId === cableId)
     .modify((e) => {
       const { cableId: _drop, ...rest } = e.attrs as Record<string, unknown>;
       e.attrs = rest as NetworkElement['attrs'];

@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import NotMineNote from '../../components/NotMineNote';
 import ScreenShell from '../../components/ScreenShell';
 import { db } from '../../db/db';
 import type { Photo } from '../../db/types';
 import { formatDateTime } from '../../lib/format';
 import { formatAccuracy } from '../../lib/geo';
 import { goBack, navigate, useRouteId } from '../../lib/route';
+import { useIsMine } from '../../lib/useOwnership';
 import { KIND_LABEL } from '../activities/labels';
 import { cableChoicesNear } from '../cables/cableChoices';
 import { cableStore } from '../cables/cableRepo';
@@ -39,6 +41,7 @@ export default function ElementDetailScreen() {
     async () => (el ? ((await db.activities.get(el.activityId)) ?? null) : null),
     [el?.activityId],
   );
+  const mine = useIsMine(el);
   const technician = useTechnician();
   const cables = useLiveQuery(() => cableStore.list());
 
@@ -174,27 +177,33 @@ export default function ElementDetailScreen() {
 
       <section className="field" aria-label="Fotos">
         <span className="label">Fotos ({items.length})</span>
-        <CameraButton
-          onPhoto={async (blob, takenAt) => {
-            await photoStore.add(el.id, { blob, takenAt }, technician ?? '');
-          }}
-        />
+        {mine && (
+          <CameraButton
+            onPhoto={async (blob, takenAt) => {
+              await photoStore.add(el.id, { blob, takenAt }, technician ?? '');
+            }}
+          />
+        )}
         <PhotoGrid items={items} onOpen={setViewerId} />
       </section>
 
       {error && <div className="alert" role="alert">{error}</div>}
 
-      <div className="detail-actions">
-        <button className="btn" onClick={startEdit}>Editar</button>
-        <button className="btn" onClick={startMove}>Mover</button>
-        <button className="btn btn-danger" onClick={() => setConfirmDelete(true)}>Excluir</button>
-      </div>
+      {mine ? (
+        <div className="detail-actions">
+          <button className="btn" onClick={startEdit}>Editar</button>
+          <button className="btn" onClick={startMove}>Mover</button>
+          <button className="btn btn-danger" onClick={() => setConfirmDelete(true)}>Excluir</button>
+        </div>
+      ) : (
+        <NotMineNote author={el.createdBy} what="elemento" />
+      )}
 
       {viewing && (
         <PhotoViewer
           item={viewing}
           onClose={() => setViewerId(null)}
-          onDelete={() => photoStore.remove(viewing.id)}
+          onDelete={mine ? () => photoStore.remove(viewing.id) : undefined}
         />
       )}
       {confirmDelete && (
