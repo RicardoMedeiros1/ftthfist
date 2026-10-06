@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { RotaFibraDB } from '../../db/db';
+import { setActingUser } from '../../lib/ownership';
 import type { Cable, TrackPoint } from '../../db/types';
 import { activityRepo } from '../activities/activityRepo';
 import { elementRepo } from '../elements/elementRepo';
@@ -119,5 +120,56 @@ describe('exportFileName', () => {
   });
   it('título enorme é cortado', () => {
     expect(exportFileName('a'.repeat(200), 'kmz', new Date(2026, 0, 1)).length).toBeLessThan(80);
+  });
+});
+
+
+describe('exportar só os meus registros', () => {
+  afterEach(() => setActingUser(null));
+
+  /** Ana registra o dela; os registros da Bia chegam depois (como vêm da sincronização). */
+  async function twoPeople() {
+    setActingUser('ana');
+    const mine = await seed();
+    const photoOfAna = (await db.photos.toArray())[0]!;
+    setActingUser('bia');
+    const bia = await activityRepo(db).create({ kind: 'implantacao', title: 'Rua da Bia' }, 'Bia');
+    const biaPole = await elementRepo(db).create({ type: 'poste', lat: -23.57, lng: -46.65, accuracy: 5, positionSource: 'gps', code: 'B-1' }, 'Bia');
+    await db.cables.add({ ...cable(bia.id), ownerId: 'bia' } as Cable);
+    await db.trackPoints.add({ ...tp(bia.id, 9000), ownerId: 'bia' } as TrackPoint);
+    await db.photos.add({ ...photoOfAna, id: crypto.randomUUID(), elementId: biaPole.id, activityId: bia.id, ownerId: 'bia' });
+    setActingUser('ana');
+    return { mine, bia, biaPole };
+  }
+
+  it('só os meus: nada dos colegas em atividades, elementos, cabos, trilhas e fotos', async () => {
+    const { bia } = await twoPeople();
+    const all = await collectExportData(db, { kind: 'network' });
+    const mine = await collectExportData(db, { kind: 'network', onlyMine: true });
+    expect(all.elements.some((e) => e.code === 'B-1')).toBe(true);
+    expect(mine.title).toBe('Meus registros');
+    expect([...mine.activities.keys()]).not.toContain(bia.id);
+    expect(mine.elements.map((e) => e.code).sort()).toEqual(['C-1', 'P-1']);
+    expect(mine.cables).toHaveLength(2);
+    expect(mine.tracks.map((t) => t.activity.id)).not.toContain(bia.id);
+    expect([...mine.photosByElement.values()].flat().every((p) => p.ownerId !== 'bia')).toBe(true);
+    expect(summarizeExport(mine).elements).toBe(2);
+    expect(summarizeExport(all).elements).toBe(3);
+  });
+
+  it('"rede inteira" continua trazendo tudo, e exportar UMA atividade não muda (mesmo a de um colega)', async () => {
+    const { bia } = await twoPeople();
+    const all = await collectExportData(db, { kind: 'network' });
+    expect(all.title).toBe('Rede inteira');
+    expect(all.activities.has(bia.id)).toBe(true);
+    const one = await collectExportData(db, { kind: 'activity', activityId: bia.id });
+    expect(one.elements.map((e) => e.code)).toEqual(['B-1']);
+  });
+
+  it('sem conta neste aparelho, "só os meus" é tudo (nada é de outro)', async () => {
+    setActingUser(null);
+    await seed();
+    const mine = await collectExportData(db, { kind: 'network', onlyMine: true });
+    expect(summarizeExport(mine).elements).toBe(2);
   });
 });

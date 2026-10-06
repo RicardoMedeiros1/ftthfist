@@ -1,8 +1,10 @@
 import type { RotaFibraDB } from '../../db/db';
 import type { Activity, Cable, NetworkElement, Photo, TrackPoint } from '../../db/types';
+import { isMine } from '../../lib/ownership';
 import { trackDistanceMeters, groupSegments } from '../tracking/trackStats';
 
-export type ExportScope = { kind: 'activity'; activityId: string } | { kind: 'network' };
+/** `onlyMine`: so o que foi registrado por quem esta usando o app (sem os dados dos colegas baixados pela sincronizacao). */
+export type ExportScope = { kind: 'activity'; activityId: string } | { kind: 'network'; onlyMine?: boolean };
 
 export interface ExportData {
   /** Nome para o documento e o arquivo: título da atividade ou "Rede inteira". */
@@ -26,17 +28,18 @@ export async function collectExportData(
   opts: { appVersion?: string; now?: number } = {},
 ): Promise<ExportData> {
   const inScope = (activityId: string) => scope.kind === 'network' || activityId === scope.activityId;
+  const wanted = (r: { ownerId?: string }) => scope.kind !== 'network' || !scope.onlyMine || isMine(r);
 
-  const allActivities = (await database.activities.toArray()).filter((a) => !a.deleted);
+  const allActivities = (await database.activities.toArray()).filter((a) => !a.deleted && wanted(a));
   const activities = new Map(allActivities.map((a) => [a.id, a]));
   if (scope.kind === 'activity' && !activities.has(scope.activityId)) {
     throw new Error('Atividade não encontrada.');
   }
 
-  const elements = (await database.elements.toArray()).filter((e) => !e.deleted && inScope(e.activityId));
-  const cables = (await database.cables.toArray()).filter((c) => !c.deleted && inScope(c.activityId));
+  const elements = (await database.elements.toArray()).filter((e) => !e.deleted && inScope(e.activityId) && wanted(e));
+  const cables = (await database.cables.toArray()).filter((c) => !c.deleted && inScope(c.activityId) && wanted(c));
 
-  const allPoints = (await database.trackPoints.toArray()).filter((p) => !p.deleted && inScope(p.activityId));
+  const allPoints = (await database.trackPoints.toArray()).filter((p) => !p.deleted && inScope(p.activityId) && wanted(p));
   const byActivity = new Map<string, TrackPoint[]>();
   for (const p of allPoints) {
     const list = byActivity.get(p.activityId);
@@ -52,7 +55,7 @@ export async function collectExportData(
 
   const ids = new Set(elements.map((e) => e.id));
   const photosByElement = new Map<string, Photo[]>();
-  for (const ph of (await database.photos.toArray()).filter((p) => !p.deleted && p.elementId && ids.has(p.elementId))) {
+  for (const ph of (await database.photos.toArray()).filter((p) => !p.deleted && p.elementId && ids.has(p.elementId) && wanted(p))) {
     const list = photosByElement.get(ph.elementId!);
     if (list) list.push(ph);
     else photosByElement.set(ph.elementId!, [ph]);
@@ -60,7 +63,7 @@ export async function collectExportData(
   for (const list of photosByElement.values()) list.sort((a, b) => a.takenAt - b.takenAt);
 
   return {
-    title: scope.kind === 'network' ? 'Rede inteira' : activities.get(scope.activityId)!.title,
+    title: scope.kind === 'network' ? (scope.onlyMine ? 'Meus registros' : 'Rede inteira') : activities.get(scope.activityId)!.title,
     scope,
     generatedAt: opts.now ?? Date.now(),
     appVersion: opts.appVersion ?? 'dev',

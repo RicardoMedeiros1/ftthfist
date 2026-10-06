@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import ScreenShell from '../../components/ScreenShell';
 import { db } from '../../db/db';
+import { isMine } from '../../lib/ownership';
 import { formatBytes, formatDateTime, formatKm, plural } from '../../lib/format';
 import { formatMeters } from '../../lib/geo';
 import { goBack, useRouteId } from '../../lib/route';
@@ -24,12 +25,24 @@ type Prepared =
   | { s: 'error'; message: string };
 
 const NETWORK = 'rede';
-const toScope = (v: string): ExportScope => (v === NETWORK ? { kind: 'network' } : { kind: 'activity', activityId: v });
-const isScope = (d: ExportData, v: string) => (d.scope.kind === 'network' ? v === NETWORK : d.scope.activityId === v);
+/** So os registros de quem usa o app (sem os dos colegas baixados pela sincronizacao). */
+const MINE = 'rede-minha';
+const toScope = (v: string): ExportScope =>
+  v === NETWORK ? { kind: 'network' } : v === MINE ? { kind: 'network', onlyMine: true } : { kind: 'activity', activityId: v };
+const isScope = (d: ExportData, v: string) =>
+  d.scope.kind === 'network' ? v === (d.scope.onlyMine ? MINE : NETWORK) : d.scope.activityId === v;
 
 export default function ExportScreen() {
   const routeId = useRouteId();
-  const [scopeValue, setScopeValue] = useState(routeId ?? NETWORK);
+  // `null` = o que o app escolhe sozinho: com dados de colegas no aparelho, so os meus; senao, a rede toda.
+  const [scopeChoice, setScopeChoice] = useState<string | null>(null);
+  const hasOthers = useLiveQuery(async () => {
+    const other = (r: { deleted: boolean; ownerId?: string }) => !r.deleted && !isMine(r);
+    const found = await Promise.all([db.activities.filter(other).first(), db.elements.filter(other).first(), db.cables.filter(other).first()]);
+    return found.some(Boolean);
+  }, []);
+  const scopeValue = scopeChoice ?? routeId ?? (hasOthers ? MINE : NETWORK);
+  const setScopeValue = setScopeChoice;
   const [format, setFormat] = useState<Format>('kmz');
   const [photos, setPhotos] = useState(false);
   const [prepared, setPrepared] = useState<Prepared>({ s: 'idle' });
@@ -39,7 +52,7 @@ export default function ExportScreen() {
   const [seenRouteId, setSeenRouteId] = useState(routeId);
   if (seenRouteId !== routeId) {
     setSeenRouteId(routeId);
-    setScopeValue(routeId ?? NETWORK);
+    setScopeValue(null);
     setPrepared({ s: 'idle' });
     run.current++;
   }
@@ -119,14 +132,21 @@ export default function ExportScreen() {
         <div className="field">
           <label htmlFor="export-scope">O que exportar</label>
           <select id="export-scope" value={scopeValue} onChange={(e) => change(() => setScopeValue(e.target.value))}>
-            <option value={NETWORK}>Rede inteira (todas as atividades)</option>
+            {hasOthers ? (
+              <>
+                <option value={MINE}>Só os meus registros</option>
+                <option value={NETWORK}>Rede inteira (inclui os dos colegas)</option>
+              </>
+            ) : (
+              <option value={NETWORK}>Rede inteira (todas as atividades)</option>
+            )}
             {list?.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.title} · {formatDateTime(a.startedAt)}
               </option>
             ))}
             {/* Link para uma atividade que a lista ainda não trouxe: mantém o valor selecionado visível. */}
-            {list !== undefined && scopeValue !== NETWORK && !list.some((a) => a.id === scopeValue) && (
+            {list !== undefined && scopeValue !== NETWORK && scopeValue !== MINE && !list.some((a) => a.id === scopeValue) && (
               <option value={scopeValue}>Atividade não encontrada</option>
             )}
           </select>
