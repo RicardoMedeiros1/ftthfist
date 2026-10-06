@@ -50,20 +50,24 @@ supabase/
    update public.profiles set role = 'admin' where id = (select id from auth.users where email = 'voce@empresa.com');
    ```
    Os demais (`escritorio`, `admin`) podem ser alterados em *Table Editor → profiles → role*.
-6. **Guarde a URL e a chave pública** (*Project Settings → API*): `Project URL` e `anon public`. Coloque em `.env.local`
-   (que não vai para o Git):
+6. **Guarde a URL e a chave publica** (*Project Settings*): a **Project URL** fica em *Data API* (ou na pagina inicial do
+   projeto) e a chave em *API Keys*, na secao **Publishable key** (linha `default`, comeca com `sb_publishable_`). E o
+   novo nome da antiga *anon key* e foi feita para ficar no app. Coloque as duas em `.env.local` (que nao vai para o Git)
+   e, para o app publicado, como **variaveis do repositorio** no GitHub (*Settings -> Secrets and variables -> Actions ->
+   Variables*):
    ```
    VITE_SUPABASE_URL=https://xxxx.supabase.co
-   VITE_SUPABASE_ANON_KEY=eyJ...
+   VITE_SUPABASE_ANON_KEY=sb_publishable_...      # o nome da variavel e antigo; o valor e a Publishable key (ou a anon key legada)
    ```
-   **Nunca** coloque a chave `service_role` aqui nem no app: ela ignora todas as regras de acesso.
+   **Nunca** use a **Secret key** (a antiga `service_role`, comeca com `sb_secret_`) no app, no GitHub nem em conversa:
+   ela ignora todas as regras de acesso.
 
 ## Verificar direto na API (critério de aceite)
 
 Depois de aplicar as migrations, crie **2 usuários técnicos de teste** (e, se quiser, 1 de escritório) e rode:
 
 ```bash
-SUPABASE_URL=https://xxxx.supabase.co SUPABASE_ANON_KEY=eyJ... \
+SUPABASE_URL=https://xxxx.supabase.co SUPABASE_ANON_KEY=sb_publishable_... \
 USER_A_EMAIL=a@teste.com USER_A_PASSWORD=... \
 USER_B_EMAIL=b@teste.com USER_B_PASSWORD=... \
 [USER_C_EMAIL=c@teste.com USER_C_PASSWORD=...]   # escritório (opcional) \

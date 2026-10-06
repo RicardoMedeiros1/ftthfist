@@ -3,7 +3,7 @@
 // editar nem apagar o registro de outro, nem criar em nome dele. Roda contra o seu projeto Supabase
 // com 2 usuários de teste (técnicos) e, opcionalmente, um 3º de escritório. Veja supabase/README.md.
 //
-//   SUPABASE_URL=https://xxxx.supabase.co SUPABASE_ANON_KEY=... \
+//   SUPABASE_URL=https://xxxx.supabase.co SUPABASE_ANON_KEY=sb_publishable_...  (a Publishable key; nunca a Secret) \
 //   USER_A_EMAIL=... USER_A_PASSWORD=... USER_B_EMAIL=... USER_B_PASSWORD=... \
 //   [USER_C_EMAIL=... USER_C_PASSWORD=...] node supabase/tests/api-check.mjs
 //
