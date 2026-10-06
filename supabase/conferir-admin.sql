@@ -1,4 +1,4 @@
--- RotaFibra - Fase 2 - administrador: CONFERENCIA das migrations 10 e 11 (...150500_admin_auditoria e ...150510_admin_edita_tudo).
+-- RotaFibra - Fase 2 - administrador: CONFERENCIA das migrations 10 a 12 (...150500_admin_auditoria, ...150510_admin_edita_tudo e ...150520_admin_pessoas).
 -- Se TODAS as linhas disserem OK, o banco esta completo para o administrador. Se alguma disser FALTA, me diga qual.
 
 select item, esperado, encontrado, case when esperado = encontrado then 'OK' else 'FALTA' end as resultado
@@ -25,5 +25,10 @@ from (
   union all select 8, 'a regra de conflito grava quem alterou (sync_guard atualizada)', '1',
          (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
           where n.nspname = 'public' and p.proname = 'sync_guard' and p.prosrc like '%updated_by%')::text
+  union all select 9, 'lista de pessoas com e-mail, so para o administrador (admin_list_people)', '1',
+         (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+          where n.nspname = 'public' and p.proname = 'admin_list_people')::text
+  union all select 10, 'trava: nunca ficar sem administrador ativo (trg_keep_one_admin)', '1',
+         (select count(*) from pg_trigger where not tgisinternal and tgname = 'trg_keep_one_admin')::text
 ) x
 order by n;

@@ -95,6 +95,7 @@ describe.skipIf(!DB_URL)('administrador: altera o que e dos outros, com registro
     await db.run('ana', async (tx) => { expect(await tx.count(`update public.elements set code = 'X', updated_at = now() where id = $1`, [ID.elBruno])).toBe(0); });
     await db.run('clara', async (tx) => { expect(await tx.count(`update public.elements set code = 'X', updated_at = now() where id = $1`, [ID.elAna])).toBe(0); });
     await db.run('postgres', async (tx) => {
+      await tx.q(`update public.profiles set role = 'admin' where id = $1`, [IDS.bruno]); // outro admin ativo: assim da para desativar o davi
       await tx.q(`update public.profiles set active = false where id = $1`, [IDS.davi]);
       await tx.as('davi');
       expect(await tx.count(`update public.elements set code = 'X', updated_at = now() where id = $1`, [ID.elAna])).toBe(0);
@@ -178,5 +179,78 @@ describe.skipIf(!DB_URL)('administrador: altera o que e dos outros, com registro
 
   it('cableRow existe no cenario (garante que o teste do cabo usa o cabo da Ana)', () => {
     expect(cableRow(ID.cableAna, 'ana', ID.actAna).owner_id).toBe(IDS.ana);
+  });
+});
+
+describe.skipIf(!DB_URL)('administrador: pessoas', () => {
+  let db: TestDb;
+  beforeAll(async () => { db = await createTestDb(); });
+  afterAll(async () => { await db?.drop(); });
+  const people = (tx: Tx) => tx.q<{ id: string; email: string; full_name: string; role: string; active: boolean }>(`select id, email, full_name, role, active from public.admin_list_people()`);
+
+  it('o administrador lista todas as pessoas, com e-mail, a fila de pendentes primeiro', async () => {
+    await db.run('postgres', async (tx) => {
+      await tx.q(`insert into auth.users (id, email, raw_user_meta_data) values ('00000000-0000-4000-8000-0000000000b1', 'novo@x.com', '{"full_name":"Novo Tecnico"}')`);
+      await tx.as('davi');
+      const list = await people(tx);
+      expect(list.length).toBe(6);
+      expect(list[0]).toMatchObject({ email: 'novo@x.com', full_name: 'Novo Tecnico', active: false }); // pendente: primeiro
+      expect(list.find((p) => p.id === IDS.ana)).toMatchObject({ email: 'ana@rotafibra.test', role: 'tecnico', active: true });
+    });
+  });
+
+  it('tecnico, escritorio e desativado recebem lista vazia (o e-mail nao vaza)', async () => {
+    await db.run('ana', async (tx) => {
+      for (const who of ['ana', 'bruno', 'clara', 'eva'] as const) {
+        await tx.as(who);
+        expect(await people(tx), who).toEqual([]);
+      }
+    });
+  });
+
+  it('sem login nao executa a funcao', async () => {
+    await db.run('anon', async (tx) => { await tx.denied(`select * from public.admin_list_people()`); });
+  });
+
+  it('aprovar: o administrador ativa o pendente e fica registrado quem aprovou e quando', async () => {
+    await db.run('postgres', async (tx) => {
+      await tx.q(`insert into auth.users (id, email) values ('00000000-0000-4000-8000-0000000000b2', 'fila@x.com')`);
+      await tx.as('davi');
+      expect(await tx.count(`update public.profiles set active = true where id = '00000000-0000-4000-8000-0000000000b2'`)).toBe(1);
+      await tx.as('postgres');
+      const r = await row<{ reviewed_by: string; reviewed_at: Date }>(tx, `select reviewed_by, reviewed_at from public.profiles where id = '00000000-0000-4000-8000-0000000000b2'`);
+      expect(r.reviewed_by).toBe(IDS.davi);
+      expect(r.reviewed_at).toBeTruthy();
+      await tx.as('davi');
+      const listed = (await tx.q<{ id: string; reviewed_by_name: string | null }>(`select id, reviewed_by_name from public.admin_list_people()`)).find((p) => p.id === '00000000-0000-4000-8000-0000000000b2');
+      expect(listed?.reviewed_by_name).toBe('Davi Admin'); // a lista mostra QUEM aprovou
+    });
+  });
+
+  it('o ultimo administrador ativo nao pode ser rebaixado nem desativado (nem por ele mesmo)', async () => {
+    await db.run('davi', async (tx) => {
+      await tx.fails('23514', `update public.profiles set role = 'tecnico' where id = $1`, [IDS.davi]);
+      await tx.fails('23514', `update public.profiles set active = false where id = $1`, [IDS.davi]);
+    });
+    await db.run('postgres', async (tx) => {
+      await tx.fails('23514', `update public.profiles set role = 'escritorio' where id = $1`, [IDS.davi]); // nem pelo SQL Editor
+    });
+  });
+
+  it('com um segundo administrador ativo, dá para rebaixar o primeiro; o segundo vira o ultimo e fica protegido', async () => {
+    await db.run('postgres', async (tx) => {
+      await tx.q(`update public.profiles set role = 'admin' where id = $1`, [IDS.ana]);
+      await tx.as('davi');
+      expect(await tx.count(`update public.profiles set role = 'tecnico' where id = $1`, [IDS.davi])).toBe(1);
+      await tx.as('ana');
+      await tx.fails('23514', `update public.profiles set active = false where id = $1`, [IDS.ana]);
+    });
+  });
+
+  it('desativar ou rebaixar quem NAO e administrador nao e barrado', async () => {
+    await db.run('davi', async (tx) => {
+      expect(await tx.count(`update public.profiles set active = false where id = $1`, [IDS.bruno])).toBe(1);
+      expect(await tx.count(`update public.profiles set role = 'escritorio' where id = $1`, [IDS.ana])).toBe(1);
+    });
   });
 });

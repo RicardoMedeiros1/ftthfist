@@ -5,7 +5,7 @@ aqui está só o esquema, as regras de acesso (RLS) e os testes que provam que e
 
 ```
 supabase/
-  migrations/   9 arquivos SQL pequenos, aplicar em ordem
+  migrations/   12 arquivos SQL pequenos, aplicar em ordem
   conferir-passo-1.sql   diz, item por item, se o banco ficou completo
   tests/        testes do banco (Postgres local) e o script de verificação direto na API
 ```
@@ -37,17 +37,17 @@ supabase/
 3. **Aplique as migrations, em ordem** (cada uma **uma vez só**). `supabase db push` nao e um arquivo: e um comando do
    Supabase CLI, que so vale a pena se voce tiver o repositorio no seu computador. O caminho simples nao instala nada:
    - *SQL Editor:* no painel do Supabase, **SQL Editor -> New query**, cole o conteudo de **um arquivo de
-     `supabase/migrations/` por vez, na ordem do nome**, e clique em **Run**. Sao 11 arquivos (`...150000_perfis`,
+     `supabase/migrations/` por vez, na ordem do nome**, e clique em **Run**. Sao 12 arquivos (`...150000_perfis`,
      `...150100_tabelas_atividades_elementos`, `...150110_tabelas_cabos_fotos`, `...150120_tabelas_trilha_indices`,
      `...150130_regras_de_conflito`, `...150140_permissoes_e_rls`, `...150200_fotos`, `...150300_painel`, `...150400_aprovacao_de_acesso`,
-     `...150500_admin_auditoria`, `...150510_admin_edita_tudo`).
+     `...150500_admin_auditoria`, `...150510_admin_edita_tudo`, `...150520_admin_pessoas`).
      Cada um termina com uma linha `-- fim: ...`: **confira no editor se ela esta la** antes de rodar. Os arquivos tem
      menos de 100 linhas de proposito: um colar a partir de um visualizador que corta em 100 linhas ja chegou truncado
      ao editor (erro de sintaxe no fim do texto), e as migrations sao so ASCII porque o editor ja reescreveu um script
      com acentos e o quebrou. Se o editor perguntar sobre "Row Level Security", o nosso SQL ja liga a RLS em todas as
      tabelas: qualquer botao serve (se der erro de sintaxe, use "Run without RLS").
    - **Confira o resultado:** rode `supabase/conferir-passo-1.sql` (arquivos 1 a 9: as 16 linhas devem dizer `OK`) e
-     `supabase/conferir-admin.sql` (arquivos 10 e 11, do administrador: as 8 linhas devem dizer `OK`). `FALTA` indica
+     `supabase/conferir-admin.sql` (arquivos 10 a 12, do administrador: as 10 linhas devem dizer `OK`). `FALTA` indica
      qual parte nao foi aplicada ate o fim.
    - *CLI* (com o repositorio no computador, dentro da pasta do projeto): `npx supabase init`, `npx supabase login`,
      `npx supabase link --project-ref <ref>` e `npx supabase db push`. O `<ref>` e o trecho da URL do projeto

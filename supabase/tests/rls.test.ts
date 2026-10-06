@@ -435,7 +435,7 @@ describe.skipIf(!DB_URL)('conferir-admin.sql (as migrations do administrador)', 
 
   it('num banco com todas as migrations, todas as linhas dizem OK', async () => {
     const rows = await db.admin<{ item: string; resultado: string }>(script());
-    expect(rows).toHaveLength(8);
+    expect(rows).toHaveLength(10);
     expect(rows.filter((r) => r.resultado !== 'OK')).toEqual([]);
   });
 
