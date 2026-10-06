@@ -77,7 +77,9 @@ describe('só o dono altera', () => {
   it('a mensagem é pronta para mostrar ao técnico', async () => {
     const { p1 } = await anaWorkThenBia();
     const e = await els.update(p1.id, { code: 'X' }).then(() => null, (x: Error) => x);
-    expect(e?.message).toContain('outro técnico');
+    expect(e?.message).toBe('Este elemento foi registrado por outro técnico. Só quem registrou pode alterar.');
+    const a = await acts.reopen((await db.activities.toArray())[0]!.id).then(() => null, (x: Error) => x);
+    expect(a?.message).toBe('Esta atividade foi registrada por outro técnico. Só quem registrou pode alterar.');
   });
 });
 

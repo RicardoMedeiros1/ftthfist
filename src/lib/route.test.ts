@@ -10,6 +10,7 @@ describe('parseRoute', () => {
     expect(parseRoute('#/exportar')).toBe('exportar');
     expect(parseRoute('#/camadas')).toBe('camadas');
     expect(parseRoute('#/conta')).toBe('conta');
+    expect(parseRoute('#/sincronizacao')).toBe('sincronizacao');
     expect(parseRoute('#/cabo/novo')).toBe('novo-cabo');
     expect(parseRoute('#/trilha')).toBe('trilha');
     expect(parseRoute('#/config')).toBe('config');

@@ -5,6 +5,8 @@ import BackupScreen from './features/export/BackupScreen';
 import ExportScreen from './features/export/ExportScreen';
 import AccountScreen from './features/account/AccountScreen';
 import { accountStore } from './features/account/accountStore';
+import SyncScreen from './features/sync/SyncScreen';
+import { initSync } from './features/sync/syncRuntime';
 import CamadasScreen from './features/reference/CamadasScreen';
 import LayerScreen from './features/reference/LayerScreen';
 import ReferenceFeatureScreen from './features/reference/ReferenceFeatureScreen';
@@ -34,7 +36,7 @@ export default function App() {
 
   // Conta (Fase 2): carrega o ultimo estado conhecido e confirma a sessao sem bloquear nada. Sem variaveis, nao faz nada.
   useEffect(() => {
-    void accountStore.init();
+    void accountStore.init().then(initSync);
   }, []);
 
   // Reabriu o app com um cabo em lançamento? Retoma de onde parou.
@@ -67,6 +69,7 @@ export default function App() {
       {route === 'backup' && <BackupScreen />}
       {route === 'exportar' && <ExportScreen />}
       {route === 'conta' && <AccountScreen />}
+      {route === 'sincronizacao' && <SyncScreen />}
       {route === 'camadas' && <CamadasScreen />}
       {route === 'camada' && <LayerScreen />}
       {route === 'referencia' && <ReferenceFeatureScreen />}

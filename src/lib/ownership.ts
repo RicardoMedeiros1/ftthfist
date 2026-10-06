@@ -24,4 +24,13 @@ export function isMine(r: { ownerId?: string }): boolean {
   return !r.ownerId || acting === null || r.ownerId === acting;
 }
 
-export const notMineMessage = (what: string) => `Este ${what} foi registrado por outro técnico: só ele pode alterar.`;
+const FEMININE = new Set(['atividade']);
+
+/** "Este elemento foi registrado por Ana. Só quem registrou pode alterar." (concorda com o genero; sem presumir o de ninguem) */
+export function otherOwnerText(what: string, author?: string): string {
+  const fem = FEMININE.has(what);
+  const who = author?.trim() || 'outro técnico';
+  return `${fem ? 'Esta' : 'Este'} ${what} foi ${fem ? 'registrada' : 'registrado'} por ${who}. Só quem registrou pode alterar.`;
+}
+
+export const notMineMessage = (what: string) => otherOwnerText(what);

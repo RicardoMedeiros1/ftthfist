@@ -514,3 +514,17 @@ describe('primeira sincronização de um aparelho com dados antigos', () => {
   });
 });
 
+
+describe('lista de recusados não cresce sem fim', () => {
+  it('registro corrigido e enviado sai da lista guardada', async () => {
+    await fieldWork(ana);
+    const bad = await ana.as(() => ana.els.create(pole(9), 'ana'));
+    await ana.db.elements.update(bad.id, { lat: 999 });
+    await ana.sync();
+    const stored = async () => Object.keys(((await ana.db.settings.get(SETTING_KEYS.syncBlocked))?.value ?? {}) as object);
+    expect(await stored()).toHaveLength(1);
+    await ana.as(() => ana.els.move(bad.id, { lat: -23.56, lng: -46.64, positionSource: 'manual' }));
+    await ana.sync();
+    expect(await stored()).toHaveLength(0);
+  });
+});

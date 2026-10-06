@@ -88,9 +88,9 @@ export function createSyncEngine(deps: SyncDeps, tuning: Partial<Tuning> = {}) {
   const mine = (r: BaseRecord, who: Who) => !r.ownerId || r.ownerId === who.userId;
   const canWrite = (who: Who) => who.role === 'tecnico' || who.role === 'admin';
 
-  async function blockedMap(): Promise<BlockedMap> {
-    return getSetting<BlockedMap>(SETTING_KEYS.syncBlocked, {});
-  }
+  // Sem `async`: o liveQuery do Dexie so rastreia as tabelas lidas se a cadeia de promessas for a do proprio Dexie
+  // (um `await` de funcao async nativa faz ele perder o rastro e a contagem de pendentes nunca atualizava).
+  const blockedMap = (): Promise<BlockedMap> => db.settings.get(SETTING_KEYS.syncBlocked).then((e) => (e?.value as BlockedMap | undefined) ?? {});
   const isBlocked = (map: BlockedMap, t: SyncTable, r: BaseRecord) => map[key(t, r.id)]?.updatedAt === r.updatedAt;
 
   // ---------- contagens (para o indicador "N pendentes") ----------
@@ -149,6 +149,13 @@ export function createSyncEngine(deps: SyncDeps, tuning: Partial<Tuning> = {}) {
       });
       if (done.length) await table(t).bulkPut(done);
     });
+    // O que foi enviado nao esta mais "recusado": tira da lista (senao ela so cresceria).
+    const map = await blockedMap();
+    const gone = rows.map((r) => key(t, r.id)).filter((k) => k in map);
+    if (gone.length) {
+      for (const k of gone) delete map[k];
+      await setSetting(SETTING_KEYS.syncBlocked, map);
+    }
   }
 
   async function block(t: SyncTable, r: Row, message: string, report: CycleReport) {

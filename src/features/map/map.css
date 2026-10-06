@@ -37,6 +37,12 @@
 .net-online { opacity: .75; }
 .net-offline { background: var(--accent); color: #000; }
 .net-offline .net-dot { background: #000; }
+/* Com conta ativa o indicador vira botao (abre a sincronizacao); a area de toque cresce sem engordar o desenho (>= 48 px) */
+.net-pill-btn { position: absolute; border: 0; cursor: pointer; font-family: inherit; }
+.net-pill-btn::before { content: ''; position: absolute; inset: -10px -8px; }
+.net-attention { background: #ff9f0a; color: #000; opacity: 1; }
+.net-attention .net-dot { background: #000; }
+.net-pill-btn:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
 
 .gps-banner {
   position: absolute; z-index: 1000;

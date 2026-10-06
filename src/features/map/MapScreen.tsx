@@ -4,7 +4,7 @@ import { Circle, CircleMarker, MapContainer, TileLayer, useMap, useMapEvents } f
 import 'leaflet/dist/leaflet.css';
 import { SETTING_KEYS, getSetting, setSetting } from '../../db/db';
 import { classifyAccuracy, formatAccuracy } from '../../lib/geo';
-import { useOnlineStatus } from '../../lib/useOnlineStatus';
+import SyncPill from '../sync/SyncPill';
 import ActivityBar from '../activities/ActivityBar';
 import CableDrawLayer from '../cables/CableDrawLayer';
 import CableEditLayer from '../cables/CableEditLayer';
@@ -123,7 +123,6 @@ export default function MapScreen() {
   const [layerId, setLayerId] = useState<BaseLayerId>('ruas');
   // Camada imposta pela marcação (satélite quando o GPS está impreciso); não altera a preferência salva.
   const [layerOverride, setLayerOverride] = useState<BaseLayerId | null>(null);
-  const online = useOnlineStatus();
   const { fix, mode, error, toggle, release } = useGeolocation();
 
   const phase = useDraft((s) => s.phase);
@@ -221,10 +220,7 @@ export default function MapScreen() {
 
       <ActivityBar />
 
-      <div className={`net-pill ${online ? 'net-online' : 'net-offline'}`} role="status">
-        <span className="net-dot" aria-hidden="true" />
-        {online ? 'Online' : 'Offline'}
-      </div>
+      <SyncPill />
 
       <div className="map-controls">
         {hasCables && phase === 'idle' && (

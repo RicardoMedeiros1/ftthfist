@@ -1,0 +1,8 @@
+.sync-badge-ok { background: #34c759; }
+.sync-badge-andamento, .sync-badge-espera { background: var(--accent); }
+.sync-badge-atencao { background: #ff9f0a; }
+.sync-blocked { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.sync-blocked li { display: flex; flex-direction: column; gap: 4px; border-left: 4px solid #ff9f0a; padding-left: 10px; }
+.sync-blocked span { color: #ddd; font-size: 15px; }
+.sync-blocked details { color: #bbb; font-size: 13px; }
+.sync-blocked code { word-break: break-word; }

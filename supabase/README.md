@@ -102,20 +102,47 @@ Cada arquivo de teste cria um banco novo, aplica um *stub* do Supabase (`tests/s
 teste**, nunca aplicar no projeto real) e as migrations de verdade, e personifica cada usuário como o PostgREST faz.
 Sem `TEST_DATABASE_URL` esses testes são pulados e `npm test` segue normal.
 
-## Contrato com o app (para o passo de sincronização)
+O teste `tests/sync-engine.test.ts` roda o **motor de sincronização do app** contra esse banco, atrás de um PostgREST de
+verdade e do cliente `supabase-js`/`postgrest-js`. Ele sobe o próprio PostgREST (um por execução, num banco novo) e só
+roda se `POSTGREST_BIN` apontar para o binário ([download](https://github.com/PostgREST/postgrest/releases)):
 
-Descobertas dos testes que o app precisa respeitar:
+```bash
+POSTGREST_BIN=/caminho/para/postgrest TEST_DATABASE_URL=postgres://postgres:postgres@localhost:5433/postgres npm run test:db
+```
 
-- Enviar com `POST /<tabela>?on_conflict=id` e `Prefer: resolution=merge-duplicates`. **Qualquer 2xx é sucesso**:
-  o servidor responde 200 quando descarta um reenvio igual ou atrasado.
-- **403 num envio é permanente** para aquele registro (é de outro técnico, ou aponta para atividade alheia): não repetir;
-  registrar no log local.
+## Contrato com o app (a sincronização, passo 3)
+
+Descobertas dos testes que o app respeita (`src/features/sync`):
+
+- Enviar com `POST /<tabela>?on_conflict=id`, `Prefer: resolution=merge-duplicates,return=representation` e `select=id`:
+  a resposta traz **só as linhas realmente gravadas**. Uma linha que **não** volta foi descartada pelo servidor (reenvio
+  igual ou envio atrasado): o app busca a versão do servidor, e se ela for mais nova passa a mostrá-la (alteração
+  "substituída"); se for igual, só marca como enviado. Reenviar nunca duplica.
+- **403 num envio é permanente** para aquele registro (é de outro técnico, ou aponta para atividade alheia): o app não
+  repete; o registro fica **"recusado"** (visível na tela *Sincronização*), com o restante da fila seguindo normalmente.
+  Um lote recusado é dividido ao meio até achar o registro culpado. Depois de 5 recusados no mesmo ciclo, para.
+- **Atenção:** quando a atividade-pai não existe no servidor, quem responde é a RLS (**403**), não a chave estrangeira
+  (409): o app só chega a esse caso se a atividade foi recusada, e então já segura os registros dela (esperam).
 - **Não enviar** `owner_id`, `geom` nem `server_updated_at` (o servidor define). Enviar `lat`/`lng` (elementos, fotos,
   trilha) e `vertices` (cabos).
 - **Ordem de envio:** atividades → elementos e cabos → fotos → pontos da trilha (as chaves estrangeiras exigem).
 - **Cursor do "puxar":** guardar `server_updated_at` **como texto** (o servidor tem microssegundos; um `Date` do
   JavaScript os perde e a última linha voltaria) e puxar com ~5 minutos de sobreposição.
-- A trilha dos colegas **não** chega ao celular (RLS); fotos chegam só como registro, sem o arquivo.
+- A trilha dos colegas **não** chega ao celular (RLS) e o app **nem pede** a trilha: ela só sobe. **Fotos** ainda não
+  sincronizam (passo 4: envio do arquivo + registro juntos).
+- Puxar: `order=server_updated_at,id` com continuação por `or=(server_updated_at.gt.X,and(server_updated_at.eq.X,id.gt.Y))`
+  (páginas de 500) e piso `server_updated_at >= cursor - 5 min`. O cursor de cada tabela só avança quando a tabela termina;
+  uma queda no meio não refaz o que já foi baixado.
+- **Regra de conflito no aparelho:** vale a versão com `updatedAt` mais recente. Registro de **outro técnico** nunca é
+  enviado (só baixado) e só o dono altera. Escritório só baixa.
+
+### Quando o app sincroniza
+
+Em segundo plano, sem nunca atrapalhar o campo: ao abrir o app com conta ativa; quando a internet volta; quando o app volta
+para a tela; a cada 2 minutos com o app aberto; e ~4 s depois de gravar algo (junta gravações seguidas, no máximo um ciclo
+automático a cada 30 s: a trilha grava a cada poucos segundos). Falhas do servidor repetem com espera crescente
+(15 s, 30 s, 1 min, 2 min, 5 min); **sem internet não insiste** (espera o aparelho voltar à rede). O navegador não
+sincroniza com o app fechado: o envio acontece na próxima vez que o app for aberto.
 
 ## Login no app (passo 2 da Fase 2)
 

@@ -1,4 +1,6 @@
 import { navigate } from '../../lib/route';
+import { stateSentence } from '../sync/pillText';
+import { useSync } from '../sync/syncRuntime';
 import { useAccount } from './accountStore';
 import { ROLE_LABEL } from './AccountScreen';
 
@@ -7,6 +9,12 @@ export default function AccountCard() {
   const status = useAccount((s) => s.status);
   const profile = useAccount((s) => s.profile);
   const email = useAccount((s) => s.email);
+  const sync = {
+    phase: useSync((s) => s.phase),
+    pending: useSync((s) => s.pending),
+    blocked: useSync((s) => s.blocked),
+    lastSyncAt: useSync((s) => s.lastSyncAt),
+  };
   if (status === 'sem-configuracao') return null;
 
   const line =
@@ -24,6 +32,12 @@ export default function AccountCard() {
       <button className="btn btn-block" onClick={() => navigate('conta')}>
         {status === 'deslogado' ? 'Entrar ou pedir acesso' : 'Abrir conta'}
       </button>
+      {status === 'ativo' && (
+        <>
+          <div className="card-meta">Sincronização: {stateSentence(sync, Date.now())}</div>
+          <button className="btn btn-block" onClick={() => navigate('sincronizacao')}>Sincronização</button>
+        </>
+      )}
     </section>
   );
 }

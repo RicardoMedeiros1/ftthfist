@@ -17,3 +17,13 @@ describe('isMine', () => {
     expect(actingUserId()).toBe('ana');
   });
 });
+
+describe('texto de "é de outro técnico"', () => {
+  it('concorda com o gênero da coisa e não presume o de quem registrou', async () => {
+    const { otherOwnerText } = await import('./ownership');
+    expect(otherOwnerText('elemento', 'Ana Souza')).toBe('Este elemento foi registrado por Ana Souza. Só quem registrou pode alterar.');
+    expect(otherOwnerText('cabo')).toBe('Este cabo foi registrado por outro técnico. Só quem registrou pode alterar.');
+    expect(otherOwnerText('atividade', '  Bia ')).toBe('Esta atividade foi registrada por Bia. Só quem registrou pode alterar.');
+    expect(otherOwnerText('atividade', '')).toContain('por outro técnico');
+  });
+});
