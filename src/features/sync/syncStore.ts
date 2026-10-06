@@ -1,4 +1,9 @@
 import { CycleAbort, type CycleReport, type Progress, type SyncEngine, type Who } from './engine';
+
+/** O motor como o estado o enxerga: o ciclo pode nao rodar (devolve null) se o service worker ja esta sincronizando. */
+export type EngineLike = Pick<SyncEngine, 'counts' | 'blockedList' | 'clearBlocked'> & {
+  runCycle(who: Who, progress?: (p: Progress) => void): Promise<CycleReport | null>;
+};
 import { abortMessage } from './messages';
 
 // Estado e gatilhos da sincronizacao (em segundo plano). Regra de ouro: NADA aqui pode atrapalhar o trabalho
@@ -31,7 +36,7 @@ export type SyncReason = 'inicio' | 'entrou' | 'online' | 'visivel' | 'mudanca' 
 
 export interface SyncStoreDeps {
   /** O motor (sem rede ate o primeiro envio); null se o build nao tem servidor. */
-  engine(): SyncEngine | null;
+  engine(): EngineLike | null;
   /** Quem esta logado e ativo; null = sem conta ativa. */
   who(): Who | null;
   isOnline(): boolean;
@@ -45,6 +50,10 @@ export interface SyncStoreDeps {
   /** Gatilhos externos: voltou a internet, o app voltou para a tela, relogio periodico. */
   onOnline(cb: () => void): () => void;
   onVisible(cb: () => void): () => void;
+  /** O app foi para segundo plano / vai fechar. */
+  onHidden?(cb: () => void): () => void;
+  /** Pede ao navegador para enviar o que esta pendente quando a internet voltar, mesmo com o app fechado. */
+  backgroundSync?(): void;
   every(ms: number, cb: () => void): () => void;
   settingKey: string;
 }
@@ -98,6 +107,8 @@ export function createSyncStore(deps: SyncStoreDeps) {
     const grew = c.pending > lastPending;
     lastPending = c.pending;
     set({ pending: c.pending, blocked: c.blocked });
+    // sem internet: o app nao tem como enviar agora; deixa o navegador acordar o envio quando a internet voltar
+    if (c.pending > 0 && deps.who() && !deps.isOnline()) deps.backgroundSync?.();
     if (grew && !running && deps.who() && deps.isOnline()) {
       // gravou algo novo: envia logo, mas junta gravacoes seguidas e nao passa de um ciclo a cada MIN_AUTO_INTERVAL_MS
       const wait = Math.max(CHANGE_DEBOUNCE_MS, lastAutoAt + MIN_AUTO_INTERVAL_MS - deps.now());
@@ -137,6 +148,7 @@ export function createSyncStore(deps: SyncStoreDeps) {
     }
     if (!deps.isOnline()) {
       set({ phase: 'sem-rede' });
+      if (state.pending > 0) deps.backgroundSync?.();
       return null;
     }
     const gen = generation;
@@ -148,6 +160,12 @@ export function createSyncStore(deps: SyncStoreDeps) {
       report = await engine.runCycle(who, (p) => {
         if (gen === generation) set({ progress: p });
       });
+      if (report === null) {
+        // o service worker esta enviando agora: espera um pouco e confere de novo
+        if (gen === generation) set({ phase: 'ocioso', progress: null });
+        schedule(5_000, 'repetir');
+        return null;
+      }
       if (gen === generation) {
         failures = 0;
         set({
@@ -163,6 +181,8 @@ export function createSyncStore(deps: SyncStoreDeps) {
       if (gen === generation) {
         failures++;
         if (e instanceof CycleAbort) {
+          // falhou por rede ou servidor: se o app for fechado agora, o navegador tenta de novo sozinho
+          if (e.reason === 'network' || e.reason === 'server') deps.backgroundSync?.();
           set({
             phase: e.reason === 'network' ? 'sem-rede' : e.reason === 'auth' ? 'precisa-entrar' : 'erro',
             progress: null,
@@ -211,6 +231,10 @@ export function createSyncStore(deps: SyncStoreDeps) {
       watch();
       deps.onOnline(() => void run('online'));
       deps.onVisible(() => void run('visivel'));
+      // indo para segundo plano com algo pendente: deixa o envio por conta do navegador
+      deps.onHidden?.(() => {
+        if (deps.who() && state.pending > 0) deps.backgroundSync?.();
+      });
       deps.every(PERIODIC_MS, () => {
         if (deps.now() - lastAutoAt >= MIN_AUTO_INTERVAL_MS) void run('periodico');
       });

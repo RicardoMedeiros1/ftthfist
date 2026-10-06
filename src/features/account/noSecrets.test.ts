@@ -35,6 +35,18 @@ describe('sem segredos no codigo do app', () => {
   });
 });
 
+describe('o service worker e o unico a montar clientes de dados e arquivos sem o supabase-js', () => {
+  const files = walk(join(root, 'src')).filter((f) => /\.(ts|tsx)$/.test(f) && !/\.test\.ts$/.test(f));
+  it('postgrest-js e storage-js so sao importados (como valor) por src/sw.ts', () => {
+    const importers = files.filter((f) => /^import (?!type\b)[^;]*from '@supabase\/(postgrest|storage)-js'/m.test(readFileSync(f, 'utf8')));
+    expect(importers.map((f) => f.replace(root, ''))).toEqual(['src/sw.ts']);
+  });
+  it('o service worker so le a chave PUBLICA que o app espelhou (nunca variavel de ambiente)', () => {
+    const sw = readFileSync(join(root, 'src/sw.ts'), 'utf8');
+    expect(/import\.meta\.env|process\.env/.test(sw)).toBe(false);
+  });
+});
+
 describe('workflow de publicacao', () => {
   const wf = readFileSync(join(root, '.github/workflows/deploy.yml'), 'utf8');
   it('as chaves entram como VARIAVEIS do repositorio (publicas), nunca como segredos', () => {

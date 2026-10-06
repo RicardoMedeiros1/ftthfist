@@ -528,3 +528,19 @@ describe('lista de recusados não cresce sem fim', () => {
     expect(await stored()).toHaveLength(0);
   });
 });
+
+describe('ciclo só de envio (app fechado)', () => {
+  it('envia o que está pendente e NÃO baixa nada', async () => {
+    const { p1 } = await fieldWork(ana);
+    await ana.sync();
+    await fieldWork(bia, 'Bia');
+    await bia.sync(); // algo novo no servidor, que a Ana não baixou
+    await ana.as(() => ana.els.update(p1.id, { code: 'P-9' }));
+    server.calls.length = 0;
+    const r = await ana.engine.runCycle(ana.who, undefined, { pull: false });
+    expect(r.pushed).toBe(1);
+    expect(r.pulled).toBe(0);
+    expect(server.calls.filter((c) => c.fn === 'pull')).toEqual([]);
+    expect(await ana.db.activities.count()).toBe(1); // a atividade da Bia não veio
+  });
+});

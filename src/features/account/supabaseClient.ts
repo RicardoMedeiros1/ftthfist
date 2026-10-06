@@ -1,4 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { db } from '../../db/db';
+import { writeAuthMirror } from '../sync/authMirror';
 import { createSupabaseAuthApi, type AuthApi } from './authApi';
 import { readConfig, type SupabaseConfig } from './supabaseKey';
 
@@ -25,11 +27,17 @@ let pendingAuth: Promise<AuthApi | null> | null = null;
 export function loadSupabaseClient(): Promise<SupabaseClient | null> {
   if (!supabaseConfig) return Promise.resolve(null);
   pendingClient ??= import('@supabase/supabase-js')
-    .then(({ createClient }) =>
-      createClient(supabaseConfig.url, supabaseConfig.key, {
+    .then(({ createClient }) => {
+      const client = createClient(supabaseConfig.url, supabaseConfig.key, {
         auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: STORAGE_KEY },
-      }),
-    )
+      });
+      // Copia o token de ACESSO para o IndexedDB: o service worker (que nao enxerga o localStorage) usa para enviar com o
+      // app fechado. O token de renovacao nunca sai do supabase-js. Sair da conta apaga a copia.
+      client.auth.onAuthStateChange((_event, session) => {
+        void writeAuthMirror(db, session, { url: supabaseConfig.url, key: supabaseConfig.key }).catch(() => undefined);
+      });
+      return client;
+    })
     .catch((e: unknown) => {
       pendingClient = null; // sem internet na primeira vez: tenta de novo na proxima
       throw e;

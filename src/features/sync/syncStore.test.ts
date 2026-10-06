@@ -14,9 +14,10 @@ function harness(over: Partial<SyncStoreDeps> = {}) {
   const saved = new Map<string, unknown>();
   const counts = { pending: 0, blocked: 0 };
   let onCounts: ((c: { pending: number; blocked: number }) => void) | null = null;
-  const cb: Record<'online' | 'visible' | 'every', Array<() => void>> = { online: [], visible: [], every: [] };
+  const cb: Record<'online' | 'visible' | 'every' | 'hidden', Array<() => void>> = { online: [], visible: [], every: [], hidden: [] };
+  let bgRequests = 0;
   const cycles: string[] = [];
-  let outcome: () => Promise<CycleReport> = async () => REPORT;
+  let outcome: () => Promise<CycleReport | null> = async () => REPORT;
   let clearedBlocked = 0;
 
   const deps: SyncStoreDeps = {
@@ -45,6 +46,8 @@ function harness(over: Partial<SyncStoreDeps> = {}) {
       onCounts = f;
       return () => void (onCounts = null);
     },
+    backgroundSync: () => void bgRequests++,
+    onHidden: (f) => (cb.hidden.push(f), () => undefined),
     onOnline: (f) => (cb.online.push(f), () => undefined),
     onVisible: (f) => (cb.visible.push(f), () => undefined),
     every: (_ms, f) => (cb.every.push(f), () => undefined),
@@ -58,9 +61,10 @@ function harness(over: Partial<SyncStoreDeps> = {}) {
     saved,
     counts,
     get clearedBlocked() { return clearedBlocked; },
+    get bgRequests() { return bgRequests; },
     setWho: (w: Who | null) => void (who = w),
     setOnline: (o: boolean) => void (online = o),
-    setOutcome: (f: () => Promise<CycleReport>) => void (outcome = f),
+    setOutcome: (f: () => Promise<CycleReport | null>) => void (outcome = f),
     /** Avanca o relogio e roda os temporizadores vencidos (e o que eles disparam). */
     async tick(ms: number) {
       const end = now + ms;
@@ -80,7 +84,7 @@ function harness(over: Partial<SyncStoreDeps> = {}) {
       counts.blocked = blocked;
       onCounts?.({ pending, blocked });
     },
-    fire: (kind: 'online' | 'visible' | 'every') => cb[kind].forEach((f) => f()),
+    fire: (kind: 'online' | 'visible' | 'every' | 'hidden') => cb[kind].forEach((f) => f()),
     pendingTimers: () => timers.filter((t) => !t.dead).length,
   };
 }
@@ -385,6 +389,93 @@ describe('gatilhos', () => {
     await h.tick(PERIODIC_MS);
     h.fire('every');
     await flush();
+    expect(h.cycles).toHaveLength(2);
+  });
+});
+
+describe('envio com o app fechado: quando pedir ao navegador', () => {
+  it('sem internet e com pendências: pede (o navegador envia quando a internet voltar)', async () => {
+    h.setOnline(false);
+    await h.store.start();
+    h.changeCounts(2);
+    expect(h.bgRequests).toBeGreaterThan(0);
+  });
+
+  it('COM internet, gravar não pede (senão a trilha GPS acordaria o service worker a cada ponto)', async () => {
+    await h.store.start();
+    await flush();
+    for (let i = 1; i <= 20; i++) h.changeCounts(i);
+    expect(h.bgRequests).toBe(0);
+  });
+
+  it('sem internet e sem pendências: não pede', async () => {
+    h.setOnline(false);
+    await h.store.start();
+    h.changeCounts(0);
+    expect(h.bgRequests).toBe(0);
+  });
+
+  it('o ciclo falhou por rede ou servidor: pede (se o app fechar agora, o navegador tenta de novo)', async () => {
+    await h.store.start();
+    await flush();
+    h.setOutcome(async () => { throw new CycleAbort('network', 'x'); });
+    await h.store.syncNow();
+    expect(h.bgRequests).toBe(1);
+    h.setOutcome(async () => { throw new CycleAbort('server', 'x'); });
+    await h.store.syncNow();
+    expect(h.bgRequests).toBe(2);
+  });
+
+  it('sessão vencida: não pede (o service worker também não consegue renovar)', async () => {
+    await h.store.start();
+    await flush();
+    h.setOutcome(async () => { throw new CycleAbort('auth', 'x'); });
+    await h.store.syncNow();
+    expect(h.bgRequests).toBe(0);
+  });
+
+  it('o app vai para segundo plano com algo pendente: pede; sem pendências: não', async () => {
+    await h.store.start();
+    await flush();
+    h.fire('hidden');
+    expect(h.bgRequests).toBe(0);
+    h.changeCounts(3);
+    h.fire('hidden');
+    expect(h.bgRequests).toBe(1);
+  });
+
+  it('alguém tenta sincronizar com a internet já caída e há pendências: pede', async () => {
+    await h.store.start();
+    await flush();
+    h.changeCounts(2); // com internet: não pede
+    expect(h.bgRequests).toBe(0);
+    h.setOnline(false);
+    await h.store.syncNow(); // o app percebe que está sem rede
+    expect(h.store.getState().phase).toBe('sem-rede');
+    expect(h.bgRequests).toBe(1);
+  });
+
+  it('sem conta ativa nunca pede', async () => {
+    h.setWho(null);
+    await h.store.start();
+    h.fire('hidden');
+    h.setOnline(false);
+    h.changeCounts(4);
+    expect(h.bgRequests).toBe(0);
+  });
+
+  it('o service worker já está enviando (ciclo não rodou): não marca como sincronizado e confere de novo logo depois', async () => {
+    await h.store.start();
+    await flush();
+    const before = h.store.getState().lastSyncAt;
+    await h.tick(1000); // o relógio anda: se marcasse como sincronizado, a hora mudaria
+    h.cycles.length = 0;
+    h.setOutcome(async () => null);
+    await h.store.syncNow();
+    expect(h.store.getState().phase).toBe('ocioso');
+    expect(h.store.getState().lastSyncAt).toBe(before);
+    h.setOutcome(async () => REPORT);
+    await h.tick(5_000);
     expect(h.cycles).toHaveLength(2);
   });
 });

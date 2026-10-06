@@ -82,7 +82,10 @@ function failStorage(error: StorageErr): never {
 }
 
 /** Adaptador sobre o cliente do supabase-js. Sem repeticao automatica: quem decide quando tentar de novo é a fila. */
-export function createSupabaseRemote(client: SupabaseClient): RemoteApi {
+/** O que o adaptador usa do cliente: no app e o `SupabaseClient`; no service worker, `from` e `storage` montados a mao. */
+export type RemoteClient = Pick<SupabaseClient, 'from' | 'storage'>;
+
+export function createSupabaseRemote(client: RemoteClient): RemoteApi {
   return {
     async upsert(table, rows) {
       // merge-duplicates + return=representation: a resposta traz só as linhas realmente gravadas.

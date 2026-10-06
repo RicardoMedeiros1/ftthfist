@@ -371,11 +371,14 @@ export function createSyncEngine(deps: SyncDeps, tuning: Partial<Tuning> = {}) {
     }
   }
 
-  /** Um ciclo completo: envia o que e meu e baixa o que mudou. Lanca CycleAbort se nao deu para terminar. */
-  async function runCycle(who: Who, progress?: (p: Progress) => void): Promise<CycleReport> {
+  /**
+   * Um ciclo completo: envia o que e meu e baixa o que mudou. Lanca CycleAbort se nao deu para terminar.
+   * `pull: false` = so enviar (e o que o service worker faz com o app fechado).
+   */
+  async function runCycle(who: Who, progress?: (p: Progress) => void, opts: { pull?: boolean } = {}): Promise<CycleReport> {
     const report: CycleReport = { pushed: 0, pulled: 0, lostEdits: 0, newlyBlocked: 0, waiting: 0 };
     await push(who, report, progress);
-    await pull(who, report, progress);
+    if (opts.pull !== false) await pull(who, report, progress);
     return report;
   }
 

@@ -84,6 +84,8 @@ export const SETTING_KEYS = {
   syncCursor: 'syncCursor',
   syncBlocked: 'syncBlocked',
   syncLast: 'syncLast',
+  // copia do token de ACESSO (nunca o de renovacao) e do endereco do servidor, para o service worker enviar com o app fechado
+  authMirror: 'authMirror',
 } as const;
 
 export async function getSetting<T>(key: string, fallback: T): Promise<T> {

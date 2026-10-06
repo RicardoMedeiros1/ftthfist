@@ -4,9 +4,11 @@ import { SETTING_KEYS, db, getSetting, setSetting } from '../../db/db';
 import { accountStore } from '../account/accountStore';
 import { isSupabaseConfigured, loadSupabaseClient } from '../account/supabaseClient';
 import { createSyncEngine, type Who } from './engine';
+import { BUSY, withSyncLock } from './background';
+import { requestBackgroundSync } from './backgroundRegister';
 import { createPhotoFiles } from './photoFiles';
 import { SyncHttpError, createSupabaseRemote, type RemoteApi } from './remote';
-import { createSyncStore, type SyncState } from './syncStore';
+import { createSyncStore, type EngineLike, type SyncState } from './syncStore';
 
 // Liga o motor e o estado da sincronizacao ao app de verdade (Dexie, conta, rede, tela).
 
@@ -36,6 +38,17 @@ export const photoFiles = isSupabaseConfigured ? createPhotoFiles({ db, remote: 
 
 export const syncEngine = isSupabaseConfigured ? createSyncEngine({ db, remote: lazyRemote, now: () => Date.now() }) : null;
 
+/** O mesmo motor, mas um ciclo so roda se o service worker nao estiver sincronizando (trava compartilhada). */
+const lockedEngine: EngineLike | null = syncEngine && {
+  counts: syncEngine.counts,
+  blockedList: syncEngine.blockedList,
+  clearBlocked: syncEngine.clearBlocked,
+  runCycle: async (who, progress) => {
+    const done = await withSyncLock(() => syncEngine.runCycle(who, progress));
+    return done === BUSY ? null : done;
+  },
+};
+
 function currentWho(): Who | null {
   const s = accountStore.getState();
   const userId = accountStore.currentUserId();
@@ -43,7 +56,7 @@ function currentWho(): Who | null {
 }
 
 export const syncStore = createSyncStore({
-  engine: () => syncEngine,
+  engine: () => lockedEngine,
   who: currentWho,
   isOnline: () => navigator.onLine,
   now: () => Date.now(),
@@ -68,6 +81,12 @@ export const syncStore = createSyncStore({
     document.addEventListener('visibilitychange', handler);
     return () => document.removeEventListener('visibilitychange', handler);
   },
+  onHidden: (cb) => {
+    const handler = () => document.visibilityState === 'hidden' && cb();
+    document.addEventListener('visibilitychange', handler);
+    return () => document.removeEventListener('visibilitychange', handler);
+  },
+  backgroundSync: () => void requestBackgroundSync(),
   every: (ms, cb) => {
     const id = setInterval(() => document.visibilityState === 'visible' && navigator.onLine && cb(), ms);
     return () => clearInterval(id);

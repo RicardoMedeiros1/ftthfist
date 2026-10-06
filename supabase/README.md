@@ -148,8 +148,25 @@ Descobertas dos testes que o app respeita (`src/features/sync`):
 Em segundo plano, sem nunca atrapalhar o campo: ao abrir o app com conta ativa; quando a internet volta; quando o app volta
 para a tela; a cada 2 minutos com o app aberto; e ~4 s depois de gravar algo (junta gravações seguidas, no máximo um ciclo
 automático a cada 30 s: a trilha grava a cada poucos segundos). Falhas do servidor repetem com espera crescente
-(15 s, 30 s, 1 min, 2 min, 5 min); **sem internet não insiste** (espera o aparelho voltar à rede). O navegador não
-sincroniza com o app fechado: o envio acontece na próxima vez que o app for aberto.
+(15 s, 30 s, 1 min, 2 min, 5 min); **sem internet não insiste** (espera o aparelho voltar à rede). 
+### Envio com o app fechado (Chrome/Edge, Android e computador)
+
+O service worker (`src/sw.ts`) usa o **Background Sync**: se o app ficou com pendências sem internet (ou o envio falhou
+por rede/servidor, ou o app foi para segundo plano com algo pendente), ele pede ao navegador para acordar o envio quando a
+internet voltar, **mesmo com o app fechado**. O service worker roda um ciclo **só de envio** (arquivos e registros), com a
+mesma trava (Web Locks) do app: nunca dois ciclos ao mesmo tempo.
+
+- **Sessão:** o service worker não enxerga o `localStorage`, então o app copia para o IndexedDB (`authMirror`) só o token de
+  **acesso**, o endereço do servidor e a chave **pública**. O token de **renovação** nunca sai do `supabase-js`: se o service
+  worker renovasse a sessão, o app perderia o login (cada token de renovação só vale uma vez).
+- **Token vencido:** o token de acesso vale o tempo configurado em *Authentication → JWT expiry* (padrão **1 hora**). Passado
+  isso, o service worker **não envia**: mostra a notificação "N registros aguardando envio. Abra o app para enviar." e o app
+  renova a sessão e envia quando for aberto. Se quiser que o envio com o app fechado funcione por mais tempo, aumente o
+  *JWT expiry* (por exemplo, para 24 h = 86400 s): é uma troca entre conveniência e o tempo em que um token vazado vale.
+- **Notificações:** exigem permissão (tela Sincronização → *Ativar avisos*). Sem permissão, o envio continua valendo, só não
+  há aviso.
+- **iPhone/Safari não têm Background Sync**: ali os dados ficam salvos e sobem na próxima vez que o app for aberto com
+  internet (a tela Sincronização avisa isso).
 
 ## Login no app (passo 2 da Fase 2)
 

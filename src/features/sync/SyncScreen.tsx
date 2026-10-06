@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import ScreenShell from '../../components/ScreenShell';
 import { db } from '../../db/db';
@@ -7,6 +8,7 @@ import { useOnlineStatus } from '../../lib/useOnlineStatus';
 import { useNow } from '../../lib/useNow';
 import { accountStore, useAccount } from '../account/accountStore';
 import { ELEMENT_META } from '../elements/meta';
+import { askNotificationPermission, backgroundSyncSupported, notificationState } from './backgroundRegister';
 import { explainRefusal } from './messages';
 import { stateSentence } from './pillText';
 import { syncEngine, syncStore, useSync } from './syncRuntime';
@@ -56,6 +58,38 @@ function BlockedList() {
       <button className="btn btn-block" onClick={() => void syncStore.retryBlocked()}>
         Tentar de novo os recusados
       </button>
+    </section>
+  );
+}
+
+/** O que acontece quando o app esta fechado: depende do navegador (iPhone nao acorda o app sozinho). */
+function ClosedAppCard() {
+  const [perm, setPerm] = useState(notificationState());
+  const supported = backgroundSyncSupported();
+  return (
+    <section className="card" aria-label="Envio com o app fechado">
+      <div className="card-title">Com o app fechado</div>
+      {supported ? (
+        <p className="hint">
+          Quando a internet voltar, este navegador envia o que ficou pendente mesmo com o app fechado, enquanto a sua sessão estiver válida.
+          Se a sessão tiver vencido, o envio espera você abrir o app.
+        </p>
+      ) : (
+        <p className="hint">
+          Este navegador (por exemplo, o iPhone) não consegue enviar com o app fechado. Os dados ficam salvos no aparelho e sobem na próxima vez
+          que você abrir o app com internet.
+        </p>
+      )}
+      {supported && perm === 'default' && (
+        <>
+          <p className="hint">Quer um aviso no celular quando algo ficar sem enviar e for preciso abrir o app?</p>
+          <button className="btn btn-block" onClick={() => void askNotificationPermission().then(setPerm)}>
+            Ativar avisos
+          </button>
+        </>
+      )}
+      {supported && perm === 'granted' && <div className="card-meta">Avisos ativados.</div>}
+      {supported && perm === 'denied' && <div className="card-meta">Avisos bloqueados. Libere nas configurações do navegador para o site.</div>}
     </section>
   );
 }
@@ -124,6 +158,8 @@ export default function SyncScreen() {
           </button>
 
           <BlockedList />
+
+          <ClosedAppCard />
 
           <p className="hint">
             As fotos sobem junto com os dados (em rede fraca podem demorar). As fotos dos colegas só são baixadas quando você abre o elemento, para poupar internet.

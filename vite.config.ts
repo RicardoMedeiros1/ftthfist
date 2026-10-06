@@ -20,6 +20,10 @@ const config = defineConfig({
     basicSsl(),
     VitePWA({
       registerType: 'prompt',
+      // O service worker e nosso (src/sw.ts): alem de abrir offline, envia os dados pendentes com o app fechado.
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       includeAssets: ['icon.svg'],
       manifest: {
         name: 'RotaFibra',
@@ -38,24 +42,10 @@ const config = defineConfig({
           { src: 'icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
-      workbox: {
+      injectManifest: {
+        // script classico unico (sem import/export): funciona em qualquer navegador que registre service worker
+        rollupFormat: 'iife',
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
-        navigateFallback: `${base}index.html`,
-        cleanupOutdatedCaches: true,
-        runtimeCaching: [
-          {
-            // Tiles de mapa já visitados ficam disponíveis offline, com limite de entradas.
-            urlPattern: ({ url }) =>
-              url.hostname.endsWith('tile.openstreetmap.org') ||
-              url.hostname === 'server.arcgisonline.com',
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'map-tiles',
-              expiration: { maxEntries: 2000, purgeOnQuotaError: true },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-        ],
       },
       devOptions: { enabled: false },
     }),

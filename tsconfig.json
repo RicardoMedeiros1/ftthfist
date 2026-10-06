@@ -16,5 +16,6 @@
     "noEmit": true,
     "types": ["vite/client", "vite-plugin-pwa/client", "node"]
   },
-  "include": ["src", "vite.config.ts", "supabase/tests"]
+  "include": ["src", "vite.config.ts", "supabase/tests"],
+  "exclude": ["src/sw.ts"]
 }
