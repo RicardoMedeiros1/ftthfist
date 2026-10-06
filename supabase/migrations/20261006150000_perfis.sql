@@ -52,3 +52,5 @@ create policy profiles_admin_update on public.profiles for update to authenticat
 
 revoke all on public.profiles from anon, authenticated;
 grant select, update on public.profiles to authenticated;
+
+-- fim: perfis

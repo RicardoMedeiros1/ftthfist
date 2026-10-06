@@ -5,7 +5,8 @@ aqui está só o esquema, as regras de acesso (RLS) e os testes que provam que e
 
 ```
 supabase/
-  migrations/   4 arquivos SQL, aplicar em ordem
+  migrations/   8 arquivos SQL pequenos, aplicar em ordem
+  conferir-passo-1.sql   diz, item por item, se o banco ficou completo
   tests/        testes do banco (Postgres local) e o script de verificação direto na API
 ```
 
@@ -26,19 +27,22 @@ supabase/
 1. No [supabase.com](https://supabase.com), crie um projeto (plano gratuito). Guarde a senha do banco.
 2. **Desligue o cadastro público:** *Authentication → Sign In / Providers* e desmarque *Allow new users to sign up*.
    (Os nomes dos menus mudam de vez em quando; o que importa é: ninguém de fora pode criar conta.)
-3. **Aplique as migrations, em ordem** (rode **uma vez só**). `supabase db push` não é um arquivo: é um comando do
-   Supabase CLI, que só vale a pena se você tiver o repositório no seu computador. Duas opções:
-   - *SQL Editor (a mais simples, não precisa instalar nada):* no painel do Supabase, **SQL Editor → New query**, cole o
-     conteúdo de cada arquivo de `supabase/migrations/` **na ordem do nome** (`...150000_perfis`, `...150100_dados_de_campo`,
-     `...150200_fotos`, `...150300_painel`) e clique em **Run**. O editor pode perguntar sobre "Row Level Security": o nosso SQL ja liga a RLS em todas as tabelas,
-     entao qualquer um dos dois botoes serve (se um deles der erro de sintaxe, use "Run without RLS"). Se o Run falhar,
-     nada e aplicado pela metade; confira com `select count(*) from information_schema.tables where table_schema = 'public'`
-     (0 = nada foi criado, pode rodar de novo). O SQL das migrations e **so ASCII** de proposito (sem acentos): o editor do
-     Supabase ja reescreveu um script com acentos e o quebrou. No GitHub os arquivos ficam em
-     `supabase/migrations/` (na branch em que estiverem publicados).
-   - *CLI* (com o repositório no computador, dentro da pasta do projeto): `npx supabase init`, `npx supabase login`,
-     `npx supabase link --project-ref <ref>` e `npx supabase db push`. O `<ref>` é o trecho da URL do projeto
-     (`https://<ref>.supabase.co`).
+3. **Aplique as migrations, em ordem** (cada uma **uma vez só**). `supabase db push` nao e um arquivo: e um comando do
+   Supabase CLI, que so vale a pena se voce tiver o repositorio no seu computador. O caminho simples nao instala nada:
+   - *SQL Editor:* no painel do Supabase, **SQL Editor -> New query**, cole o conteudo de **um arquivo de
+     `supabase/migrations/` por vez, na ordem do nome**, e clique em **Run**. Sao 8 arquivos (`...150000_perfis`,
+     `...150100_tabelas_atividades_elementos`, `...150110_tabelas_cabos_fotos`, `...150120_tabelas_trilha_indices`,
+     `...150130_regras_de_conflito`, `...150140_permissoes_e_rls`, `...150200_fotos`, `...150300_painel`).
+     Cada um termina com uma linha `-- fim: ...`: **confira no editor se ela esta la** antes de rodar. Os arquivos tem
+     menos de 100 linhas de proposito: um colar a partir de um visualizador que corta em 100 linhas ja chegou truncado
+     ao editor (erro de sintaxe no fim do texto), e as migrations sao so ASCII porque o editor ja reescreveu um script
+     com acentos e o quebrou. Se o editor perguntar sobre "Row Level Security", o nosso SQL ja liga a RLS em todas as
+     tabelas: qualquer botao serve (se der erro de sintaxe, use "Run without RLS").
+   - **Confira o resultado:** rode `supabase/conferir-passo-1.sql`. Todas as 12 linhas devem dizer `OK`; `FALTA` indica
+     qual parte nao foi aplicada ate o fim.
+   - *CLI* (com o repositorio no computador, dentro da pasta do projeto): `npx supabase init`, `npx supabase login`,
+     `npx supabase link --project-ref <ref>` e `npx supabase db push`. O `<ref>` e o trecho da URL do projeto
+     (`https://<ref>.supabase.co`). Nao misture: se aplicou pelo SQL Editor, nao use `db push` depois para as mesmas migrations.
 4. **Crie os usuários:** *Authentication → Users → Add user → Create new user*, com e-mail e senha
    (marque *Auto Confirm User*). O perfil nasce sozinho como `tecnico`; ajuste o nome em *Table Editor → profiles → full_name*.
 5. **Defina os papéis.** O primeiro admin você faz no *SQL Editor*:

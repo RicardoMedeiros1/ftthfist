@@ -25,3 +25,5 @@ create policy fotos_update on storage.objects for update to authenticated
   with check (bucket_id = 'fotos' and (storage.foldername(name))[1] = auth.uid()::text);
 
 -- Sem politica de delete: a foto "excluida" continua no bucket; o registro em public.photos marca deleted = true.
+
+-- fim: fotos

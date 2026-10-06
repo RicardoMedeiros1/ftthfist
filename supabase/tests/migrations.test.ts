@@ -13,6 +13,14 @@ describe('migrations do Supabase: texto', () => {
     for (const f of files) expect(f).toMatch(/^\d{14}_[a-z0-9_]+\.sql$/);
   });
 
+  it('cada arquivo tem menos de 100 linhas e termina com "-- fim: ..." (quem cola no SQL Editor a partir de um visualizador que corta em 100 linhas percebe o corte)', () => {
+    for (const f of files) {
+      const lines = read(f).trimEnd().split('\n');
+      expect(lines.length, `${f} tem ${lines.length} linhas`).toBeLessThan(100);
+      expect(lines[lines.length - 1], `${f} precisa terminar com o marcador de fim`).toMatch(/^-- fim: /);
+    }
+  });
+
   it('só ASCII: o SQL Editor do Supabase ("Run and enable RLS") reescreveu um script com acentos e o quebrou', () => {
     for (const f of files) {
       const bad = [...read(f)].filter((c) => c.charCodeAt(0) > 127);

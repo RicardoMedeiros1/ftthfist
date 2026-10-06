@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
 import {
   DB_URL, ID, IDS, activityRow, cableRow, createTestDb, elementRow, insertSql, photoRow, trackRow, upsertSql, type Row, type TestDb,
 } from './support/harness';
@@ -278,6 +279,31 @@ describe.skipIf(!DB_URL)('conflitos: só o admin lê o log', () => {
   it('ninguém escreve no log pela API (só o trigger do servidor)', async () => {
     await db.run('davi', async (tx) => {
       await tx.denied(`insert into public.sync_conflicts (table_name, record_id, owner_id, incoming, kept) values ('x', gen_random_uuid(), gen_random_uuid(), '{}', '{}')`);
+    });
+  });
+});
+
+describe.skipIf(!DB_URL)('conferir-passo-1.sql (o que o usuario roda para saber se o banco ficou completo)', () => {
+  let db: TestDb;
+  beforeAll(async () => { db = await createTestDb(); });
+  afterAll(async () => { await db?.drop(); });
+
+  it('num banco com todas as migrations, todas as linhas dizem OK', async () => {
+    const sql = readFileSync(new URL('../conferir-passo-1.sql', import.meta.url), 'utf8');
+    const rows = await db.admin<{ item: string; esperado: string; encontrado: string; resultado: string }>(sql);
+    expect(rows).toHaveLength(12);
+    expect(rows.filter((r) => r.resultado !== 'OK')).toEqual([]);
+  });
+
+  it('e acusa FALTA quando uma migration nao foi aplicada ate o fim (simulando uma colagem cortada)', async () => {
+    await db.run('postgres', async (tx) => {
+      await tx.q(`drop trigger trg_2_sync_guard on public.elements`);
+      await tx.q(`alter table public.photos disable row level security`);
+      const sql = readFileSync(new URL('../conferir-passo-1.sql', import.meta.url), 'utf8');
+      const falta = (await tx.q<{ resultado: string; item: string }>(sql)).filter((r) => r.resultado === 'FALTA').map((r) => r.item);
+      expect(falta).toHaveLength(2);
+      expect(falta.join(' ')).toContain('regra de conflito');
+      expect(falta.join(' ')).toContain('RLS');
     });
   });
 });

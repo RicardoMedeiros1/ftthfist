@@ -41,3 +41,5 @@ grant  execute on function public.cable_totals(timestamptz, timestamptz) to auth
 
 revoke all on public.activity_tracks from anon, authenticated;
 grant select on public.activity_tracks to authenticated;
+
+-- fim: painel
