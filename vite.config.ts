@@ -60,5 +60,6 @@ export default defineConfig({
   ],
   server: { host: true },
   preview: { host: true },
-  test: { environment: 'node', include: ['src/**/*.test.ts'] },
+  // supabase/tests: testes do banco; só rodam com TEST_DATABASE_URL (ver supabase/README.md), senão são pulados
+  test: { environment: 'node', include: ['src/**/*.test.ts', 'supabase/tests/**/*.test.ts'] },
 });
