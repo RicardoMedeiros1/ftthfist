@@ -3,7 +3,7 @@ import { loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import basicSsl from '@vitejs/plugin-basic-ssl';
 import { VitePWA } from 'vite-plugin-pwa';
-import { readConfig } from './src/features/account/supabaseKey.ts';
+import { describeConfig } from './src/features/account/supabaseKey.ts';
 
 // BASE_PATH permite publicar em subpasta (ex.: GitHub Pages: /ftthfist/).
 const base = process.env.BASE_PATH ?? '/';
@@ -68,6 +68,7 @@ const config = defineConfig({
 
 export default defineConfig(({ mode }) => {
   // Trava: se alguem colar a chave SECRETA do Supabase numa variavel, o build FALHA (nada e publicado).
-  readConfig(loadEnv(mode, process.cwd(), 'VITE_'));
+  // (describeConfig tambem lanca se a chave for secreta.) O motivo de o login nao ligar aparece no log do build.
+  console.log(`\n${describeConfig(loadEnv(mode, process.cwd(), 'VITE_')).message}\n`);
   return config;
 });

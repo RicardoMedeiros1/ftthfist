@@ -47,3 +47,17 @@ export function readConfig(env: { VITE_SUPABASE_URL?: string; VITE_SUPABASE_ANON
   if (!/^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)+(:\d+)?$/i.test(url) || kind !== 'publica') return null;
   return { url, key };
 }
+
+export type ConfigStatus = 'ligado' | 'vazio' | 'so-url' | 'so-chave' | 'url-invalida' | 'chave-invalida';
+
+/** Diagnostico em portugues do que o build recebeu (nunca inclui valores). Chave secreta lanca, como em readConfig. */
+export function describeConfig(env: { VITE_SUPABASE_URL?: string; VITE_SUPABASE_ANON_KEY?: string }): { status: ConfigStatus; message: string } {
+  const url = (env.VITE_SUPABASE_URL ?? '').trim();
+  const key = (env.VITE_SUPABASE_ANON_KEY ?? '').trim();
+  if (readConfig(env)) return { status: 'ligado', message: 'Supabase: configurado (login ligado neste build).' };
+  if (!url && !key) return { status: 'vazio', message: 'Supabase: NAO configurado (as duas variaveis estao vazias ou ausentes). O app sai sem a conta.' };
+  if (!url) return { status: 'so-chave', message: 'Supabase: NAO configurado: falta VITE_SUPABASE_URL (so a chave chegou). O app sai sem a conta.' };
+  if (!key) return { status: 'so-url', message: 'Supabase: NAO configurado: falta VITE_SUPABASE_ANON_KEY (so a URL chegou). O app sai sem a conta.' };
+  if (classifyKey(key) !== 'publica') return { status: 'chave-invalida', message: 'Supabase: NAO configurado: VITE_SUPABASE_ANON_KEY nao parece uma Publishable key (deve comecar com sb_publishable_). O app sai sem a conta.' };
+  return { status: 'url-invalida', message: 'Supabase: NAO configurado: VITE_SUPABASE_URL invalida (use o formato https://xxxx.supabase.co, com https:// e sem caminho). O app sai sem a conta.' };
+}

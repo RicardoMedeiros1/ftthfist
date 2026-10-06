@@ -6,6 +6,7 @@ import { formatAgo } from '../../lib/format';
 import { goBack, navigate } from '../../lib/route';
 import AccountCard from '../account/AccountCard';
 import { useAccount } from '../account/accountStore';
+import { isSupabaseConfigured } from '../account/supabaseClient';
 import CableTypesEditor from '../cables/CableTypesEditor';
 import { useTechnician } from './useTechnician';
 
@@ -79,6 +80,7 @@ export default function SettingsScreen() {
         </button>
       </section>
       <p className="hint">Versão do app: {__BUILD_ID__}</p>
+      <p className="hint">Servidor (conta): {isSupabaseConfigured ? 'ligado neste app' : 'não configurado neste app — a conta fica desligada'}</p>
     </ScreenShell>
   );
 }
