@@ -37,15 +37,17 @@ supabase/
 3. **Aplique as migrations, em ordem** (cada uma **uma vez só**). `supabase db push` nao e um arquivo: e um comando do
    Supabase CLI, que so vale a pena se voce tiver o repositorio no seu computador. O caminho simples nao instala nada:
    - *SQL Editor:* no painel do Supabase, **SQL Editor -> New query**, cole o conteudo de **um arquivo de
-     `supabase/migrations/` por vez, na ordem do nome**, e clique em **Run**. Sao 9 arquivos (`...150000_perfis`,
+     `supabase/migrations/` por vez, na ordem do nome**, e clique em **Run**. Sao 11 arquivos (`...150000_perfis`,
      `...150100_tabelas_atividades_elementos`, `...150110_tabelas_cabos_fotos`, `...150120_tabelas_trilha_indices`,
-     `...150130_regras_de_conflito`, `...150140_permissoes_e_rls`, `...150200_fotos`, `...150300_painel`, `...150400_aprovacao_de_acesso`).
+     `...150130_regras_de_conflito`, `...150140_permissoes_e_rls`, `...150200_fotos`, `...150300_painel`, `...150400_aprovacao_de_acesso`,
+     `...150500_admin_auditoria`, `...150510_admin_edita_tudo`).
      Cada um termina com uma linha `-- fim: ...`: **confira no editor se ela esta la** antes de rodar. Os arquivos tem
      menos de 100 linhas de proposito: um colar a partir de um visualizador que corta em 100 linhas ja chegou truncado
      ao editor (erro de sintaxe no fim do texto), e as migrations sao so ASCII porque o editor ja reescreveu um script
      com acentos e o quebrou. Se o editor perguntar sobre "Row Level Security", o nosso SQL ja liga a RLS em todas as
      tabelas: qualquer botao serve (se der erro de sintaxe, use "Run without RLS").
-   - **Confira o resultado:** rode `supabase/conferir-passo-1.sql`. Todas as 16 linhas devem dizer `OK`; `FALTA` indica
+   - **Confira o resultado:** rode `supabase/conferir-passo-1.sql` (arquivos 1 a 9: as 16 linhas devem dizer `OK`) e
+     `supabase/conferir-admin.sql` (arquivos 10 e 11, do administrador: as 8 linhas devem dizer `OK`). `FALTA` indica
      qual parte nao foi aplicada ate o fim.
    - *CLI* (com o repositorio no computador, dentro da pasta do projeto): `npx supabase init`, `npx supabase login`,
      `npx supabase link --project-ref <ref>` e `npx supabase db push`. O `<ref>` e o trecho da URL do projeto
@@ -88,6 +90,22 @@ node supabase/tests/api-check.mjs
 O esperado é `TUDO OK`. O script tenta, pela API e como o usuário B: editar, sobrescrever, apagar e criar em nome de A,
 promover a si mesmo, ler sem login, enviar foto para a pasta de A. **Se alguma linha disser `FALHA`, não siga em frente.**
 Ele deixa registros marcados `[verificação RLS]` (já como excluídos) e uma foto de 1 pixel no bucket.
+
+## O administrador (migrations 10 e 11)
+
+O administrador **ativo** pode alterar qualquer atividade, elemento, cabo, foto e ponto de trilha de qualquer tecnico
+(inclusive "excluir", que e sempre logico: continua nao existindo DELETE para ninguem). O que garante o resto:
+
+- **O dono nunca muda** (gatilho `sync_guard`): nem o administrador troca o `owner_id`.
+- **Quem alterou fica gravado:** `updated_by` (preenchido pelo servidor a partir do login) e, quando quem altera nao e o dono,
+  uma linha em `admin_edits` com quem, quando, **como era e como ficou**. So o administrador le; ninguem escreve nessa
+  tabela pela API (so o gatilho `log_admin_edit`).
+- **Nao cria registro em nome de um tecnico nem dentro da atividade dele.** O envio do app e um
+  `INSERT ... ON CONFLICT DO UPDATE` e o Postgres confere a politica de INSERT na linha proposta antes de decidir que e uma
+  alteracao; por isso o administrador tem politica de insert, so para linhas em nome dele, e o gatilho
+  `check_child_owner` (so dispara em insercao de verdade) exige que registro NOVO entre em atividade do mesmo dono.
+- **Conflito com o tecnico:** vale a alteracao mais recente (`updated_at`); a atrasada vai para `sync_conflicts`, como sempre.
+- Escritorio continua so leitura; administrador desativado perde tudo na hora (`my_role()` fica nulo).
 
 ## Testes do banco (para quem for mexer no SQL)
 

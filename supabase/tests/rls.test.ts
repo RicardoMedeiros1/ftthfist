@@ -426,3 +426,27 @@ describe.skipIf(!DB_URL)('conferir-passo-1.sql (o que o usuario roda para saber 
     });
   });
 });
+
+describe.skipIf(!DB_URL)('conferir-admin.sql (as migrations do administrador)', () => {
+  let db: TestDb;
+  beforeAll(async () => { db = await createTestDb(); });
+  afterAll(async () => { await db?.drop(); });
+  const script = () => readFileSync(new URL('../conferir-admin.sql', import.meta.url), 'utf8');
+
+  it('num banco com todas as migrations, todas as linhas dizem OK', async () => {
+    const rows = await db.admin<{ item: string; resultado: string }>(script());
+    expect(rows).toHaveLength(8);
+    expect(rows.filter((r) => r.resultado !== 'OK')).toEqual([]);
+  });
+
+  it('acusa FALTA quando a parte 2 nao foi aplicada (politicas e gatilho do administrador)', async () => {
+    await db.run('postgres', async (tx) => {
+      await tx.q(`drop policy elements_adm_edit on public.elements`);
+      await tx.q(`drop trigger trg_4_own_activity on public.cables`);
+      const falta = (await tx.q<{ resultado: string; item: string }>(script())).filter((r) => r.resultado === 'FALTA').map((r) => r.item);
+      expect(falta).toHaveLength(2);
+      expect(falta.join(' ')).toContain('politicas do administrador');
+      expect(falta.join(' ')).toContain('atividade propria');
+    });
+  });
+});

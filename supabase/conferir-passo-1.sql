@@ -1,4 +1,4 @@
--- RotaFibra - Fase 2 - passo 1: CONFERENCIA. Rode depois de aplicar TODAS as migrations (arquivos 1 a 10).
+-- RotaFibra - Fase 2 - passo 1: CONFERENCIA das migrations 1 a 9 (as do administrador, 10 e 11, tem o seu: conferir-admin.sql).
 -- Mostra cada item esperado e o que foi encontrado. Se TODAS as linhas disserem OK, o banco esta completo.
 -- Se alguma disser FALTA, uma migration nao foi aplicada ate o fim: me diga qual linha falhou.
 
@@ -8,12 +8,14 @@ from (
          (select count(*) from pg_extension where extname = 'postgis')::text as encontrado
   union all select 2, 'tabelas em public (profiles, activities, elements, cables, photos, track_points, sync_conflicts)', '7',
          (select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace
-          where n.nspname = 'public' and c.relkind = 'r')::text
+          where n.nspname = 'public' and c.relkind = 'r'
+            and c.relname in ('profiles', 'activities', 'elements', 'cables', 'photos', 'track_points', 'sync_conflicts'))::text
   union all select 3, 'tabelas com RLS ligada', '7',
          (select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace
-          where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity)::text
-  union all select 4, 'politicas de acesso nas tabelas', '19',
-         (select count(*) from pg_policies where schemaname = 'public')::text
+          where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity
+            and c.relname in ('profiles', 'activities', 'elements', 'cables', 'photos', 'track_points', 'sync_conflicts'))::text
+  union all select 4, 'politicas de acesso nas tabelas (sem as do administrador)', '19',
+         (select count(*) from pg_policies where schemaname = 'public' and tablename <> 'admin_edits' and policyname !~ '_adm_')::text
   union all select 5, 'politicas de acesso as fotos (storage)', '3',
          (select count(*) from pg_policies where schemaname = 'storage' and policyname in ('fotos_read', 'fotos_insert', 'fotos_update'))::text
   union all select 6, 'regra de conflito nas 5 tabelas de dados', '5',
