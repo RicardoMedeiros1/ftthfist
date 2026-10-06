@@ -19,6 +19,7 @@ async function labelOf(table: SyncTable, id: string): Promise<string> {
     const e = await db.elements.get(id);
     return e ? `${ELEMENT_META[e.type].label}${e.code ? ` ${e.code}` : ''}` : 'Elemento';
   }
+  if (table === 'photos') return 'Foto';
   if (table === 'cables') {
     const c = await db.cables.get(id);
     return c ? `Cabo ${c.cableType} · ${c.fiberCount} fibras` : 'Cabo';
@@ -124,7 +125,9 @@ export default function SyncScreen() {
 
           <BlockedList />
 
-          <p className="hint">As fotos ainda ficam só neste aparelho: o envio delas vem no próximo passo. Faça o backup normalmente.</p>
+          <p className="hint">
+            As fotos sobem junto com os dados (em rede fraca podem demorar). As fotos dos colegas só são baixadas quando você abre o elemento, para poupar internet.
+          </p>
         </>
       )}
     </ScreenShell>

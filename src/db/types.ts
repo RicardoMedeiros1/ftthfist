@@ -113,8 +113,13 @@ export interface Cable extends BaseRecord {
 }
 
 export interface Photo extends BaseRecord {
-  blob: Blob; // JPEG ~1600 px, qualidade ~0.7
-  remoteUrl?: string; // Fase 2
+  /**
+   * JPEG ~1600 px, qualidade ~0.7. Ausente na foto de um colega (ou minha, de outro aparelho) que ainda nao foi
+   * baixada: o registro chega pela sincronizacao e o arquivo so e baixado ao abrir o elemento.
+   */
+  blob?: Blob;
+  /** Caminho no bucket `fotos` (`<dono>/<id>.jpg`). Preenchido quando o arquivo ja esta no servidor. */
+  storagePath?: string;
   lat?: number;
   lng?: number;
   takenAt: number;

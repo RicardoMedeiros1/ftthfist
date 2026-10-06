@@ -1,8 +1,8 @@
 import { SETTING_KEYS, type RotaFibraDB } from '../../db/db';
-import type { Activity, BaseRecord, Cable, NetworkElement, TrackPoint } from '../../db/types';
+import type { Activity, BaseRecord, Cable, NetworkElement, Photo, TrackPoint } from '../../db/types';
 import { fromRemote, MappingError, toRemote, type RemoteRow } from './mapping';
 import { SyncHttpError, type RemoteApi } from './remote';
-import { PULL_ORDER, PUSH_ORDER, REMOTE_TABLE, type SyncTable } from './tables';
+import { PULL_ORDER, PUSH_ORDER, REMOTE_TABLE, photoPath, type SyncTable } from './tables';
 
 // O motor de sincronizacao: sobe o que esta "pending" e baixa o que mudou no servidor.
 // Principios: (1) nada aqui bloqueia o trabalho de campo: tudo roda em segundo plano e falha em silencio;
@@ -11,6 +11,8 @@ import { PULL_ORDER, PUSH_ORDER, REMOTE_TABLE, type SyncTable } from './tables';
 
 export const PUSH_BATCH = 100;
 export const TRACK_BATCH = 500;
+/** Fotos: cada uma e um arquivo de centenas de KB, entao lotes pequenos (o progresso aparece e uma queda perde pouco). */
+export const PHOTO_BATCH = 10;
 export const PULL_PAGE = 500;
 /** O servidor pode confirmar uma transacao longa depois de outra mais nova: o "puxar" volta um pouco no cursor. */
 export const PULL_OVERLAP_MS = 5 * 60_000;
@@ -63,7 +65,7 @@ export class CycleAbort extends Error {
   }
 }
 
-type Row = Activity | NetworkElement | Cable | TrackPoint;
+type Row = Activity | NetworkElement | Cable | Photo | TrackPoint;
 type BlockedMap = Record<string, { updatedAt: number; message: string }>;
 type Cursors = Partial<Record<SyncTable, string>>;
 
@@ -72,6 +74,7 @@ const key = (t: SyncTable, id: string) => `${t}:${id}`;
 export interface Tuning {
   pushBatch: number;
   trackBatch: number;
+  photoBatch: number;
   pullPage: number;
 }
 
@@ -79,6 +82,7 @@ export function createSyncEngine(deps: SyncDeps, tuning: Partial<Tuning> = {}) {
   const { db, remote } = deps;
   const pushBatch = tuning.pushBatch ?? PUSH_BATCH;
   const trackBatch = tuning.trackBatch ?? TRACK_BATCH;
+  const photoBatch = tuning.photoBatch ?? PHOTO_BATCH;
   const pullPage = tuning.pullPage ?? PULL_PAGE;
   const table = (t: SyncTable) => db[t] as unknown as import('dexie').Table<Row, string>;
   const getSetting = async <T>(k: string, fallback: T): Promise<T> => ((await db.settings.get(k))?.value as T | undefined) ?? fallback;
@@ -188,6 +192,36 @@ export function createSyncEngine(deps: SyncDeps, tuning: Partial<Tuning> = {}) {
     await markSynced(t, toMark, who);
   }
 
+  /** Sobe o arquivo de cada foto do lote. Devolve as que estao prontas para ter o registro enviado. */
+  async function uploadPhotos(rows: Photo[], who: Who, report: CycleReport): Promise<Photo[]> {
+    const ready: Photo[] = [];
+    for (const p of rows) {
+      if (p.deleted || p.storagePath) {
+        ready.push(p); // excluida (so o registro) ou arquivo ja enviado numa tentativa anterior
+        continue;
+      }
+      if (!p.blob) {
+        await block('photos', p, 'arquivo da foto não encontrado neste aparelho', report);
+        continue;
+      }
+      const path = photoPath(p.ownerId ?? who.userId, p.id);
+      try {
+        await remote.uploadFile(path, p.blob);
+      } catch (e) {
+        if (!(e instanceof SyncHttpError)) throw e;
+        if (e.kind === 'permanent' || e.kind === 'dependency') {
+          await block('photos', p, e.message, report); // ex.: arquivo grande demais, formato recusado
+          continue;
+        }
+        throw new CycleAbort(e.kind === 'auth' ? 'auth' : e.kind === 'network' ? 'network' : 'server', e.message);
+      }
+      // Lembra que o arquivo ja esta la (sem mexer em updatedAt): se o registro falhar, a nova tentativa nao reenvia o arquivo.
+      await db.photos.update(p.id, { storagePath: path });
+      ready.push({ ...p, storagePath: path });
+    }
+    return ready;
+  }
+
   async function pushRows(t: SyncTable, rows: Row[], who: Who, report: CycleReport): Promise<void> {
     if (!rows.length) return;
     // 1) traduzir; um registro com dado impossivel de traduzir e recusado sozinho, sem derrubar o lote
@@ -245,7 +279,7 @@ export function createSyncEngine(deps: SyncDeps, tuning: Partial<Tuning> = {}) {
     const blocked = await blockedMap();
     const waitingActivities = new Set<string>(); // atividades que ainda nao subiram: os registros dela esperam
     for (const t of PUSH_ORDER) {
-      const size = t === 'trackPoints' ? trackBatch : pushBatch;
+      const size = t === 'trackPoints' ? trackBatch : t === 'photos' ? photoBatch : pushBatch;
       const seen = new Set<string>();
       for (;;) {
         const batch = await table(t)
@@ -259,7 +293,8 @@ export function createSyncEngine(deps: SyncDeps, tuning: Partial<Tuning> = {}) {
           .toArray();
         if (!batch.length) break;
         batch.forEach((r) => seen.add(r.id));
-        await pushRows(t, batch, who, report);
+        // Foto: o ARQUIVO sobe primeiro; so depois o registro (que aponta para ele). Assim nunca existe registro sem arquivo.
+        await pushRows(t, t === 'photos' ? await uploadPhotos(batch as Photo[], who, report) : batch, who, report);
         progress?.({ phase: 'enviando', done: report.pushed });
       }
       if (t === 'activities') {
@@ -294,6 +329,8 @@ export function createSyncEngine(deps: SyncDeps, tuning: Partial<Tuning> = {}) {
           if (opts.onlyIfLocalUpdatedAt !== undefined && cur.updatedAt !== opts.onlyIfLocalUpdatedAt) return;
           if (inc.updatedAt <= cur.updatedAt) return; // o local e igual ou mais novo
           if (cur.syncStatus === 'pending' && mine(cur, who)) lost++; // minha alteracao perde para uma mais recente
+          // o registro do servidor nao traz o arquivo: se ja o baixamos, continua aqui
+          if (t === 'photos' && (cur as Photo).blob) (inc as Photo).blob = (cur as Photo).blob;
         }
         toPut.push(inc);
       });

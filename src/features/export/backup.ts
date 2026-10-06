@@ -89,6 +89,7 @@ export async function buildBackup(
   const photos: PhotoMeta[] = [];
   for (const p of t.photos) {
     const { blob, ...rest } = p;
+    if (!blob) continue; // foto de colega ainda nao baixada: o arquivo esta no servidor, nao faz parte deste backup
     const mime = blob.type || 'image/jpeg';
     const file = `photos/${p.id}.${EXT[mime] ?? 'jpg'}`;
     // JPEG já é comprimido: guardar sem recomprimir poupa tempo e bateria.
@@ -372,8 +373,9 @@ export async function dataSummary(database: RotaFibraDB): Promise<DataSummary> {
     count(database.activities),
     count(database.elements),
     count(database.cables),
-    count(database.photos, (p) => {
-      photoBytes += p.blob.size;
+    // so as fotos que estao neste aparelho (as ainda nao baixadas vivem no servidor)
+    count<Photo>({ filter: (fn) => database.photos.filter((p) => !!p.blob && fn(p)) }, (p) => {
+      photoBytes += p.blob?.size ?? 0;
     }),
     count(database.trackPoints),
   ]);

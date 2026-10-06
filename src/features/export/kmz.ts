@@ -18,10 +18,11 @@ export interface KmzOptions {
 
 /** KMZ = zip com doc.kml na raiz, ícones em icons/ e (opcional) fotos em photos/. */
 export async function buildKmz(d: ExportData, opts: KmzOptions): Promise<Blob> {
-  const photos = opts.includePhotos ? [...d.photosByElement.values()].flat() : [];
+  // so as fotos cujo arquivo esta neste aparelho (as de colegas ainda nao baixadas ficam de fora)
+  const photos = opts.includePhotos ? [...d.photosByElement.values()].flat().filter((p) => p.blob) : [];
   const kml = buildKml(d, {
     iconHref: iconPath,
-    photoHref: opts.includePhotos ? photoPath : undefined,
+    photoHref: opts.includePhotos ? (p) => (p.blob ? photoPath(p) : null) : undefined,
   });
 
   const zip = new JSZip();
@@ -29,7 +30,7 @@ export async function buildKmz(d: ExportData, opts: KmzOptions): Promise<Blob> {
   const types = [...new Set(d.elements.map((e) => e.type))];
   for (const t of types) zip.file(iconPath(t), await opts.renderIcon(t), { compression: 'STORE' });
   // JPEG já é comprimido: STORE evita gastar CPU sem ganho.
-  for (const p of photos) zip.file(photoPath(p), p.blob, { compression: 'STORE' });
+  for (const p of photos) zip.file(photoPath(p), p.blob!, { compression: 'STORE' });
   return zip.generateAsync({ type: 'blob', mimeType: KMZ_MIME }, (m) => opts.onProgress?.(m.percent));
 }
 

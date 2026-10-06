@@ -82,16 +82,20 @@ export interface ExportSummary {
   trackPoints: number;
   photos: number;
   photoBytes: number;
+  /** Fotos cujo arquivo ainda nao esta neste aparelho (de colegas): ficam fora do KMZ ate serem baixadas. */
+  photosMissing: number;
   cableMeters: number;
 }
 
 export function summarizeExport(d: ExportData): ExportSummary {
   let photos = 0;
   let photoBytes = 0;
+  let photosMissing = 0;
   for (const list of d.photosByElement.values()) {
     for (const p of list) {
       photos++;
-      photoBytes += p.blob.size;
+      if (p.blob) photoBytes += p.blob.size;
+      else photosMissing++;
     }
   }
   return {
@@ -101,6 +105,7 @@ export function summarizeExport(d: ExportData): ExportSummary {
     trackPoints: d.tracks.reduce((s, t) => s + t.points.length, 0),
     photos,
     photoBytes,
+    photosMissing,
     cableMeters: d.cables.reduce((s, c) => s + c.totalMeters, 0),
   };
 }

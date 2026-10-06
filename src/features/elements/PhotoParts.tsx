@@ -48,11 +48,18 @@ export function PhotoGrid({ items, onOpen }: { items: BlobItem[]; onOpen: (id: s
   if (items.length === 0) return <p className="hint">Nenhuma foto ainda.</p>;
   return (
     <div className="photo-grid">
-      {items.map((p, i) => (
-        <button key={p.id} type="button" className="photo-thumb" aria-label={`Abrir foto ${i + 1}`} onClick={() => onOpen(p.id)}>
-          {urls[p.id] && <img src={urls[p.id]} alt={`Foto ${i + 1}`} />}
-        </button>
-      ))}
+      {items.map((p, i) =>
+        p.blob ? (
+          <button key={p.id} type="button" className="photo-thumb" aria-label={`Abrir foto ${i + 1}`} onClick={() => onOpen(p.id)}>
+            {urls[p.id] && <img src={urls[p.id]} alt={`Foto ${i + 1}`} />}
+          </button>
+        ) : (
+          <div key={p.id} className="photo-thumb photo-thumb-pending" role="img" aria-label={`Foto ${i + 1}: ${p.note ?? 'ainda não baixada'}`}>
+            <span aria-hidden="true">📷</span>
+            <small>{p.note ?? 'Ainda não baixada'}</small>
+          </div>
+        ),
+      )}
     </div>
   );
 }

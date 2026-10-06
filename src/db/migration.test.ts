@@ -43,7 +43,7 @@ describe('migração do banco local (v1 → v2)', () => {
     }
     const [photo] = await db.photos.toArray();
     expect(photo).toMatchObject({ id: 'p1', takenAt: 5, elementId: 'e1' });
-    expect(Array.from(new Uint8Array(await photo!.blob.arrayBuffer()))).toEqual([1, 2, 3]);
+    expect(Array.from(new Uint8Array(await photo!.blob!.arrayBuffer()))).toEqual([1, 2, 3]);
 
     // índices antigos continuam funcionando
     expect(await db.activities.where('status').equals('aberta').count()).toBe(1);

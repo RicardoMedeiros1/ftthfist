@@ -8,13 +8,14 @@ import { SyncHttpError, type PullQuery, type RemoteApi } from './remote';
 
 export type Role = 'tecnico' | 'escritorio' | 'admin';
 
-const TABLES = ['activities', 'elements', 'cables', 'track_points'] as const;
-const CHILD = new Set(['elements', 'cables', 'track_points']);
+const TABLES = ['activities', 'elements', 'cables', 'photos', 'track_points'] as const;
+const CHILD = new Set(['elements', 'cables', 'photos', 'track_points']);
+const MAX_PHOTO_BYTES = 3 * 1024 * 1024;
 const FIBERS = new Set([1, 2, 4, 6, 12, 24, 36, 48, 72, 144]);
 const ELEMENT_TYPES = new Set(['poste', 'cto', 'ceo', 'reserva', 'ocorrencia', 'outro']);
 
 export interface Call {
-  fn: 'upsert' | 'pull' | 'fetchByIds';
+  fn: 'upsert' | 'pull' | 'fetchByIds' | 'upload' | 'download';
   table: string;
   who: string;
   n: number;
@@ -24,6 +25,8 @@ export interface Call {
 export class TestServer {
   rows: Record<string, Map<string, RemoteRow>> = Object.fromEntries(TABLES.map((t) => [t, new Map()]));
   conflicts: Array<{ table: string; id: string; incoming: RemoteRow; kept: RemoteRow }> = [];
+  /** Bucket de fotos: caminho -> arquivo. */
+  files = new Map<string, Blob>();
   calls: Call[] = [];
   profiles = new Map<string, { role: Role; active: boolean }>();
   /** Relogio do servidor (ms). Avanca sozinho a cada gravacao (monotonico). */
@@ -89,6 +92,9 @@ export class TestServer {
             if (!FIBERS.has(Number(r.fiber_count))) throw new SyncHttpError('permanent', 'check constraint', 400, '23514');
             if (!Array.isArray(r.vertices) || r.vertices.length < 2) throw new SyncHttpError('permanent', 'o cabo precisa de pelo menos 2 pontos', 400, '23514');
           }
+          if (table === 'photos' && r.element_id != null && !this.rows.elements!.has(String(r.element_id))) {
+            throw new SyncHttpError('dependency', 'violates foreign key constraint', 409, '23503');
+          }
           if ((table === 'elements' || table === 'track_points') && (Math.abs(Number(r.lat)) > 90 || Math.abs(Number(r.lng)) > 180)) {
             throw new SyncHttpError('permanent', 'check constraint', 400, '23514');
           }
@@ -134,6 +140,28 @@ export class TestServer {
           return Date.parse(ts) >= Date.parse(q.since);
         });
         return out.slice(0, q.limit).map((r) => ({ ...r }));
+      },
+      uploadFile: async (path, blob) => {
+        this.guard('upload', 'fotos', userId, 1);
+        const p = profile();
+        if (!p || !p.active || p.role === 'escritorio') throw new SyncHttpError('permanent', 'new row violates row-level security policy', 403, '');
+        if (!path.startsWith(`${userId}/`) || !path.endsWith('.jpg')) throw new SyncHttpError('permanent', 'new row violates row-level security policy', 403, '');
+        if (blob.type !== 'image/jpeg') throw new SyncHttpError('permanent', 'mime type not supported', 415, '');
+        if (blob.size > MAX_PHOTO_BYTES) throw new SyncHttpError('permanent', 'The object exceeded the maximum allowed size', 413, '');
+        this.files.set(path, blob);
+        await this.beforeRespond?.();
+        if (this.loseResponseOnce) {
+          this.loseResponseOnce = false;
+          throw new SyncHttpError('network', 'Failed to fetch');
+        }
+      },
+      downloadFile: async (path) => {
+        this.guard('download', 'fotos', userId, 1);
+        const p = profile();
+        if (!p || !p.active) throw new SyncHttpError('permanent', 'new row violates row-level security policy', 403, '');
+        const f = this.files.get(path);
+        if (!f) throw new SyncHttpError('permanent', 'Object not found', 404, '');
+        return f;
       },
       fetchByIds: async (table, ids) => {
         this.guard('fetchByIds', table, userId, ids.length);

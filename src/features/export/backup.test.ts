@@ -114,8 +114,8 @@ describe('restaurar: ida e volta', () => {
       const { blob: b1, ...m1 } = sp[i]!;
       const { blob: b2, ...m2 } = dp[i]!;
       expect(m2).toEqual(m1);
-      expect(b2.type).toBe('image/jpeg');
-      expect(await bytes(b2)).toEqual(await bytes(b1));
+      expect(b2!.type).toBe('image/jpeg');
+      expect(await bytes(b2!)).toEqual(await bytes(b1!));
     }
     expect((await dst.settings.get('technician'))?.value).toBe('Carlos');
     expect((await dst.activities.get(s.a2.id))?.status).toBe('aberta');

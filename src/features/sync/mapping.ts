@@ -1,4 +1,4 @@
-import type { Activity, BaseRecord, Cable, NetworkElement, TrackPoint } from '../../db/types';
+import type { Activity, BaseRecord, Cable, NetworkElement, Photo, TrackPoint } from '../../db/types';
 import type { SyncTable } from './tables';
 
 // Tradução entre o registro local (camelCase, tempo em ms) e a linha do servidor (snake_case, ISO 8601).
@@ -46,7 +46,7 @@ function fromCommon(row: RemoteRow): BaseRecord {
   };
 }
 
-type Local = Activity | NetworkElement | Cable | TrackPoint;
+type Local = Activity | NetworkElement | Cable | Photo | TrackPoint;
 
 export function toRemote(table: SyncTable, r: Local): RemoteRow {
   switch (table) {
@@ -94,6 +94,18 @@ export function toRemote(table: SyncTable, r: Local): RemoteRow {
         notes: c.notes,
       };
     }
+    case 'photos': {
+      const ph = r as Photo;
+      return {
+        ...common(ph),
+        activity_id: ph.activityId,
+        element_id: ph.elementId ?? null,
+        lat: ph.lat ?? null,
+        lng: ph.lng ?? null,
+        taken_at: iso(ph.takenAt, 'takenAt'),
+        storage_path: ph.storagePath ?? null,
+      };
+    }
     case 'trackPoints': {
       const t = r as TrackPoint;
       return {
@@ -114,8 +126,9 @@ export function toRemote(table: SyncTable, r: Local): RemoteRow {
 export function fromRemote(table: 'activities', row: RemoteRow): Activity;
 export function fromRemote(table: 'elements', row: RemoteRow): NetworkElement;
 export function fromRemote(table: 'cables', row: RemoteRow): Cable;
-export function fromRemote(table: 'activities' | 'elements' | 'cables', row: RemoteRow): Activity | NetworkElement | Cable;
-export function fromRemote(table: 'activities' | 'elements' | 'cables', row: RemoteRow): Activity | NetworkElement | Cable {
+export function fromRemote(table: 'photos', row: RemoteRow): Photo;
+export function fromRemote(table: 'activities' | 'elements' | 'cables' | 'photos', row: RemoteRow): Activity | NetworkElement | Cable | Photo;
+export function fromRemote(table: 'activities' | 'elements' | 'cables' | 'photos', row: RemoteRow): Activity | NetworkElement | Cable | Photo {
   const base = fromCommon(row);
   switch (table) {
     case 'activities':
@@ -143,6 +156,17 @@ export function fromRemote(table: 'activities' | 'elements' | 'cables', row: Rem
         code: String(row.code ?? ''),
         notes: String(row.notes ?? ''),
         attrs: (row.attrs && typeof row.attrs === 'object' ? row.attrs : {}) as NetworkElement['attrs'],
+      };
+    case 'photos':
+      // sem `blob`: o arquivo so e baixado quando alguem abre o elemento
+      return {
+        ...base,
+        activityId: String(row.activity_id),
+        ...(row.element_id != null ? { elementId: String(row.element_id) } : {}),
+        ...(row.lat != null ? { lat: Number(row.lat) } : {}),
+        ...(row.lng != null ? { lng: Number(row.lng) } : {}),
+        takenAt: parseMs(row.taken_at, 'taken_at'),
+        ...(row.storage_path != null ? { storagePath: String(row.storage_path) } : {}),
       };
     case 'cables':
       return {

@@ -15,3 +15,11 @@
   padding: calc(8px + env(safe-area-inset-top)) 12px 8px;
 }
 .photo-viewer img { flex: 1; min-height: 0; width: 100%; object-fit: contain; }
+
+/* Foto cujo arquivo ainda nao esta neste aparelho (de colega): quadrinho com o motivo, nao e botao */
+.photo-thumb-pending {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  border-style: dashed; border-color: #888; color: #ddd; text-align: center; padding: 6px;
+}
+.photo-thumb-pending span { font-size: 28px; }
+.photo-thumb-pending small { font: 600 13px/1.2 system-ui, sans-serif; }

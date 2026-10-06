@@ -9,6 +9,8 @@ import { CycleAbort, type Role, type Tuning } from '../../src/features/sync/engi
 import { createSupabaseRemote, type RemoteApi } from '../../src/features/sync/remote';
 import { SyncHttpError } from '../../src/features/sync/remote';
 import { Device, fieldWork, pole } from '../../src/features/sync/testDevice';
+import { createPhotoFiles } from '../../src/features/sync/photoFiles';
+import { photoRepo } from '../../src/features/elements/photoRepo';
 import { SETTING_KEYS } from '../../src/db/db';
 import type { TrackPoint } from '../../src/db/types';
 import { newBase } from '../../src/db/db';
@@ -276,6 +278,79 @@ describe.skipIf(!enabled)('motor de sincronização contra Postgres + PostgREST 
     expect(r.pushed).toBe(1 + 2 + 1 + 3 + 1200);
     expect(await count('track_points')).toBe(1203);
   }, 60_000); // o fake-indexeddb regrava lentamente registros que já existem; no navegador de verdade isso é rápido
+
+  // O serviço de arquivos (Storage) do Supabase não roda aqui: o arquivo vai para um bucket falso em memória, e as políticas
+  // do bucket são conferidas em storage.test.ts. O que se prova aqui é o REGISTRO da foto no banco de verdade.
+  describe('fotos', () => {
+    const bucket = new Map<string, Blob>();
+    beforeEach(() => bucket.clear());
+    const withBucket = (person: Person): RemoteApi => ({
+      ...remoteFor(person),
+      uploadFile: async (path, blob) => void bucket.set(path, blob),
+      downloadFile: async (path) => {
+        const f = bucket.get(path);
+        if (!f) throw new SyncHttpError('permanent', 'Object not found', 404, '');
+        return f;
+      },
+    });
+    const jpeg = (...n: number[]) => new Blob([new Uint8Array(n)], { type: 'image/jpeg' });
+
+    it('o registro da foto chega com dono, geometria e o caminho do arquivo no formato que a política do bucket exige', async () => {
+      const ana = await device('ana', 'tecnico', {}, withBucket('ana'));
+      const { p1 } = await fieldWork(ana, 'Ana');
+      const photo = await ana.as(() => photoRepo(ana.db).add(p1.id, { blob: jpeg(1, 2, 3), takenAt: Date.now() - 5000 }, 'Ana'));
+      const r = await ana.sync();
+      expect(r.newlyBlocked).toBe(0);
+      const [row] = await db.admin<{ owner_id: string; storage_path: string; geo_ok: boolean; element_id: string; deleted: boolean }>(
+        `select owner_id, storage_path, element_id, deleted, geom is not null and st_distance(geom, st_setsrid(st_makepoint($2, $3), 4326)::geography) < 0.5 as geo_ok
+           from public.photos where id = $1`, [photo.id, p1.lng, p1.lat]);
+      expect(row).toMatchObject({ owner_id: IDS.ana, element_id: p1.id, deleted: false, geo_ok: true });
+      expect(row!.storage_path).toBe(`${IDS.ana}/${photo.id}.jpg`);
+      // o mesmo formato que a politica fotos_insert confere (<uuid>/<uuid>.jpg)
+      const uuid = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
+      expect(new RegExp(`^${uuid}/${uuid}\\.jpg$`).test(row!.storage_path)).toBe(true);
+      expect(bucket.has(row!.storage_path)).toBe(true);
+    });
+
+    it('a Bia recebe o registro (sem o arquivo), baixa ao abrir e o dono é a Ana', async () => {
+      const ana = await device('ana', 'tecnico', {}, withBucket('ana'));
+      const { p1 } = await fieldWork(ana, 'Ana');
+      const photo = await ana.as(() => photoRepo(ana.db).add(p1.id, { blob: jpeg(7, 8) }, 'Ana'));
+      await ana.sync();
+      const bruno = await device('bruno', 'tecnico', {}, withBucket('bruno'));
+      await bruno.sync();
+      const got = (await bruno.db.photos.get(photo.id))!;
+      expect(got).toMatchObject({ ownerId: IDS.ana, syncStatus: 'synced', elementId: p1.id });
+      expect(got.blob).toBeUndefined();
+      const files = createPhotoFiles({ db: bruno.db, remote: withBucket('bruno') });
+      expect(await files.download(p1.id)).toMatchObject({ downloaded: 1, offline: false });
+      expect(Array.from(new Uint8Array(await (await bruno.db.photos.get(photo.id))!.blob!.arrayBuffer()))).toEqual([7, 8]);
+      expect((await bruno.counts()).pending).toBe(0);
+    });
+
+    it('foto cujo elemento não existe no servidor: o banco responde 409 (chave estrangeira) e a foto ESPERA, sem ser recusada', async () => {
+      const ana = await device('ana', 'tecnico', {}, withBucket('ana'));
+      const { p1 } = await fieldWork(ana, 'Ana');
+      const photo = await ana.as(() => photoRepo(ana.db).add(p1.id, { blob: jpeg(1) }, 'Ana'));
+      await ana.db.photos.update(photo.id, { elementId: crypto.randomUUID() });
+      const r = await ana.sync();
+      expect(r.waiting).toBe(1);
+      expect(r.newlyBlocked).toBe(0);
+      expect((await ana.counts()).blocked).toBe(0);
+      expect(await count('photos')).toBe(0);
+    });
+
+    it('foto excluída sobe como excluída; a linha continua no servidor', async () => {
+      const ana = await device('ana', 'tecnico', {}, withBucket('ana'));
+      const { p1 } = await fieldWork(ana, 'Ana');
+      const photo = await ana.as(() => photoRepo(ana.db).add(p1.id, { blob: jpeg(1) }, 'Ana'));
+      await ana.sync();
+      await ana.as(() => photoRepo(ana.db).remove(photo.id));
+      await ana.sync();
+      expect((await db.admin<{ deleted: boolean }>(`select deleted from public.photos where id = $1`, [photo.id]))[0]!.deleted).toBe(true);
+      expect(bucket.has(`${IDS.ana}/${photo.id}.jpg`)).toBe(true);
+    });
+  });
 
   it('escritório baixa a rede toda e não envia nada', async () => {
     const ana = await device('ana');

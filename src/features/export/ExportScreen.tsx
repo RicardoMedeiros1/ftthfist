@@ -181,7 +181,9 @@ export default function ExportScreen() {
               <p className="hint">
                 {summary.photos === 0
                   ? 'Não há fotos nesta seleção.'
-                  : `${plural(summary.photos, 'foto', 'fotos')}, cerca de ${formatBytes(summary.photoBytes)}. Com fotos o arquivo fica bem maior.`}
+                  : `${plural(summary.photos - summary.photosMissing, 'foto', 'fotos')}, cerca de ${formatBytes(summary.photoBytes)}. Com fotos o arquivo fica bem maior.`}
+                {summary.photosMissing > 0 &&
+                  ` ${plural(summary.photosMissing, 'foto de colega ainda não foi baixada', 'fotos de colegas ainda não foram baixadas')} e ficará de fora (abra o elemento, com internet, para baixar).`}
               </p>
             )}
           </div>

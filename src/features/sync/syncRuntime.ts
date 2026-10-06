@@ -4,6 +4,7 @@ import { SETTING_KEYS, db, getSetting, setSetting } from '../../db/db';
 import { accountStore } from '../account/accountStore';
 import { isSupabaseConfigured, loadSupabaseClient } from '../account/supabaseClient';
 import { createSyncEngine, type Who } from './engine';
+import { createPhotoFiles } from './photoFiles';
 import { SyncHttpError, createSupabaseRemote, type RemoteApi } from './remote';
 import { createSyncStore, type SyncState } from './syncStore';
 
@@ -26,7 +27,12 @@ const lazyRemote: RemoteApi = {
   upsert: async (t, rows) => (await loadRemote()).upsert(t, rows),
   pull: async (t, q) => (await loadRemote()).pull(t, q),
   fetchByIds: async (t, ids) => (await loadRemote()).fetchByIds(t, ids),
+  uploadFile: async (path, blob) => (await loadRemote()).uploadFile(path, blob),
+  downloadFile: async (path) => (await loadRemote()).downloadFile(path),
 };
+
+/** Baixa o arquivo das fotos dos colegas ao abrir um elemento. Null se o app nao tem servidor. */
+export const photoFiles = isSupabaseConfigured ? createPhotoFiles({ db, remote: lazyRemote }) : null;
 
 export const syncEngine = isSupabaseConfigured ? createSyncEngine({ db, remote: lazyRemote, now: () => Date.now() }) : null;
 

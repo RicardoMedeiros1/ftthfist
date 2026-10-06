@@ -128,8 +128,15 @@ Descobertas dos testes que o app respeita (`src/features/sync`):
 - **Ordem de envio:** atividades → elementos e cabos → fotos → pontos da trilha (as chaves estrangeiras exigem).
 - **Cursor do "puxar":** guardar `server_updated_at` **como texto** (o servidor tem microssegundos; um `Date` do
   JavaScript os perde e a última linha voltaria) e puxar com ~5 minutos de sobreposição.
-- A trilha dos colegas **não** chega ao celular (RLS) e o app **nem pede** a trilha: ela só sobe. **Fotos** ainda não
-  sincronizam (passo 4: envio do arquivo + registro juntos).
+- A trilha dos colegas **não** chega ao celular (RLS) e o app **nem pede** a trilha: ela só sobe.
+- **Fotos:** o **arquivo** sobe primeiro para o bucket privado `fotos` no caminho `<dono>/<id>.jpg` (com `upsert`, então
+  repetir é inofensivo; o app anota o caminho no aparelho para não reenviar o arquivo se só o registro falhar) e **depois**
+  o registro em `photos` com `storage_path`. Nunca existe registro apontando para arquivo que não subiu. Lotes de 10 fotos.
+  Foto excluída sobe só como registro `deleted = true` (o arquivo fica no bucket: não há política de apagar). Arquivo recusado
+  (grande demais, formato) bloqueia só aquela foto. **Baixar:** o registro das fotos dos colegas chega com a sincronização,
+  mas o **arquivo só é baixado quando o elemento é aberto** (com internet), para poupar dados e espaço no celular; o
+  backup e o KMZ só levam as fotos que estão no aparelho. Foto cujo elemento ainda não está no servidor responde 409 (chave
+  estrangeira): a foto **espera**, não é recusada.
 - Puxar: `order=server_updated_at,id` com continuação por `or=(server_updated_at.gt.X,and(server_updated_at.eq.X,id.gt.Y))`
   (páginas de 500) e piso `server_updated_at >= cursor - 5 min`. O cursor de cada tabela só avança quando a tabela termina;
   uma queda no meio não refaz o que já foi baixado.
