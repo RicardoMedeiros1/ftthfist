@@ -12,11 +12,16 @@ export default function ActivityFilterFields({
   value,
   owners,
   onChange,
+  hideStatus = false,
+  periodLabel = 'Período (início da atividade)',
 }: {
   prefix: string;
   value: ActivityFilterValues;
   owners: TechnicianOption[];
   onChange: (patch: Partial<ActivityFilterValues>) => void;
+  /** A secao de totais nao filtra pela situacao da atividade. */
+  hideStatus?: boolean;
+  periodLabel?: string;
 }) {
   return (
     <>
@@ -39,6 +44,7 @@ export default function ActivityFilterFields({
           <option value="manutencao">Manutenção</option>
         </select>
       </div>
+      {!hideStatus && (
       <div className="field">
         <label htmlFor={`${prefix}-status`}>Situação</label>
         <select id={`${prefix}-status`} value={value.status} onChange={(e) => onChange({ status: e.target.value as ActivityFilterValues['status'] })}>
@@ -47,8 +53,9 @@ export default function ActivityFilterFields({
           <option value="concluida">Concluídas</option>
         </select>
       </div>
+      )}
       <div className="field">
-        <span className="label">Período (início da atividade)</span>
+        <span className="label">{periodLabel}</span>
         <div className="panel-presets" role="group" aria-label="Período">
           {PRESETS.map((p) => (
             <button key={p.id} type="button" className="btn btn-small" onClick={() => onChange(presetRange(p.id, Date.now()))}>

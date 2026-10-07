@@ -155,3 +155,17 @@
   .panel-table-compact th, .panel-table-compact td { padding-left: 6px; padding-right: 6px; }
   .panel-table-body .panel-detail { width: 360px; }
 }
+
+/* totais */
+.panel-check { margin-top: 4px; max-width: 760px; }
+.panel-diffs { margin: 8px 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; font-weight: 600; }
+.panel-totals-table td:first-child { white-space: nowrap; }
+.panel-filterbar .panel-counts .btn { flex: 1 1 140px; }
+
+/* barra de filtros: o periodo precisa de largura (presets + duas datas) e nada pode ficar por baixo do cartao de acoes */
+.panel-filterbar .field:has(.panel-presets) { flex: 3 1 480px; }
+.panel-filterbar .panel-dates { grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr); }
+.panel-filterbar .panel-dates input { min-width: 0; }
+.panel-filterbar .panel-counts { flex: 1 1 220px; }
+.panel-totals-table { font-size: 15px; }
+.panel-totals-table th, .panel-totals-table td { padding-left: 8px; padding-right: 8px; }

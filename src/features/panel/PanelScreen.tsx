@@ -9,6 +9,7 @@ import { useAccount } from '../account/accountStore';
 import { syncStore, useSync } from '../sync/syncRuntime';
 import { ACCESS_TEXT, panelAccess } from './access';
 import ActivitiesTableSection from './ActivitiesTableSection';
+import TotalsSection from './TotalsSection';
 import NetworkMapSection from './NetworkMapSection';
 import { overview } from './overview';
 import { PANEL_SECTIONS, sectionOf } from './sections';
@@ -88,35 +89,28 @@ export default function PanelScreen() {
     <div className="panel" role="dialog" aria-modal="true" aria-label="Painel">
       <nav className="panel-nav" aria-label="Seções do painel">
         <div className="panel-brand">RotaFibra</div>
-        {PANEL_SECTIONS.map((s) =>
-          s.kind === 'em-breve' ? (
-            <button key={s.id} className="panel-link" disabled aria-label={`${s.label} (em breve)`}>
-              {s.label}
-              <small>em breve</small>
-            </button>
-          ) : (
-            <button
-              key={s.id}
-              className="panel-link"
-              aria-current={s.id === section.id ? 'page' : undefined}
-              onClick={() => (s.kind === 'tela' ? navigate(s.route) : navigate('painel', { id: s.id }))}
-            >
-              {s.label}
-            </button>
-          ),
-        )}
+        {PANEL_SECTIONS.map((s) => (
+          <button
+            key={s.id}
+            className="panel-link"
+            aria-current={s.id === section.id ? 'page' : undefined}
+            onClick={() => (s.kind === 'tela' ? navigate(s.route) : navigate('painel', { id: s.id }))}
+          >
+            {s.label}
+          </button>
+        ))}
         <button className="panel-link panel-exit" onClick={() => navigate('map')}>
           Voltar ao mapa do app
         </button>
       </nav>
-      {section.id === 'mapa' || section.id === 'atividades' ? (
+      {section.id === 'mapa' || section.id === 'atividades' || section.id === 'totais' ? (
         <main className="panel-main panel-main-map" aria-label={section.label}>
-          {section.id === 'mapa' ? <NetworkMapSection /> : <ActivitiesTableSection />}
+          {section.id === 'mapa' ? <NetworkMapSection /> : section.id === 'atividades' ? <ActivitiesTableSection /> : <TotalsSection />}
         </main>
       ) : (
         <main className="panel-main">
           <h1>{section.label}</h1>
-          {section.id === 'visao-geral' ? <Overview /> : <p className="hint">Esta seção ainda não está pronta.</p>}
+          <Overview />
         </main>
       )}
     </div>

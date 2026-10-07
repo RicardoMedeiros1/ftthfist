@@ -123,6 +123,13 @@ O administrador **ativo** pode alterar qualquer atividade, elemento, cabo, foto 
   (ate 20 mil pontos), so quando pedido, guarda **so na memoria** (nada vai para o IndexedDB do administrador) e desenha no
   mapa em azul tracejado, com "Esconder trilha". A trilha continua um registro de deslocamento: nunca vira cabo.
 
+## Painel web do escritorio (so leitura)
+
+O painel (`#/painel`, para escritorio e administrador) trabalha com o que o navegador ja sincronizou, inclusive sem internet. Do
+servidor ele usa so a funcao `cable_totals(p_from, p_to)` (migration 8): na secao **Totais**, o botao *Conferir com o servidor*
+soma os cabos la e compara com a tabela daqui. O periodo e meio aberto, `[de, ate)`: o ultimo dia entra inteiro e o instante
+seguinte nao. Se nao bater, falta sincronizar. O teste `tests/panel-totals.test.ts` garante que as duas somas sao a mesma conta.
+
 ## Testes do banco (para quem for mexer no SQL)
 
 Precisam de um Postgres 16 com PostGIS. Com Docker:
