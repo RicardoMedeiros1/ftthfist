@@ -72,10 +72,17 @@ supabase/migrations/   (Fase 2)
 collector/             (Fase 3)
 ```
 
+## Papéis e painel web
+- Papéis (`profiles.role`): `tecnico` (campo; só altera o que é dele), `escritorio` (só leitura, abre o painel) e `admin` (altera e exclui tudo, aprova pessoas). Só perfil **ativo** vale; o servidor (RLS) é quem garante, o app só esconde o que não serviria.
+- Painel web (escritório/NOC): mesma aplicação, rota `#/painel` (`src/features/panel/`), só leitura, trabalha com o que o navegador já sincronizou. Guia em `docs/painel-web.md`.
+- Excluir atividade (dono e admin) é lógico e em cascata (elementos, cabos, fotos, trilha). Admin edita registros de outros pelo envio normal; o servidor registra quem alterou (`admin_edits`).
+- Lista do que testar no celular/computador: `docs/guia-de-testes.md`.
+
 ## Comandos
 - `npm run dev`: servidor HTTPS na rede local (acessar pelo celular no mesmo Wi-Fi)
 - `npm run build` / `npm run preview`
 - `npm test`
+- `npm run test:db`: testes do banco (RLS, migrations, sincronização e painel contra Postgres + PostgREST de verdade); precisa de `TEST_DATABASE_URL` e `POSTGREST_BIN`, ver `supabase/README.md`
 
 ## Forma de trabalhar
 - Antes de cada fase, apresente um plano curto e espere confirmação.
