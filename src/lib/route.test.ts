@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseLocation, parseRoute } from './route';
+import { hashFor, parseLocation, parseRoute } from './route';
 
 describe('parseRoute', () => {
   it('reconhece as telas', () => {
@@ -74,5 +74,14 @@ describe('parseLocation (camadas de referência)', () => {
   it('navegar monta o mesmo endereço', () => {
     const id = encodeURIComponent('abc-1:12');
     expect(`#/referencia/${id}`).toBe('#/referencia/abc-1%3A12');
+  });
+});
+
+describe('hashFor (ida e volta)', () => {
+  it('o painel com secao vira #/painel/<secao> e volta igual; sem secao e #/painel', () => {
+    expect(hashFor('painel')).toBe('#/painel');
+    expect(hashFor('painel', 'mapa')).toBe('#/painel/mapa');
+    expect(parseLocation(hashFor('painel', 'mapa'))).toEqual({ route: 'painel', id: 'mapa' });
+    expect(parseLocation(hashFor('painel'))).toEqual({ route: 'painel' });
   });
 });

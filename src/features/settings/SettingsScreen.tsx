@@ -6,6 +6,7 @@ import { formatAgo } from '../../lib/format';
 import { goBack, navigate } from '../../lib/route';
 import AccountCard from '../account/AccountCard';
 import AdminCard from '../admin/AdminCard';
+import PanelCard from '../panel/PanelCard';
 import { useAccount } from '../account/accountStore';
 import { isSupabaseConfigured } from '../account/supabaseClient';
 import CableTypesEditor from '../cables/CableTypesEditor';
@@ -56,6 +57,7 @@ export default function SettingsScreen() {
         {justSaved && <div className="ok-note" role="status">Salvo.</div>}
       </form>
       <AccountCard />
+      <PanelCard />
       <AdminCard />
       <CableTypesEditor />
       <section className="card" aria-label="Camadas de referência">
