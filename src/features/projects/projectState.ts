@@ -73,7 +73,7 @@ export function buildRows(projects: readonly Project[], linkedBy: ReadonlyMap<st
 }
 
 /** "Para fazer" = pendente + em andamento. A busca olha titulo, OS, endereco, descricao, tipo e nome do tecnico, sem acento. */
-export function filterRows(rows: readonly ProjectRow[], filter: StateFilter, query: string, technicianId = ''): ProjectRow[] {
+export function filterRows<T extends ProjectRow>(rows: readonly T[], filter: StateFilter, query: string, technicianId = ''): T[] {
   const q = normalize(query.trim());
   return rows.filter((r) => {
     if (filter === 'abertos' ? r.state !== 'pendente' && r.state !== 'em_andamento' : filter !== 'todos' && r.state !== filter) return false;
@@ -84,13 +84,13 @@ export function filterRows(rows: readonly ProjectRow[], filter: StateFilter, que
   });
 }
 
-const ORDER: Record<ProjectState, number> = { em_andamento: 0, pendente: 1, concluido: 2, cancelado: 3 };
+export const STATE_ORDER: Record<ProjectState, number> = { em_andamento: 0, pendente: 1, concluido: 2, cancelado: 3 };
 
 /** Os que pedem atencao primeiro: atrasados, depois por prazo mais proximo (sem prazo por ultimo), depois os mais novos. */
-export function sortRows(rows: readonly ProjectRow[]): ProjectRow[] {
+export function sortRows<T extends ProjectRow>(rows: readonly T[]): T[] {
   return [...rows].sort((a, b) => {
     if (a.overdue !== b.overdue) return a.overdue ? -1 : 1;
-    if (a.state !== b.state) return ORDER[a.state] - ORDER[b.state];
+    if (a.state !== b.state) return STATE_ORDER[a.state] - STATE_ORDER[b.state];
     const da = a.project.dueDate;
     const db = b.project.dueDate;
     if (da !== db) return da === undefined ? 1 : db === undefined ? -1 : da < db ? -1 : 1;

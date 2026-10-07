@@ -1,6 +1,9 @@
-import type { Activity, Cable, NetworkElement, Photo } from '../../db/types';
+import type { Activity, Cable, NetworkElement, Photo, Project } from '../../db/types';
 import { summarizeActivity, type ActivitySummary } from '../activities/summary';
+import { linkedByProject } from '../projects/myProjects';
+import { buildRows } from '../projects/projectState';
 import { liveItems } from './mapFilters';
+import { projectCounts, type ProjectCounts } from './projectTable';
 
 export interface Overview extends ActivitySummary {
   technicians: number;
@@ -19,4 +22,9 @@ export function overview(data: { activities: Activity[]; elements: NetworkElemen
     activities: acts.length,
     openActivities: acts.filter((a) => a.status === 'aberta').length,
   };
+}
+
+/** Quantos projetos ha em cada situacao (sem os excluidos) e quantos estao atrasados: o que a visao geral mostra. */
+export function projectsOverview(projects: readonly Project[], activities: readonly Activity[], now: number): ProjectCounts {
+  return projectCounts(buildRows(projects, linkedByProject(activities), new Map(), now));
 }

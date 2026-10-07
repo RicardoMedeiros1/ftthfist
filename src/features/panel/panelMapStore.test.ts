@@ -4,7 +4,7 @@ import { createPanelMapStore } from './panelMapStore';
 
 describe('panelMapStore', () => {
   it('comeca sem filtros, sem selecao e em "Ruas"', () => {
-    expect(createPanelMapStore().getState()).toEqual({ filters: DEFAULT_MAP_FILTERS, selection: null, view: null, base: 'ruas', focus: null, focusApplied: 0, fitTo: null, fitApplied: 0 });
+    expect(createPanelMapStore().getState()).toEqual({ filters: DEFAULT_MAP_FILTERS, selection: null, view: null, base: 'ruas', focus: null, focusApplied: 0, fitTo: null, fitApplied: 0, projectPin: null });
   });
 
   it('setFilters junta com o que ja esta e resetFilters volta ao padrao', () => {
@@ -72,5 +72,35 @@ describe('panelMapStore', () => {
     s.setBase('ruas');
     expect(calls).toBe(2);
     expect(s.getState()).toMatchObject({ base: 'ruas', view: { lat: 1, lng: 2, zoom: 3 } });
+  });
+});
+
+describe('ponto de um projeto no mapa do painel', () => {
+  it('marca o ponto e pede para enquadrar exatamente nele (limites iguais = ponto so)', () => {
+    const s = createPanelMapStore();
+    s.showProjectPoint({ lat: -23.55, lng: -46.63, title: 'Rua das Flores' });
+    const { projectPin, fitTo } = s.getState();
+    expect(projectPin).toEqual({ lat: -23.55, lng: -46.63, title: 'Rua das Flores' });
+    expect(fitTo!.bounds).toEqual([-23.55, -46.63, -23.55, -46.63]);
+  });
+  it('pedir de novo (mesmo ponto) gera um pedido novo; tirar a marca nao mexe no resto', () => {
+    const s = createPanelMapStore();
+    s.showProjectPoint({ lat: 1, lng: 2, title: 'A' });
+    const first = s.getState().fitTo!.seq;
+    s.showProjectPoint({ lat: 1, lng: 2, title: 'A' });
+    expect(s.getState().fitTo!.seq).toBeGreaterThan(first);
+    s.select({ kind: 'elemento', id: 'e1' });
+    s.clearProjectPin();
+    expect(s.getState().projectPin).toBeNull();
+    expect(s.getState().selection).toEqual({ kind: 'elemento', id: 'e1' });
+    expect(s.getState().fitTo).not.toBeNull();
+  });
+  it('tambem avisa quem acompanha', () => {
+    const s = createPanelMapStore();
+    let n = 0;
+    s.subscribe(() => n++);
+    s.showProjectPoint({ lat: 1, lng: 2, title: 'A' });
+    s.clearProjectPin();
+    expect(n).toBe(2);
   });
 });

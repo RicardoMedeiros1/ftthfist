@@ -1,5 +1,5 @@
 import type { Activity, Project } from '../../db/types';
-import { buildRows, sortRows, type ProjectRow } from './projectState';
+import { buildRows, projectState, sortRows, type ProjectRow } from './projectState';
 import type { LinkedActivity, ProjectInput } from './types';
 
 // Os projetos de quem esta com o app aberto (tecnico, ou administrador que tambem faz campo). Puro: a tela so desenha.
@@ -57,4 +57,14 @@ export function directionsUrl(p: Pick<Project, 'lat' | 'lng'>): string | null {
 /** Nome que vai na atividade: o das Configuracoes, senao o do cadastro da conta; vazio = precisa perguntar. */
 export function technicianNameFor(saved: string | undefined, profileName: string | undefined): string {
   return saved?.trim() || profileName?.trim() || '';
+}
+
+/**
+ * Ao concluir uma atividade que veio de um projeto: vale perguntar "o projeto terminou?" so se o projeto ainda esta para fazer
+ * (existe aqui, nao foi excluido, nao esta cancelado nem concluido, nem por outra atividade). `linked` inclui a atividade que
+ * esta sendo concluida.
+ */
+export function shouldAskFinish(project: Pick<Project, 'status' | 'deleted'> | undefined, linked: readonly LinkedActivity[]): boolean {
+  if (!project || project.deleted) return false;
+  return isTodo({ state: projectState(project, linked) });
 }

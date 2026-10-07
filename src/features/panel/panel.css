@@ -27,9 +27,9 @@
 .panel-link small { font-size: 13px; font-weight: 600; }
 .panel-main { padding: 16px; display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 1100px; }
 .panel-main h1 { margin: 0; font-size: 28px; }
-.panel .panel-totals { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
-.panel-totals .total-tile { padding: 14px; }
-.panel-totals .total-tile strong { font-size: clamp(22px, 6vw, 30px); overflow-wrap: anywhere; }
+.panel .panel-totals, .panel .panel-project-tiles { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.panel-totals .total-tile, .panel-project-tiles .total-tile { padding: 14px; }
+.panel-totals .total-tile strong, .panel-project-tiles .total-tile strong { font-size: clamp(22px, 6vw, 30px); overflow-wrap: anywhere; }
 
 @media (min-width: 900px) {
   .panel { flex-direction: row; overflow: hidden; }
@@ -172,3 +172,20 @@
 
 /* a faixa da trilha dentro do mapa do painel: no canto, sem cobrir o botao de Ruas/Satelite */
 .panel-map-wrap .remote-track-bar { top: 10px; left: 10px; right: 130px; }
+
+/* projetos */
+.panel-table .badge { margin-right: 6px; white-space: nowrap; }
+.panel-checkbox { display: flex; align-items: center; gap: 10px; min-height: 48px; font-weight: 700; cursor: pointer; }
+.panel-checkbox input { width: 28px; height: 28px; accent-color: var(--accent); }
+.panel-map-pin {
+  position: absolute; z-index: 1000; left: 10px; bottom: 96px; max-width: calc(100% - 20px);
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 8px 12px; border: 3px solid #000; border-radius: 12px; background: #fff; color: #000; font-weight: 700;
+}
+.panel-detail .project-linked .btn { white-space: normal; }
+
+/* com a ficha do projeto aberta a tabela guarda o essencial (nome, situacao, prazo, metros): tecnico, tipo e atividades estao na ficha */
+.panel-table-projects [data-col='title'] { min-width: 150px; }
+@media (min-width: 900px) {
+  .panel-table-projects.panel-table-compact [data-col='kind'], .panel-table-projects.panel-table-compact [data-col='technician'], .panel-table-projects.panel-table-compact [data-col='activities'] { display: none; }
+}

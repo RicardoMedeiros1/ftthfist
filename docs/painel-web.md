@@ -21,6 +21,9 @@ Para acompanhar a rede e o histórico no computador. É a **mesma aplicação** 
 - **Atividades:** tabela ordenável (técnico, tipo, situação, início, duração, elementos, cabos, metros, fotos), filtros, busca que
   também acha pelo que há *dentro* da atividade (código de poste, tipo de cabo), rodapé com a soma do que está filtrado e ficha
   com materiais, totais e lista de elementos e cabos.
+- **Projetos:** os projetos que o administrador designou, com técnico, tipo, situação, prazo, atividades e **metros de cabo** feitos
+  em cada um; filtros (situação, técnico, "só os atrasados"), busca, ordenação, **CSV** e ficha com instruções, o que foi feito,
+  "Ver o ponto no mapa" e a lista de atividades. A visão geral também conta os projetos. Detalhes em `docs/projetos.md`.
 - **Totais:** por técnico e período — atividades, cabos, traçado, reservas, total de cabo e elementos por tipo; **CSV** para o
   Excel brasileiro; **Conferir com o servidor** (soma os cabos no servidor e compara).
 - **Exportar** e **Sincronização:** abrem as telas de sempre (KMZ, GeoJSON e KML, por atividade ou da rede toda).
@@ -51,6 +54,6 @@ Confirmação diz o que sai. Detalhes e limites (trilha de técnico excluída pe
 
 ## Onde está o código
 
-`src/features/panel/` (lógica pura e testada: `mapFilters`, `activityRows`, `totals`, `serverTotals`, `csv`, `viewport`;
-estado que sobrevive a abrir uma ficha e voltar: `panelMapStore`, `panelTableStore`, `panelTotalsStore`; telas `*Section.tsx`).
+`src/features/panel/` (lógica pura e testada: `mapFilters`, `activityRows`, `projectTable`, `totals`, `serverTotals`, `csv`, `viewport`;
+estado que sobrevive a abrir uma ficha e voltar: `panelMapStore`, `panelTableStore`, `panelProjectsStore`, `panelTotalsStore`; telas `*Section.tsx`).
 O servidor só é usado por `serverTotals.ts` (`cable_totals`) e pela trilha (`src/features/admin/`).

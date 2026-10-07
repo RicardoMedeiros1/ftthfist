@@ -4,7 +4,7 @@ import { detachElementFromCables, recomputeCable, unlinkReserves } from '../cabl
 import { canEdit, isMine, notMineMessage } from '../../lib/ownership';
 import { MAX_DESCRIPTION, sanitizeMaterials } from './materials';
 
-export type ActivityRuleCode = 'ALREADY_OPEN' | 'TITLE_REQUIRED' | 'TECHNICIAN_REQUIRED' | 'NOT_FOUND' | 'NOT_OWNER';
+export type ActivityRuleCode = 'ALREADY_OPEN' | 'TITLE_REQUIRED' | 'TECHNICIAN_REQUIRED' | 'NOT_FOUND' | 'NOT_OWNER' | 'NO_PROJECT';
 
 /** Erro de regra de negócio, com mensagem pronta para mostrar ao técnico. */
 export class ActivityRuleError extends Error {
@@ -118,13 +118,36 @@ export function activityRepo(database: RotaFibraDB = db) {
       });
     },
 
-    async complete(id: string): Promise<void> {
+    /**
+     * Conclui a atividade. `finishesProject`: com ela o projeto de onde veio esta terminado (so vale se ela veio de um projeto;
+     * se ja estava concluida, nada muda, nem isso).
+     */
+    async complete(id: string, opts: { finishesProject?: boolean } = {}): Promise<void> {
       await database.transaction('rw', database.activities, async () => {
         const a = await database.activities.get(id);
         if (!a || a.deleted) throw new ActivityRuleError('NOT_FOUND', 'Atividade não encontrada.');
         if (!canEdit(a)) throw new ActivityRuleError('NOT_OWNER', notMineMessage('atividade'));
         if (a.status === 'concluida') return;
-        await database.activities.update(id, touch<Activity>({ status: 'concluida', endedAt: Date.now() }));
+        await database.activities.update(
+          id,
+          touch<Activity>({ status: 'concluida', endedAt: Date.now(), ...(opts.finishesProject && a.projectId ? { completesProject: true } : {}) }),
+        );
+      });
+    },
+
+    /**
+     * "Esta atividade terminou o projeto?" (sim/nao), para quem pode alterar a atividade: desfaz um "sim" dado sem querer, ou
+     * o administrador reabre o projeto. So existe para atividade de projeto.
+     */
+    async setFinishesProject(id: string, value: boolean): Promise<void> {
+      await database.transaction('rw', database.activities, async () => {
+        const a = await database.activities.get(id);
+        if (!a || a.deleted) throw new ActivityRuleError('NOT_FOUND', 'Atividade não encontrada.');
+        if (!canEdit(a)) throw new ActivityRuleError('NOT_OWNER', notMineMessage('atividade'));
+        if (!a.projectId) throw new ActivityRuleError('NO_PROJECT', 'Esta atividade não veio de um projeto.');
+        if ((a.completesProject === true) === value) return;
+        // `undefined` remove o campo no Dexie (o servidor guarda "nao" como falso)
+        await database.activities.update(id, touch<Activity>({ completesProject: value ? true : undefined }));
       });
     },
 

@@ -92,6 +92,8 @@ export const SETTING_KEYS = {
   syncLast: 'syncLast',
   // copia do token de ACESSO (nunca o de renovacao) e do endereco do servidor, para o service worker enviar com o app fechado
   authMirror: 'authMirror',
+  // nomes das pessoas (id -> nome do cadastro), guardados quando ha internet para o painel mostrar o tecnico de um projeto sem rede
+  profileNames: 'profileNames',
 } as const;
 
 export async function getSetting<T>(key: string, fallback: T): Promise<T> {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Activity, Cable, NetworkElement, Photo } from '../../db/types';
-import { overview } from './overview';
+import { overview, projectsOverview } from './overview';
 
 const base = { id: 'x', createdAt: 1, updatedAt: 1, createdBy: 'a', deleted: false, syncStatus: 'synced' as const };
 const act = (over: Partial<Activity> = {}): Activity =>
@@ -66,5 +66,32 @@ describe('overview', () => {
   it('soma os metros da rede inteira, de todos os tecnicos', () => {
     const o = overview({ activities: [], elements: [], cables: [cable(100.5), cable(200.25, { reserveMeters: 10, totalMeters: 210.25 })], photos: [] });
     expect(o).toMatchObject({ lengthMeters: 300.75, reserveMeters: 10, totalMeters: 310.75 });
+  });
+});
+
+
+describe('projectsOverview', () => {
+  const NOW = new Date(2026, 9, 20, 10).getTime();
+  const proj = (id: string, over: Partial<import('../../db/types').Project> = {}): import('../../db/types').Project =>
+    ({ id, ownerId: 'adm', assignedTo: 'u1', title: id, kind: 'implantacao', description: '', address: '', status: 'aberto', deleted: false, createdAt: 1, updatedAt: 1, ...over });
+  it('conta por situacao, os atrasados, e deixa de fora os excluidos', () => {
+    const projects = [
+      proj('a'),
+      proj('b', { dueDate: '2026-10-01' }),
+      proj('c'),
+      proj('d', { status: 'cancelado', dueDate: '2026-10-01' }),
+      proj('e', { status: 'concluido' }),
+      proj('f', { deleted: true }),
+    ];
+    const activities = [act({ id: 'x1', ownerId: 'u1', projectId: 'c' }), act({ id: 'x2', ownerId: 'u1', projectId: 'b' })];
+    expect(projectsOverview(projects, activities, NOW)).toEqual({ total: 5, pendente: 1, em_andamento: 2, concluido: 1, cancelado: 1, overdue: 1 });
+  });
+  it('sem projetos, tudo zero', () => {
+    expect(projectsOverview([], [], NOW)).toEqual({ total: 0, pendente: 0, em_andamento: 0, concluido: 0, cancelado: 0, overdue: 0 });
+  });
+  it('a atividade que terminou o projeto o conclui (e o conclui antes do atraso)', () => {
+    const projects = [proj('a', { dueDate: '2026-10-01' })];
+    const activities = [act({ id: 'x', ownerId: 'u1', projectId: 'a', status: 'concluida', completesProject: true })];
+    expect(projectsOverview(projects, activities, NOW)).toMatchObject({ concluido: 1, overdue: 0 });
   });
 });

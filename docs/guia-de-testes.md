@@ -38,6 +38,9 @@ chaves nem senhas). O deploy é conferido pelo número da versão em *Configura�
       projeto". Na atividade aparece "Projeto: …" com "Abrir projeto".
 - [ ] O administrador **passa o projeto a outro técnico** ou **cancela**: na próxima sincronização ele some da lista de quem perdeu e
       aparece na de quem recebeu (cancelado vai para "Encerrados", sem botão de iniciar). O que já foi feito continua.
+- [ ] **Concluir a atividade do projeto:** o app pergunta "Este projeto está concluído?". **Voltar** não conclui; **Não, ainda falta
+      fazer** conclui só a atividade (o projeto segue "Em andamento"); **Sim** conclui e o projeto passa a "Concluído" (some do aviso e
+      da lista de "Para fazer"). Errou? Em Atividades → Abrir, a atividade concluída tem "Com esta atividade o projeto terminou? Sim / Não".
 - [ ] Iniciar um projeto **sem internet** e, nesse meio tempo, o administrador cancelar o projeto: o trabalho sobe normalmente.
 
 **Voltar a internet**
@@ -63,6 +66,9 @@ chaves nem senhas). O deploy é conferido pelo número da versão em *Configura�
       na lista como Pendente (e Atrasado se o prazo passou). Abrir, editar, **passar para outro técnico**, marcar concluído, cancelar,
       reabrir e excluir (cada um pede confirmação). Filtros "Para fazer / Pendentes / …", busca e filtro por técnico. Sem internet a
       tela avisa e bloqueia "Novo projeto". (O técnico só passa a ver os projetos na etapa 3.)
+- [ ] **Projetos (concluir):** abrir um projeto concluído por uma atividade: aparece "Concluído porque uma atividade do técnico terminou o
+      projeto" e como reabrir (abrir a atividade e responder "Não" em "Com esta atividade o projeto terminou?"). Fazer isso e ver o
+      projeto voltar para "Em andamento" (depois de sincronizar). "Marcar como concluído" à mão continua valendo sobre as atividades.
 - [ ] **Pessoas:** aprovar um pedido escolhendo o papel; recusar; desativar e reativar; mudar o papel (rebaixar administrador usa botão
       de perigo). O próprio cartão não tem ações. Sem internet aparece "Sem conexão".
 - [ ] Editar um poste de um técnico (faixa "Você está alterando como administrador"); o técnico recebe e continua sendo o dono.
@@ -72,6 +78,12 @@ chaves nem senhas). O deploy é conferido pelo número da versão em *Configura�
       recebe na sincronização.
 
 ## 3. Escritório, no computador (painel)
+
+- [ ] **Projetos:** a seção fica entre Atividades e Totais. Por padrão mostra o que falta fazer; "Situação" troca. Conferir técnico,
+      tipo, prazo, atividades e **metros de cabo** de um projeto que o técnico já trabalhou (batem com a atividade dele). Busca
+      (inclui instruções), "Só os atrasados", ordenar pelas colunas (terceiro clique volta à ordem padrão), **Exportar CSV** (abre
+      no Excel com acentos e vírgula decimal). A ficha tem "Ver o ponto no mapa" (pino no mapa do painel; "Tirar a marca" remove)
+      e abre cada atividade na tabela de Atividades. O escritório **não** tem "Editar projeto". A Visão geral conta os projetos.
 
 - [ ] Configurações → **Painel** → "Abrir o painel"; o técnico **não** vê esse cartão; abrir `#/painel` como técnico mostra o aviso.
 - [ ] **Visão geral** bate com o que os técnicos registraram; "Sincronizar agora" atualiza.

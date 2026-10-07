@@ -9,9 +9,10 @@ import { useAccount } from '../account/accountStore';
 import { syncStore, useSync } from '../sync/syncRuntime';
 import { ACCESS_TEXT, panelAccess } from './access';
 import ActivitiesTableSection from './ActivitiesTableSection';
+import ProjectsTableSection from './ProjectsTableSection';
 import TotalsSection from './TotalsSection';
 import NetworkMapSection from './NetworkMapSection';
-import { overview } from './overview';
+import { overview, projectsOverview } from './overview';
 import { PANEL_SECTIONS, sectionOf } from './sections';
 import './panel.css';
 
@@ -30,6 +31,7 @@ function Overview() {
     elements: await db.elements.toArray(),
     cables: await db.cables.toArray(),
     photos: await db.photos.toArray(),
+    projects: await db.projects.toArray(),
   }));
   const lastSyncAt = useSync((s) => s.lastSyncAt);
   const running = useSync((s) => s.phase === 'sincronizando');
@@ -37,6 +39,7 @@ function Overview() {
   const now = useNow(true, 30_000);
   if (!data) return null;
   const o = overview(data);
+  const pj = projectsOverview(data.projects, data.activities, Date.now());
   return (
     <>
       <section className="field" aria-label="Totais da rede">
@@ -49,6 +52,18 @@ function Overview() {
           <Tile value={formatMeters(o.totalMeters)} label={`de cabo (traçado ${formatMeters(o.lengthMeters)} + reservas ${formatMeters(o.reserveMeters)})`} />
           <Tile value={o.photos} label={o.photos === 1 ? 'foto' : 'fotos'} />
         </div>
+      </section>
+      <section className="field" aria-label="Projetos">
+        <span className="label">Projetos designados</span>
+        <div className="totals panel-project-tiles">
+          <Tile value={pj.total} label={pj.total === 1 ? 'projeto' : 'projetos'} />
+          <Tile value={pj.pendente} label={pj.pendente === 1 ? 'pendente' : 'pendentes'} />
+          <Tile value={pj.em_andamento} label="em andamento" />
+          <Tile value={pj.overdue} label={pj.overdue === 1 ? 'atrasado' : 'atrasados'} />
+          <Tile value={pj.concluido} label={pj.concluido === 1 ? 'concluído' : 'concluídos'} />
+          <Tile value={pj.cancelado} label={pj.cancelado === 1 ? 'cancelado' : 'cancelados'} />
+        </div>
+        <button className="btn" onClick={() => navigate('painel', { id: 'projetos' })}>Ver os projetos</button>
       </section>
       <section className="field" aria-label="Atualização dos dados">
         <span className="label">Atualização</span>
@@ -103,9 +118,9 @@ export default function PanelScreen() {
           Voltar ao mapa do app
         </button>
       </nav>
-      {section.id === 'mapa' || section.id === 'atividades' || section.id === 'totais' ? (
+      {section.id === 'mapa' || section.id === 'atividades' || section.id === 'projetos' || section.id === 'totais' ? (
         <main className="panel-main panel-main-map" aria-label={section.label}>
-          {section.id === 'mapa' ? <NetworkMapSection /> : section.id === 'atividades' ? <ActivitiesTableSection /> : <TotalsSection />}
+          {section.id === 'mapa' ? <NetworkMapSection /> : section.id === 'atividades' ? <ActivitiesTableSection /> : section.id === 'projetos' ? <ProjectsTableSection /> : <TotalsSection />}
         </main>
       ) : (
         <main className="panel-main">

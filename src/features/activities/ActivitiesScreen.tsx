@@ -10,6 +10,8 @@ import { isMine } from '../../lib/ownership';
 import { useCanEdit, useIsMine } from '../../lib/useOwnership';
 import { ActivityRuleError, activities } from './activityRepo';
 import { DEFAULT_FILTERS, activeFilterCount, filterActivities, ownerOptions, type ActivityFilters } from './filters';
+import { finishQuestionFor } from '../projects/finishQuestion';
+import FinishProjectDialog from '../projects/FinishProjectDialog';
 import { isTodo } from '../projects/myProjects';
 import { useMyProjects } from '../projects/useMyProjects';
 import { KIND_LABEL } from './labels';
@@ -19,10 +21,13 @@ function ActivityCard({
   a,
   canReopen,
   onAction,
+  onConclude,
 }: {
   a: Activity;
   canReopen: boolean;
   onAction: (fn: () => Promise<void>) => void;
+  /** Concluir: se a atividade veio de um projeto, a tela pergunta antes se o projeto terminou. */
+  onConclude: (a: Activity) => void;
 }) {
   const open = a.status === 'aberta';
   const mine = useIsMine(a);
@@ -50,7 +55,7 @@ function ActivityCard({
           Abrir
         </button>
         {!editable ? null : open ? (
-          <button className="btn btn-primary btn-small" onClick={() => onAction(() => activities.complete(a.id))}>
+          <button className="btn btn-primary btn-small" onClick={() => onConclude(a)}>
             Concluir
           </button>
         ) : (
@@ -161,6 +166,16 @@ export default function ActivitiesScreen() {
     );
   }
 
+  // Atividade de projeto: ao concluir, pergunta se o projeto terminou
+  const [asking, setAsking] = useState<{ activity: Activity; projectTitle: string } | null>(null);
+  function conclude(a: Activity) {
+    run(async () => {
+      const q = await finishQuestionFor(a);
+      if (q) setAsking({ activity: a, projectTitle: q.title });
+      else await activities.complete(a.id);
+    });
+  }
+
   return (
     <ScreenShell title="Atividades" onBack={() => goBack('map')}>
       {projectRows !== undefined && projectRows.length > 0 && (
@@ -181,7 +196,18 @@ export default function ActivitiesScreen() {
       ) : shown.length === 0 ? (
         <p className="hint">Nenhuma atividade com esses filtros.</p>
       ) : (
-        shown.map((a) => <ActivityCard key={a.id} a={a} canReopen={!ownersWithOpen.has(a.ownerId ?? '')} onAction={run} />)
+        shown.map((a) => <ActivityCard key={a.id} a={a} canReopen={!ownersWithOpen.has(a.ownerId ?? '')} onAction={run} onConclude={conclude} />)
+      )}
+      {asking && (
+        <FinishProjectDialog
+          projectTitle={asking.projectTitle}
+          onCancel={() => setAsking(null)}
+          onChoose={(finishes) => {
+            const id = asking.activity.id;
+            setAsking(null);
+            run(() => activities.complete(id, { finishesProject: finishes }));
+          }}
+        />
       )}
     </ScreenShell>
   );

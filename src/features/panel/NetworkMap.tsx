@@ -7,6 +7,7 @@ import RemoteTrackLayer from '../admin/RemoteTrackLayer';
 import { CASING_COLOR, CASING_EXTRA, cableStyle } from '../cables/style';
 import { elementIcon } from '../elements/leafletIcon';
 import { ELEMENT_META } from '../elements/meta';
+import { projectPinIcon } from '../projects/projectPinIcon';
 import { BASE_LAYERS } from '../map/layers';
 import type { Bounds } from '../map/mapCommands';
 import type { MapData, MapView } from './mapFilters';
@@ -149,6 +150,7 @@ const Layers = memo(function Layers({ elements, cables, dense, selected, onSelec
 export default function NetworkMap({ data, view, fitKey, onSelect }: { data: MapData; view: MapView; fitKey: string; onSelect: (s: Selection) => void }) {
   const base = usePanelMap((s) => s.base);
   const selection = usePanelMap((s) => s.selection);
+  const pin = usePanelMap((s) => s.projectPin);
   const [box, setBox] = useState<Bounds | null>(null);
   const saved = useRef(panelMapStore.getState().view);
   const layer = BASE_LAYERS[base];
@@ -177,9 +179,16 @@ export default function NetworkMap({ data, view, fitKey, onSelect }: { data: Map
         <Focus data={data} />
         <FitRequests />
         <RemoteTrackLayer />
+        {pin && <Marker position={[pin.lat, pin.lng]} icon={projectPinIcon} title={`Projeto: ${pin.title}`} interactive={false} zIndexOffset={1000} />}
         <Layers elements={elements} cables={cables} dense={dense} selected={selection} onSelect={onSelect} />
       </MapContainer>
       <RemoteTrackBar />
+      {pin && (
+        <div className="panel-map-pin" role="status">
+          <span>Projeto: <strong>{pin.title}</strong></span>
+          <button className="btn btn-small" onClick={panelMapStore.clearProjectPin}>Tirar a marca</button>
+        </div>
+      )}
       <button className="btn btn-small panel-map-base" onClick={() => panelMapStore.setBase(other.id)} aria-label={`Trocar para ${other.label}`}>
         {other.label}
       </button>

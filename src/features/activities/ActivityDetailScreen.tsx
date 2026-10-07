@@ -17,6 +17,8 @@ import { cableLabel } from '../cables/cableChoices';
 import { elementSvg } from '../elements/elementSvg';
 import { ELEMENT_META } from '../elements/meta';
 import { mapCommands } from '../map/mapCommands';
+import { finishQuestionFor } from '../projects/finishQuestion';
+import FinishProjectDialog from '../projects/FinishProjectDialog';
 import ProjectLine from '../projects/ProjectLine';
 import { ActivityRuleError, activities } from './activityRepo';
 import { KIND_LABEL } from './labels';
@@ -48,6 +50,7 @@ export default function ActivityDetailScreen() {
   const [busy, setBusy] = useState(false);
   const [showAllEls, setShowAllEls] = useState(false);
   const [showAllCables, setShowAllCables] = useState(false);
+  const [asking, setAsking] = useState<string | null>(null); // nome do projeto, quando a pergunta "o projeto terminou?" esta aberta
 
   const summary = useMemo(() => summarizeActivity(elements ?? [], cables ?? [], photos ?? []), [elements, cables, photos]);
   const bounds = useMemo(() => activityBounds(elements ?? [], cables ?? []), [elements, cables]);
@@ -230,11 +233,31 @@ export default function ActivityDetailScreen() {
           <div className="detail-actions">
             <button className="btn" onClick={startEdit}>Editar</button>
             {open ? (
-              <button className="btn btn-primary" onClick={() => void run(() => activities.complete(a.id))}>Concluir</button>
+              <button
+                className="btn btn-primary"
+                onClick={() =>
+                  void run(async () => {
+                    const q = await finishQuestionFor(a);
+                    if (q) setAsking(q.title);
+                    else await activities.complete(a.id);
+                  })
+                }
+              >
+                Concluir
+              </button>
             ) : (
               <button className="btn" onClick={() => void run(() => activities.reopen(a.id))}>Reabrir</button>
             )}
           </div>
+          {a.projectId && !open && (
+            <section className="field" aria-label="Terminou o projeto">
+              <span className="label">Com esta atividade o projeto terminou?</span>
+              <div className="seg" role="group" aria-label="Terminou o projeto">
+                <button type="button" aria-pressed={a.completesProject === true} onClick={() => void run(() => activities.setFinishesProject(a.id, true))}>Sim</button>
+                <button type="button" aria-pressed={a.completesProject !== true} onClick={() => void run(() => activities.setFinishesProject(a.id, false))}>Não</button>
+              </div>
+            </section>
+          )}
           <DeleteActivity activity={a} onDeleted={back} />
         </>
       ) : (
@@ -280,6 +303,16 @@ export default function ActivityDetailScreen() {
           </div>
         )}
       </section>
+      {asking !== null && (
+        <FinishProjectDialog
+          projectTitle={asking}
+          onCancel={() => setAsking(null)}
+          onChoose={(finishes) => {
+            setAsking(null);
+            void run(() => activities.complete(a.id, { finishesProject: finishes }));
+          }}
+        />
+      )}
     </ScreenShell>
   );
 }

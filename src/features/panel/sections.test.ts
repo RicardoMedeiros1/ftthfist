@@ -12,6 +12,7 @@ describe('sectionOf', () => {
     for (const s of PANEL_SECTIONS) expect(sectionOf(s.id)).toBe(s.kind === 'aqui' ? s : PANEL_SECTIONS[0]);
     expect(sectionOf('exportar').id).toBe('visao-geral');
     expect(sectionOf('totais').id).toBe('totais');
+    expect(sectionOf('projetos').id).toBe('projetos');
   });
   it('ids sao unicos e as telas existentes apontam para rotas reais', () => {
     expect(new Set(PANEL_SECTIONS.map((s) => s.id)).size).toBe(PANEL_SECTIONS.length);

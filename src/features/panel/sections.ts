@@ -1,7 +1,7 @@
 import type { Route } from '../../lib/route';
 
 // As secoes do painel. 'aqui' = conteudo do proprio painel; 'tela' = abre uma tela que ja existe.
-export type PanelSectionId = 'visao-geral' | 'mapa' | 'atividades' | 'totais' | 'exportar' | 'sincronizacao';
+export type PanelSectionId = 'visao-geral' | 'mapa' | 'atividades' | 'projetos' | 'totais' | 'exportar' | 'sincronizacao';
 
 export type PanelSection =
   | { id: PanelSectionId; label: string; kind: 'aqui' }
@@ -11,6 +11,7 @@ export const PANEL_SECTIONS: PanelSection[] = [
   { id: 'visao-geral', label: 'Visão geral', kind: 'aqui' },
   { id: 'mapa', label: 'Mapa da rede', kind: 'aqui' },
   { id: 'atividades', label: 'Atividades', kind: 'aqui' },
+  { id: 'projetos', label: 'Projetos', kind: 'aqui' },
   { id: 'totais', label: 'Totais', kind: 'aqui' },
   { id: 'exportar', label: 'Exportar', kind: 'tela', route: 'exportar' },
   { id: 'sincronizacao', label: 'Sincronização', kind: 'tela', route: 'sincronizacao' },

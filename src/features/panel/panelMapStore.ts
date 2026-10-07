@@ -29,10 +29,12 @@ export interface PanelMapState {
   /** Pedido de enquadrar uma area (ex.: a trilha que acabou de chegar). Mesmo esquema de `focus`. */
   fitTo: { bounds: Bounds; seq: number } | null;
   fitApplied: number;
+  /** O ponto de um projeto que o escritorio pediu para ver ("Ver no mapa" da ficha do projeto). */
+  projectPin: { lat: number; lng: number; title: string } | null;
 }
 
 export function createPanelMapStore() {
-  let state: PanelMapState = { filters: DEFAULT_MAP_FILTERS, selection: null, view: null, base: 'ruas', focus: null, focusApplied: 0, fitTo: null, fitApplied: 0 };
+  let state: PanelMapState = { filters: DEFAULT_MAP_FILTERS, selection: null, view: null, base: 'ruas', focus: null, focusApplied: 0, fitTo: null, fitApplied: 0, projectPin: null };
   let seq = 0;
   const listeners = new Set<() => void>();
   const set = (patch: Partial<PanelMapState>) => {
@@ -55,6 +57,9 @@ export function createPanelMapStore() {
     requestFit: (bounds: Bounds) => set({ fitTo: { bounds, seq: ++seq } }),
     markFitApplied: (n: number) => set({ fitApplied: Math.max(state.fitApplied, n) }),
     setBase: (base: BaseLayerId) => set({ base }),
+    /** Marca o ponto de um projeto no mapa e pede para enquadra-lo. */
+    showProjectPoint: (pin: { lat: number; lng: number; title: string }) => set({ projectPin: pin, fitTo: { bounds: [pin.lat, pin.lng, pin.lat, pin.lng], seq: ++seq } }),
+    clearProjectPin: () => set({ projectPin: null }),
   };
 }
 

@@ -33,7 +33,13 @@ Todos os registros têm: `id` (UUID gerado no aparelho), `createdAt`, `updatedAt
 - `title`, `osNumber` (opcional), `technician`
 - `startedAt`, `endedAt`, `status`: `'aberta' | 'concluida'`
 - `description`, `materials`: `[{ item, quantity, unit }]`
+- `projectId?`, `completesProject?`: de qual projeto designado ela veio e se, com ela, o técnico terminou o projeto
 - Elementos, cabos, fotos e trilha GPS pertencem a uma atividade.
+
+### Project (projeto designado)
+- Criado só pelo administrador (pela internet); no aparelho é uma **cópia só de leitura** do servidor (nunca é enviada; não é `BaseRecord`).
+- `title`, `kind`, `osNumber?`, `description` (instruções), `address`, `lat?`/`lng?`, `dueDate?` (`AAAA-MM-DD`), `assignedTo` (técnico), `status`: `'aberto' | 'concluido' | 'cancelado'`, `deleted`
+- A situação mostrada (pendente, em andamento, concluído, cancelado) sai de `status` + atividades ligadas (`projectState`); o técnico nunca grava o projeto. Guia em `docs/projetos.md`.
 
 ### Element (elemento de rede)
 - `type`: `'poste' | 'cto' | 'ceo' | 'reserva' | 'ocorrencia' | 'outro'`
@@ -75,6 +81,7 @@ collector/             (Fase 3)
 ## Papéis e painel web
 - Papéis (`profiles.role`): `tecnico` (campo; só altera o que é dele), `escritorio` (só leitura, abre o painel) e `admin` (altera e exclui tudo, aprova pessoas). Só perfil **ativo** vale; o servidor (RLS) é quem garante, o app só esconde o que não serviria.
 - Painel web (escritório/NOC): mesma aplicação, rota `#/painel` (`src/features/panel/`), só leitura, trabalha com o que o navegador já sincronizou. Guia em `docs/painel-web.md`.
+- Projetos designados: o admin cria e entrega a um técnico (`#/projetos`, `src/features/projects/`); o técnico vê "Você tem N projetos para fazer" ao abrir o app, inicia (a atividade nasce ligada) e, ao concluir, responde se o projeto terminou; o escritório os acompanha na seção Projetos do painel. O servidor nunca recusa trabalho de campo por mudança no projeto. Guia em `docs/projetos.md`.
 - Excluir atividade (dono e admin) é lógico e em cascata (elementos, cabos, fotos, trilha). Admin edita registros de outros pelo envio normal; o servidor registra quem alterou (`admin_edits`).
 - Lista do que testar no celular/computador: `docs/guia-de-testes.md`.
 

@@ -243,7 +243,9 @@ export default function ProjetoScreen() {
             <div className="card-meta">
               {project.dueDate ? `Prazo ${formatDueDate(project.dueDate)}. ` : ''}Criado em {formatDateTime(project.createdAt)}.
             </div>
-            {state === 'concluido' && project.status === 'aberto' && <p className="hint">Concluído porque uma atividade do técnico terminou o projeto.</p>}
+            {state === 'concluido' && project.status === 'aberto' && (
+              <p className="hint">Concluído porque uma atividade do técnico terminou o projeto. Para reabrir, abra essa atividade (na lista abaixo) e responda “Não” em “Com esta atividade o projeto terminou?”.</p>
+            )}
             <div className="project-actions">
               {project.status === 'aberto' && state !== 'concluido' && <button className="btn btn-block" disabled={busy || !online} onClick={() => setAsk({ kind: 'concluir' })}>Marcar como concluído</button>}
               {project.status === 'aberto' && <button className="btn btn-danger btn-block" disabled={busy || !online} onClick={() => setAsk({ kind: 'cancelar' })}>Cancelar projeto</button>}

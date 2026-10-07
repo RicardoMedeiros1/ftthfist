@@ -49,3 +49,7 @@
 /* "Ver no mapa" e "Como chegar" (um e botao, o outro e link): lado a lado, mesma cara, sem sublinhado */
 .project-map-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 .project-map-actions .btn { flex: 1 1 150px; display: inline-flex; align-items: center; justify-content: center; text-align: center; text-decoration: none; }
+
+/* "Este projeto esta concluido?": tres botoes, um embaixo do outro (os textos sao longos) */
+.confirm-actions-col { flex-direction: column; }
+.confirm-actions-col .btn { flex: none; width: 100%; min-height: 52px; }
