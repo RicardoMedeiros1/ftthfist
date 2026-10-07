@@ -11,7 +11,7 @@ export type PanelSection =
 export const PANEL_SECTIONS: PanelSection[] = [
   { id: 'visao-geral', label: 'Visão geral', kind: 'aqui' },
   { id: 'mapa', label: 'Mapa da rede', kind: 'aqui' },
-  { id: 'atividades', label: 'Atividades', kind: 'tela', route: 'atividades' },
+  { id: 'atividades', label: 'Atividades', kind: 'aqui' },
   { id: 'totais', label: 'Totais', kind: 'em-breve' },
   { id: 'exportar', label: 'Exportar', kind: 'tela', route: 'exportar' },
   { id: 'sincronizacao', label: 'Sincronização', kind: 'tela', route: 'sincronizacao' },

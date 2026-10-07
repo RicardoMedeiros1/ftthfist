@@ -23,10 +23,12 @@ export interface PanelMapState {
   base: BaseLayerId;
   /** Pedido de "ir ate este item" (resultado da busca); `seq` muda a cada pedido, mesmo para o mesmo item. */
   focus: (Selection & { seq: number }) | null;
+  /** Ultimo pedido de enquadramento que o mapa ja atendeu (o pedido pode vir de outra secao, antes de o mapa existir). */
+  focusApplied: number;
 }
 
 export function createPanelMapStore() {
-  let state: PanelMapState = { filters: DEFAULT_MAP_FILTERS, selection: null, view: null, base: 'ruas', focus: null };
+  let state: PanelMapState = { filters: DEFAULT_MAP_FILTERS, selection: null, view: null, base: 'ruas', focus: null, focusApplied: 0 };
   let seq = 0;
   const listeners = new Set<() => void>();
   const set = (patch: Partial<PanelMapState>) => {
@@ -45,6 +47,7 @@ export function createPanelMapStore() {
     /** Abre o item e pede ao mapa para enquadra-lo. */
     focus: (s: Selection) => set({ selection: s, focus: { ...s, seq: ++seq } }),
     setView: (view: SavedView) => set({ view }),
+    markFocusApplied: (seq: number) => set({ focusApplied: Math.max(state.focusApplied, seq) }),
     setBase: (base: BaseLayerId) => set({ base }),
   };
 }

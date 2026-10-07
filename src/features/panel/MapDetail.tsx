@@ -5,12 +5,11 @@ import { ELEMENT_META } from '../elements/meta';
 import { PhotoGrid, PhotoViewer } from '../elements/PhotoParts';
 import { useElementPhotos } from '../elements/useElementPhotos';
 import { FiberLine } from '../cables/Legend';
-import { KIND_LABEL } from '../activities/labels';
-import { summarizeActivity } from '../activities/summary';
 import type { Activity, Cable, NetworkElement } from '../../db/types';
-import { formatDateTime, formatDuration } from '../../lib/format';
+import { formatDateTime } from '../../lib/format';
 import { formatAccuracy, formatMeters } from '../../lib/geo';
 import { navigate } from '../../lib/route';
+import ActivityInfo from './ActivityInfo';
 import type { MapData } from './mapFilters';
 import type { Selection } from './panelMapStore';
 
@@ -82,40 +81,6 @@ function CableCard({ cable, activity }: { cable: Cable; activity?: Activity }) {
   );
 }
 
-function ActivityCard({ activity, data }: { activity: Activity; data: MapData }) {
-  const s = summarizeActivity(
-    data.elements.filter((e) => e.activityId === activity.id),
-    data.cables.filter((c) => c.activityId === activity.id),
-    [],
-  );
-  const open = activity.status === 'aberta';
-  return (
-    <>
-      <div className="card">
-        <div className="row">
-          <span className={`badge badge-${activity.kind}`}>{KIND_LABEL[activity.kind]}</span>
-          <span className={`badge badge-status-${activity.status}`}>{open ? 'Aberta' : 'Concluída'}</span>
-        </div>
-        <div className="card-title">{activity.title}</div>
-        <div className="card-meta">
-          {activity.osNumber ? `OS ${activity.osNumber} · ` : ''}
-          {activity.technician}
-        </div>
-        <div className="card-meta">
-          Início {formatDateTime(activity.startedAt)}
-          {activity.endedAt ? ` · Fim ${formatDateTime(activity.endedAt)} · ${formatDuration(activity.endedAt - activity.startedAt)}` : ''}
-        </div>
-      </div>
-      {activity.description && <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{activity.description}</p>}
-      <div className="info-list">
-        <Row label="Elementos" value={s.byType.length > 0 ? `${s.elements} · ${s.byType.map((t) => `${t.count} ${t.label}`).join(' · ')}` : String(s.elements)} />
-        <Row label="Cabos" value={`${s.cables} · ${formatMeters(s.totalMeters)}`} />
-      </div>
-      <button className="btn btn-block" onClick={() => navigate('atividade', { id: activity.id })}>Abrir atividade</button>
-    </>
-  );
-}
-
 /** Ficha so de leitura do que foi tocado no mapa (ou escolhido na busca). */
 export default function MapDetail({ selection, data, onClose, onFocus }: { selection: Selection; data: MapData; onClose: () => void; onFocus: () => void }) {
   const byId = new Map(data.activities.map((a) => [a.id, a]));
@@ -132,7 +97,7 @@ export default function MapDetail({ selection, data, onClose, onFocus }: { selec
       {!found && <div className="alert" role="alert">Este item não existe mais (foi excluído ou ainda não chegou).</div>}
       {el && <ElementCard key={el.id} el={el} activity={byId.get(el.activityId)} />}
       {cable && <CableCard key={cable.id} cable={cable} activity={byId.get(cable.activityId)} />}
-      {activity && <ActivityCard key={activity.id} activity={activity} data={data} />}
+      {activity && <ActivityInfo key={activity.id} activity={activity} elements={data.elements} cables={data.cables} />}
     </aside>
   );
 }

@@ -67,10 +67,9 @@ function FitToView({ view, fitKey }: { view: MapView; fitKey: string }) {
 function Focus({ data }: { data: MapData }) {
   const map = useMap();
   const focus = usePanelMap((s) => s.focus);
-  const last = useRef(panelMapStore.getState().focus?.seq ?? 0);
   useEffect(() => {
-    if (!focus || focus.seq === last.current) return;
-    last.current = focus.seq;
+    if (!focus || focus.seq <= panelMapStore.getState().focusApplied) return;
+    panelMapStore.markFocusApplied(focus.seq);
     let b: Bounds | null = null;
     if (focus.kind === 'elemento') b = boxOf(data.elements.filter((e) => e.id === focus.id));
     else if (focus.kind === 'cabo') b = boxOf(data.cables.filter((c) => c.id === focus.id).flatMap((c) => c.vertices));

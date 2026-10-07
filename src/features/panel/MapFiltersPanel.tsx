@@ -3,14 +3,9 @@ import { formatMeters } from '../../lib/geo';
 import { ELEMENT_TYPES } from '../elements/meta';
 import { LegendList } from '../cables/Legend';
 import { FIBER_COUNTS } from '../cables/style';
-import { DEFAULT_MAP_FILTERS, activeMapFilterCount, presetRange, searchHits, technicianOptions, type MapData, type MapFilters, type MapView, type PeriodPreset } from './mapFilters';
+import ActivityFilterFields from './ActivityFilterFields';
+import { DEFAULT_MAP_FILTERS, activeMapFilterCount, searchHits, technicianOptions, type MapData, type MapFilters, type MapView } from './mapFilters';
 import type { Selection } from './panelMapStore';
-
-const PRESETS: { id: PeriodPreset; label: string }[] = [
-  { id: 'hoje', label: 'Hoje' },
-  { id: '7d', label: '7 dias' },
-  { id: '30d', label: '30 dias' },
-];
 
 /** Coluna da esquerda do mapa: busca, resultados, filtros e legenda. Nao guarda estado: tudo vem do `panelMapStore`. */
 export default function MapFiltersPanel({
@@ -71,53 +66,7 @@ export default function MapFiltersPanel({
         </section>
       )}
 
-      <div className="field">
-        <label htmlFor="pm-owner">Técnico</label>
-        <select id="pm-owner" value={filters.owner} onChange={(e) => onChange({ owner: e.target.value })}>
-          <option value="todos">Todos</option>
-          {owners.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label} ({o.count})
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="field">
-        <label htmlFor="pm-kind">Tipo de atividade</label>
-        <select id="pm-kind" value={filters.kind} onChange={(e) => onChange({ kind: e.target.value as MapFilters['kind'] })}>
-          <option value="todas">Todos</option>
-          <option value="implantacao">Implantação</option>
-          <option value="manutencao">Manutenção</option>
-        </select>
-      </div>
-      <div className="field">
-        <label htmlFor="pm-status">Situação</label>
-        <select id="pm-status" value={filters.status} onChange={(e) => onChange({ status: e.target.value as MapFilters['status'] })}>
-          <option value="todas">Todas</option>
-          <option value="aberta">Em aberto</option>
-          <option value="concluida">Concluídas</option>
-        </select>
-      </div>
-
-      <div className="field">
-        <span className="label">Período (início da atividade)</span>
-        <div className="panel-presets" role="group" aria-label="Período">
-          {PRESETS.map((p) => (
-            <button key={p.id} type="button" className="btn btn-small" onClick={() => onChange(presetRange(p.id, Date.now()))}>
-              {p.label}
-            </button>
-          ))}
-          <button type="button" className="btn btn-small" disabled={filters.from === '' && filters.to === ''} onClick={() => onChange({ from: '', to: '' })}>
-            Tudo
-          </button>
-        </div>
-        <div className="panel-dates">
-          <label htmlFor="pm-from">De</label>
-          <input id="pm-from" type="date" value={filters.from} max={filters.to || undefined} onChange={(e) => onChange({ from: e.target.value })} />
-          <label htmlFor="pm-to">Até</label>
-          <input id="pm-to" type="date" value={filters.to} min={filters.from || undefined} onChange={(e) => onChange({ to: e.target.value })} />
-        </div>
-      </div>
+      <ActivityFilterFields prefix="pm" value={filters} owners={owners} onChange={onChange} />
 
       <div className="field">
         <span className="label">Mostrar</span>

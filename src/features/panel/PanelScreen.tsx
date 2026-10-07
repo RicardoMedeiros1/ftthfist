@@ -8,6 +8,7 @@ import { useOnlineStatus } from '../../lib/useOnlineStatus';
 import { useAccount } from '../account/accountStore';
 import { syncStore, useSync } from '../sync/syncRuntime';
 import { ACCESS_TEXT, panelAccess } from './access';
+import ActivitiesTableSection from './ActivitiesTableSection';
 import NetworkMapSection from './NetworkMapSection';
 import { overview } from './overview';
 import { PANEL_SECTIONS, sectionOf } from './sections';
@@ -108,9 +109,9 @@ export default function PanelScreen() {
           Voltar ao mapa do app
         </button>
       </nav>
-      {section.id === 'mapa' ? (
-        <main className="panel-main panel-main-map" aria-label="Mapa da rede">
-          <NetworkMapSection />
+      {section.id === 'mapa' || section.id === 'atividades' ? (
+        <main className="panel-main panel-main-map" aria-label={section.label}>
+          {section.id === 'mapa' ? <NetworkMapSection /> : <ActivitiesTableSection />}
         </main>
       ) : (
         <main className="panel-main">

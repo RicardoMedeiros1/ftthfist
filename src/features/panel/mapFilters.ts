@@ -138,8 +138,11 @@ export interface MapView {
   totals: { activities: number; elements: number; cables: number };
 }
 
-/** Passa pelos filtros da ATIVIDADE (tecnico, tipo, situacao, periodo)? */
-function activityPasses(a: Activity, f: MapFilters, from: number | null, to: number | null): boolean {
+/** Os filtros que valem para a ATIVIDADE (os mesmos no mapa e na tabela). */
+export type ActivityFilterValues = Pick<MapFilters, 'owner' | 'kind' | 'status' | 'from' | 'to'>;
+
+/** Passa pelos filtros da ATIVIDADE (tecnico, tipo, situacao, periodo)? `from`/`to` ja em ms (ver dayStart/dayEnd). */
+export function activityPasses(a: Activity, f: ActivityFilterValues, from: number | null, to: number | null): boolean {
   if (f.owner !== 'todos' && ownerKey(a) !== f.owner) return false;
   if (f.kind !== 'todas' && a.kind !== f.kind) return false;
   if (f.status !== 'todas' && a.status !== f.status) return false;

@@ -4,7 +4,7 @@ import { createPanelMapStore } from './panelMapStore';
 
 describe('panelMapStore', () => {
   it('comeca sem filtros, sem selecao e em "Ruas"', () => {
-    expect(createPanelMapStore().getState()).toEqual({ filters: DEFAULT_MAP_FILTERS, selection: null, view: null, base: 'ruas', focus: null });
+    expect(createPanelMapStore().getState()).toEqual({ filters: DEFAULT_MAP_FILTERS, selection: null, view: null, base: 'ruas', focus: null, focusApplied: 0 });
   });
 
   it('setFilters junta com o que ja esta e resetFilters volta ao padrao', () => {
@@ -23,6 +23,19 @@ describe('panelMapStore', () => {
     expect(s.getState().selection).toEqual({ kind: 'elemento', id: 'e1' });
     s.focus({ kind: 'elemento', id: 'e1' });
     expect(s.getState().focus!.seq).toBeGreaterThan(first.seq);
+  });
+
+  it('pedido de enquadramento feito antes de o mapa existir continua valendo ate o mapa atender', () => {
+    const s = createPanelMapStore();
+    s.focus({ kind: 'atividade', id: 'a1' }); // veio da tabela, o mapa ainda nao esta na tela
+    const { focus, focusApplied } = s.getState();
+    expect(focus!.seq).toBeGreaterThan(focusApplied);
+    s.markFocusApplied(focus!.seq);
+    expect(s.getState().focusApplied).toBe(focus!.seq);
+    s.markFocusApplied(0); // um valor velho nao volta atras
+    expect(s.getState().focusApplied).toBe(focus!.seq);
+    s.focus({ kind: 'atividade', id: 'a1' });
+    expect(s.getState().focus!.seq).toBeGreaterThan(s.getState().focusApplied);
   });
 
   it('select (clique no mapa) abre o item sem pedir enquadramento', () => {
