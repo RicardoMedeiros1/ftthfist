@@ -1,11 +1,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Role } from '../account/authApi';
+import { linkedFromRow, patchFromInput, projectFromRow, rowFromPatch, type ProjectPatch } from '../projects/projectRows';
+import type { LinkedActivity, Project, ProjectInput } from '../projects/types';
 import { classifyError } from '../sync/remote';
 
 // A "porta" das ferramentas do administrador para o servidor. Tudo aqui exige internet e so funciona para um
 // administrador ativo (quem garante e o servidor, por RLS: o app so esconde o que nao serviria).
 
-export type AdminErrorKind = 'network' | 'auth' | 'denied' | 'last-admin' | 'other';
+export type AdminErrorKind = 'network' | 'auth' | 'denied' | 'last-admin' | 'invalid' | 'other';
 
 export class AdminError extends Error {
   constructor(
@@ -68,12 +70,21 @@ export interface AdminApi {
   names(ids: string[]): Promise<Map<string, string>>;
   /** Pontos da trilha de uma atividade, em ordem de horario; `after` continua de onde parou. */
   trackPage(activityId: string, limit: number, after?: TrackCursor): Promise<{ points: RemoteTrackPoint[]; last: TrackCursor | null }>;
+  /** Todos os projetos (inclusive excluidos), dos mais novos para os mais antigos. */
+  listProjects(): Promise<Project[]>;
+  /** Cria o projeto com o `id` dado (gerado na tela, entao repetir o envio nao cria dois). */
+  createProject(id: string, input: ProjectInput): Promise<Project>;
+  /** Altera so o que vier no `patch` (`null` apaga um campo opcional). Devolve o projeto como ficou. */
+  updateProject(id: string, patch: ProjectPatch): Promise<Project>;
+  /** Atividades (nao excluidas) ligadas aos projetos, por projeto. Projeto sem atividade nao aparece no mapa. */
+  linkedActivities(projectIds: string[]): Promise<Map<string, LinkedActivity[]>>;
 }
 
 type Failure = { code?: string; message?: string } | null;
 
-function fail(error: NonNullable<Failure>, status: number | undefined): never {
-  if (error.code === '23514') throw new AdminError('last-admin', error.message);
+/** `check` diz o que um erro 23514 (regra do banco) significa para quem chamou: ultimo administrador, ou dados recusados. */
+function fail(error: NonNullable<Failure>, status: number | undefined, check: 'last-admin' | 'invalid' = 'last-admin'): never {
+  if (error.code === '23514') throw new AdminError(check, error.message);
   if (error.code === '42501' || status === 403) throw new AdminError('denied', error.message);
   const kind = classifyError(status, error.code);
   throw new AdminError(kind === 'network' || kind === 'transient' ? 'network' : kind === 'auth' ? 'auth' : 'other', error.message);
@@ -129,6 +140,53 @@ export function createSupabaseAdminApi(client: Pick<SupabaseClient, 'from' | 'rp
       const { data, error, status } = await client.from('profiles').select('id,full_name').in('id', [...new Set(ids)]).retry(false);
       if (error) fail(error, status);
       for (const r of (data ?? []) as Row[]) out.set(String(r.id), String(r.full_name ?? ''));
+      return out;
+    },
+    async listProjects() {
+      const { data, error, status } = await client.from('projects').select('*').order('created_at', { ascending: false }).limit(1000).retry(false);
+      if (error) fail(error, status, 'invalid');
+      return ((data ?? []) as unknown as Row[]).map(projectFromRow);
+    },
+    async createProject(id, input) {
+      const row = { id, ...rowFromPatch(patchFromInput(input)) };
+      const { data, error, status } = await client.from('projects').insert(row).select('*').retry(false);
+      if (error?.code === '23505') {
+        // o envio anterior chegou e so a resposta se perdeu: o projeto ja existe, e e este
+        const again = await client.from('projects').select('*').eq('id', id).retry(false);
+        if (!again.error && again.data?.length) return projectFromRow(again.data[0] as unknown as Row);
+      }
+      if (error) fail(error, status, 'invalid');
+      const created = (data ?? [])[0] as unknown as Row | undefined;
+      if (!created) throw new AdminError('denied', 'nenhuma linha criada');
+      return projectFromRow(created);
+    },
+    async updateProject(id, patch) {
+      const { data, error, status } = await client.from('projects').update(rowFromPatch(patch)).eq('id', id).select('*').retry(false);
+      if (error) fail(error, status, 'invalid');
+      const updated = (data ?? [])[0] as unknown as Row | undefined;
+      if (!updated) throw new AdminError('denied', 'nenhuma linha alterada'); // RLS: nao e administrador (ou o projeto nao existe)
+      return projectFromRow(updated);
+    },
+    async linkedActivities(projectIds) {
+      const out = new Map<string, LinkedActivity[]>();
+      const ids = [...new Set(projectIds)];
+      // em lotes: a lista de ids vai na URL, e um lote de 50 mantem a resposta longe do limite de linhas do servidor
+      for (let i = 0; i < ids.length; i += 50) {
+        const { data, error, status } = await client
+          .from('activities')
+          .select('id,project_id,title,technician,status,completes_project,deleted,started_at')
+          .in('project_id', ids.slice(i, i + 50))
+          .eq('deleted', false)
+          .order('started_at', { ascending: true })
+          .retry(false);
+        if (error) fail(error, status);
+        for (const r of (data ?? []) as unknown as Row[]) {
+          const key = String(r.project_id);
+          const list = out.get(key);
+          if (list) list.push(linkedFromRow(r));
+          else out.set(key, [linkedFromRow(r)]);
+        }
+      }
       return out;
     },
     async trackPage(activityId, limit, after) {

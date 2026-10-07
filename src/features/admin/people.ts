@@ -87,6 +87,8 @@ export function adminErrorText(e: unknown): string {
       return 'O servidor não permitiu. Só um administrador ativo pode fazer isso.';
     case 'last-admin':
       return 'Precisa existir pelo menos um administrador ativo. Torne outra pessoa administradora antes.';
+    case 'invalid':
+      return 'O servidor recusou os dados do projeto. Confira se o técnico escolhido está ativo e se os campos estão certos.';
     default:
       return 'Não foi possível concluir. Tente de novo.';
   }

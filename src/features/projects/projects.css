@@ -1,0 +1,27 @@
+.project-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.project-card { text-align: left; width: 100%; display: flex; flex-direction: column; gap: 6px; min-height: 48px; cursor: pointer; font: inherit; color: inherit; }
+.project-card[data-state='cancelado'], .project-card[data-state='concluido'] { opacity: .75; }
+.project-card[data-overdue='true'] { border-color: #ff453a; }
+.project-head { display: flex; gap: 8px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+.project-head .card-title { flex: 1 1 180px; min-width: 0; overflow-wrap: anywhere; }
+.project-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+.badge-state-pendente { background: #ffd60a; }
+.badge-state-em_andamento { background: #34c759; }
+.badge-state-concluido { background: #bbb; }
+.badge-state-cancelado { background: #8e8e93; color: #fff; }
+.badge-overdue { background: #ff453a; color: #fff; }
+.project-filters { display: flex; flex-direction: column; gap: 10px; }
+.project-filters .chips { display: flex; flex-wrap: wrap; } /* os rotulos tem larguras diferentes: quebram de linha em vez de se sobrepor */
+.project-filters .chips button { min-height: 48px; min-width: max-content; padding-inline: 14px; flex: 1 1 auto; }
+.project-linked { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.project-linked .btn { width: 100%; justify-content: flex-start; text-align: left; flex-wrap: wrap; }
+.coords-read { font-size: 15px; overflow-wrap: anywhere; }
+.field-error { color: #ff453a; font-weight: 700; margin: 4px 0 0; overflow-wrap: anywhere; }
+.project-actions { display: flex; flex-direction: column; gap: 10px; }
+/* data e busca: o mesmo visual dos campos de texto (o ui.css so cobre text, e-mail e senha) */
+.field input[type='date'], .field input[type='search'] {
+  min-height: 52px; padding: 0 14px; box-sizing: border-box;
+  border: 3px solid #fff; border-radius: 12px;
+  background: #000; color: #fff; font-size: 18px; color-scheme: dark;
+}
+.field input[type='date']:focus, .field input[type='search']:focus { outline: 4px solid var(--accent); outline-offset: 2px; }

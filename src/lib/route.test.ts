@@ -85,3 +85,19 @@ describe('hashFor (ida e volta)', () => {
     expect(parseLocation(hashFor('painel'))).toEqual({ route: 'painel' });
   });
 });
+
+describe('projetos', () => {
+  it('lista, novo e um projeto por id (o novo nao e confundido com um id)', () => {
+    expect(parseLocation('#/projetos')).toEqual({ route: 'projetos' });
+    expect(parseLocation('#/projetos/novo')).toEqual({ route: 'projeto-novo' });
+    expect(parseLocation('#/projeto/abc-1')).toEqual({ route: 'projeto', id: 'abc-1' });
+    expect(parseRoute('#/projeto')).toBe('map'); // sem id nao ha tela
+  });
+  it('hashFor ida e volta, com id codificado', () => {
+    expect(hashFor('projetos')).toBe('#/projetos');
+    expect(hashFor('projeto-novo')).toBe('#/projetos/novo');
+    expect(hashFor('projeto', 'a/b')).toBe('#/projeto/a%2Fb');
+    expect(parseLocation(hashFor('projeto', 'a/b'))).toEqual({ route: 'projeto', id: 'a/b' });
+    expect(hashFor('projeto')).toBe('#/'); // sem id volta ao mapa, como os demais
+  });
+});

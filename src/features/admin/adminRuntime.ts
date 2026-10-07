@@ -28,6 +28,10 @@ export const adminApi: AdminApi | null = isSupabaseConfigured
       listConflicts: async (limit, before) => (await load()).listConflicts(limit, before),
       names: async (ids) => (await load()).names(ids),
       trackPage: async (a, limit, after) => (await load()).trackPage(a, limit, after),
+      listProjects: async () => (await load()).listProjects(),
+      createProject: async (id, input) => (await load()).createProject(id, input),
+      updateProject: async (id, patch) => (await load()).updateProject(id, patch),
+      linkedActivities: async (ids) => (await load()).linkedActivities(ids),
     }
   : null;
 

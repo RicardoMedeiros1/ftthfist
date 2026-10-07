@@ -43,3 +43,35 @@ describe('erros do servidor viram o tipo certo', () => {
     await expect(apiReplying({ data: [{ id: 'x' }], error: null, status: 200 }).setAccess('x', { active: true })).resolves.toBeUndefined();
   });
 });
+
+describe('projetos: erros do servidor', () => {
+  const input = { assignedTo: 'u1', title: 'T', kind: 'implantacao' as const, description: '', address: '' };
+
+  it('regra do banco (23514) nos projetos e "invalid", nao "ultimo administrador"', async () => {
+    const api = apiReplying({ error: { code: '23514', message: 'o projeto so pode ser designado a um tecnico' }, status: 400 });
+    await expect(api.createProject('p', input)).rejects.toMatchObject({ kind: 'invalid' });
+    await expect(api.updateProject('p', { title: 'x' })).rejects.toMatchObject({ kind: 'invalid' });
+    await expect(api.listProjects()).rejects.toMatchObject({ kind: 'invalid' });
+    // a mesma resposta em outra chamada continua querendo dizer "ultimo administrador"
+    await expect(api.setAccess('x', { active: false })).rejects.toMatchObject({ kind: 'last-admin' });
+  });
+
+  it('sem internet, sem permissao e sessao vencida', async () => {
+    await expect(apiReplying({ error: { message: 'down' }, status: 503 }).createProject('p', input)).rejects.toMatchObject({ kind: 'network' });
+    await expect(apiReplying({ error: { message: 'down' }, status: 0 }).listProjects()).rejects.toMatchObject({ kind: 'network' });
+    await expect(apiReplying({ error: { code: '42501', message: 'rls' }, status: 403 }).createProject('p', input)).rejects.toMatchObject({ kind: 'denied' });
+    await expect(apiReplying({ error: { code: 'PGRST301', message: 'JWT expired' }, status: 401 }).updateProject('p', {})).rejects.toMatchObject({ kind: 'auth' });
+    await expect(apiReplying({ error: { message: 'down' }, status: 503 }).linkedActivities(['a'])).rejects.toMatchObject({ kind: 'network' });
+  });
+
+  it('criar ou alterar sem nenhuma linha de volta = recusado (RLS), nao sucesso', async () => {
+    await expect(apiReplying({ data: [], error: null, status: 201 }).createProject('p', input)).rejects.toMatchObject({ kind: 'denied' });
+    await expect(apiReplying({ data: [], error: null, status: 200 }).updateProject('p', { title: 'x' })).rejects.toMatchObject({ kind: 'denied' });
+  });
+
+  it('o texto para o administrador mostra que foram os dados', async () => {
+    const { adminErrorText } = await import('./people');
+    const err = await apiReplying({ error: { code: '23514', message: 'x' }, status: 400 }).createProject('p', input).catch((e: unknown) => e);
+    expect(adminErrorText(err)).toContain('projeto');
+  });
+});

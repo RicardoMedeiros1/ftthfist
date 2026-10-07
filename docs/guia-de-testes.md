@@ -44,7 +44,12 @@ chaves nem senhas). O deploy é conferido pelo número da versão em *Configura�
 
 ## 2. Administrador (celular ou computador)
 
-- [ ] Configurações → **Administração**: Pessoas, Alterações e conflitos, Projetos dos técnicos.
+- [ ] Configurações → **Administração**: Projetos, Pessoas, Alterações e conflitos, Atividades dos técnicos.
+- [ ] **Projetos (etapa 2):** *Novo projeto* com nome, tipo, técnico, OS, instruções, endereço, ponto no mapa (cole coordenadas do Google
+      Maps, em qualquer formato, e confira o "Entendi: …") e prazo. Sem nome ou sem técnico mostra o erro e não cria. O projeto aparece
+      na lista como Pendente (e Atrasado se o prazo passou). Abrir, editar, **passar para outro técnico**, marcar concluído, cancelar,
+      reabrir e excluir (cada um pede confirmação). Filtros "Para fazer / Pendentes / …", busca e filtro por técnico. Sem internet a
+      tela avisa e bloqueia "Novo projeto". (O técnico só passa a ver os projetos na etapa 3.)
 - [ ] **Pessoas:** aprovar um pedido escolhendo o papel; recusar; desativar e reativar; mudar o papel (rebaixar administrador usa botão
       de perigo). O próprio cartão não tem ações. Sem internet aparece "Sem conexão".
 - [ ] Editar um poste de um técnico (faixa "Você está alterando como administrador"); o técnico recebe e continua sendo o dono.

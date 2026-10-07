@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { AdminError, createSupabaseAdminApi, type AdminApi } from '../../src/features/admin/adminApi';
 import { loadTrack } from '../../src/features/admin/remoteTrack';
+import { patchFromInput } from '../../src/features/projects/projectRows';
 import { ID, IDS, activityRow, createTestDb, insertSql, trackRow, type Person, type TestDb } from './support/harness';
 import { POSTGREST_BIN, mint, startPostgrest } from './support/postgrest';
 
@@ -32,7 +33,7 @@ describe.skipIf(!enabled)('ferramentas do administrador contra o servidor de ver
     await db?.drop();
   });
   beforeEach(async () => {
-    await db.admin('truncate public.track_points, public.photos, public.cables, public.elements, public.activities, public.sync_conflicts, public.admin_edits');
+    await db.admin('truncate public.track_points, public.photos, public.cables, public.elements, public.activities, public.sync_conflicts, public.admin_edits, public.projects cascade');
     await db.admin(`delete from auth.users where email like '%@fila.test'`);
   });
 
@@ -160,6 +161,83 @@ describe.skipIf(!enabled)('ferramentas do administrador contra o servidor de ver
     it('atividade sem trilha devolve vazio', async () => {
       await insert('activities', activityRow(ID.actAna, 'ana'));
       expect(await loadTrack(apiAs('davi'), ID.actAna, {})).toEqual({ points: [], truncated: false });
+    });
+  });
+  describe('projetos designados', () => {
+    const P1 = '00000000-0000-4000-8000-00000000b001';
+    const P2 = '00000000-0000-4000-8000-00000000b002';
+    const input = { assignedTo: IDS.ana, title: 'Rua das Flores', kind: 'implantacao' as const, description: 'puxar 300 m', address: 'Rua das Flores, 10' };
+
+    it('o administrador cria; o tecnico responsavel ve, os outros tecnicos nao, o escritorio le', async () => {
+      const made = await apiAs('davi').createProject(P1, { ...input, osNumber: 'OS-9', lat: -23.55, lng: -46.63, dueDate: '2026-10-20' });
+      expect(made).toMatchObject({ id: P1, ownerId: IDS.davi, assignedTo: IDS.ana, title: 'Rua das Flores', osNumber: 'OS-9', lat: -23.55, lng: -46.63, dueDate: '2026-10-20', status: 'aberto', deleted: false });
+      expect((await apiAs('ana').listProjects()).map((p) => p.id)).toEqual([P1]);
+      expect(await apiAs('bruno').listProjects()).toEqual([]);
+      expect((await apiAs('clara').listProjects()).map((p) => p.id)).toEqual([P1]);
+    });
+
+    it('repetir a criacao (a resposta se perdeu) devolve o mesmo projeto, sem duplicar nem trocar nada', async () => {
+      await apiAs('davi').createProject(P1, input);
+      const again = await apiAs('davi').createProject(P1, { ...input, title: 'Outro nome' });
+      expect(again).toMatchObject({ id: P1, title: 'Rua das Flores' });
+      expect(await apiAs('davi').listProjects()).toHaveLength(1);
+    });
+
+    it('editar: muda os campos, apaga o que ficou vazio (ponto, OS, prazo) e reatribui', async () => {
+      await apiAs('davi').createProject(P1, { ...input, osNumber: 'OS-9', lat: -23.55, lng: -46.63, dueDate: '2026-10-20' });
+      const edited = await apiAs('davi').updateProject(P1, patchFromInput({ ...input, title: 'Rua Nova', assignedTo: IDS.bruno }));
+      expect(edited).toMatchObject({ title: 'Rua Nova', assignedTo: IDS.bruno });
+      expect('osNumber' in edited || 'lat' in edited || 'lng' in edited || 'dueDate' in edited).toBe(false);
+      expect(await apiAs('ana').listProjects()).toEqual([]); // quem tinha deixa de ver
+      expect((await apiAs('bruno').listProjects()).map((p) => p.id)).toEqual([P1]);
+    });
+
+    it('cancelar, concluir, reabrir e excluir (logico): o tecnico ve a exclusao chegar', async () => {
+      await apiAs('davi').createProject(P1, input);
+      expect((await apiAs('davi').updateProject(P1, { status: 'cancelado' })).status).toBe('cancelado');
+      expect((await apiAs('davi').updateProject(P1, { status: 'concluido' })).status).toBe('concluido');
+      expect((await apiAs('davi').updateProject(P1, { status: 'aberto' })).status).toBe('aberto');
+      expect((await apiAs('davi').updateProject(P1, { deleted: true })).deleted).toBe(true);
+      expect((await apiAs('ana').listProjects())[0]).toMatchObject({ id: P1, deleted: true });
+    });
+
+    it('so se designa a tecnico ou administrador ativo: erro "invalid"', async () => {
+      await expect(apiAs('davi').createProject(P1, { ...input, assignedTo: IDS.clara })).rejects.toMatchObject({ kind: 'invalid' });
+      await expect(apiAs('davi').createProject(P1, { ...input, assignedTo: IDS.eva })).rejects.toMatchObject({ kind: 'invalid' });
+      await apiAs('davi').createProject(P1, input);
+      await expect(apiAs('davi').updateProject(P1, { assignedTo: IDS.clara })).rejects.toMatchObject({ kind: 'invalid' });
+      await expect(apiAs('davi').updateProject(P1, { lat: -23.5, lng: null })).rejects.toMatchObject({ kind: 'invalid' }); // so uma coordenada
+    });
+
+    it('quem nao e administrador nao cria nem altera: erro "denied"', async () => {
+      await expect(apiAs('ana').createProject(P1, input)).rejects.toMatchObject({ kind: 'denied' });
+      await expect(apiAs('clara').createProject(P1, input)).rejects.toMatchObject({ kind: 'denied' });
+      await apiAs('davi').createProject(P1, input);
+      await expect(apiAs('ana').updateProject(P1, { title: 'invadido' })).rejects.toMatchObject({ kind: 'denied' });
+      await expect(apiAs('davi').updateProject(P2, { title: 'nao existe' })).rejects.toMatchObject({ kind: 'denied' });
+      expect((await apiAs('davi').listProjects())[0]!.title).toBe('Rua das Flores');
+    });
+
+    it('atividades ligadas: por projeto, sem as excluidas, em ordem de inicio, com o "terminou o projeto"', async () => {
+      await apiAs('davi').createProject(P1, input);
+      await apiAs('davi').createProject(P2, { ...input, title: 'Sem atividade' });
+      await insert('activities', activityRow(ID.actAna, 'ana', { project_id: P1, started_at: '2026-10-02T12:00:00Z', title: 'Trecho 2' }));
+      await insert('activities', activityRow(ID.fresh(1), 'ana', { project_id: P1, started_at: '2026-10-01T12:00:00Z', title: 'Trecho 1', status: 'concluida', completes_project: true }));
+      await insert('activities', activityRow(ID.fresh(2), 'ana', { project_id: P1, title: 'Apagada' }));
+      await db.admin(`update public.activities set deleted = true, updated_at = now() where id = $1`, [ID.fresh(2)]);
+      await insert('activities', activityRow(ID.actBruno, 'bruno', { title: 'Sem projeto' }));
+      const linked = await apiAs('davi').linkedActivities([P1, P2]);
+      expect(linked.get(P1)!.map((a) => [a.title, a.status, a.completesProject, a.deleted])).toEqual([['Trecho 1', 'concluida', true, false], ['Trecho 2', 'aberta', false, false]]);
+      expect(linked.has(P2)).toBe(false);
+      expect((await apiAs('davi').linkedActivities([])).size).toBe(0);
+    });
+
+    it('muitos projetos: busca em lotes sem perder nenhum', async () => {
+      const ids = Array.from({ length: 120 }, (_, i) => `00000000-0000-4000-8000-${(0xc000 + i).toString(16).padStart(12, '0')}`);
+      await db.admin(`insert into public.projects (id, owner_id, assigned_to, kind, title) select x, $1, $2, 'implantacao', 'P' from unnest($3::uuid[]) x`, [IDS.davi, IDS.ana, ids]);
+      for (const [i, id] of [ids[0]!, ids[60]!, ids[119]!].entries()) await insert('activities', activityRow(ID.fresh(10 + i), 'ana', { project_id: id }));
+      const linked = await apiAs('davi').linkedActivities(ids);
+      expect([...linked.keys()].sort()).toEqual([ids[0]!, ids[60]!, ids[119]!].sort());
     });
   });
 });
