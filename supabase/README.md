@@ -119,9 +119,20 @@ O administrador **ativo** pode alterar qualquer atividade, elemento, cabo, foto 
   O administrador nao altera o proprio acesso pela tela.
 - **Alteracoes e conflitos:** `admin_edits` (quem alterou o que de quem, antes -> depois, em portugues) e `sync_conflicts`
   (a edicao atrasada que o servidor recusou: "ficou ..." / "chegou ..."), das mais novas para as mais antigas, em paginas.
-- **Trilha GPS de um tecnico:** em *Atividade -> Ver trilha GPS*. Baixa os `track_points` da atividade em paginas de 500
+- **Trilha GPS de um tecnico** (administrador **e escritorio**; o RLS ja deixava ler): em *Atividade -> Ver trilha GPS*, tambem na ficha do painel (a trilha aparece no mapa do painel). Baixa os `track_points` da atividade em paginas de 500
   (ate 20 mil pontos), so quando pedido, guarda **so na memoria** (nada vai para o IndexedDB do administrador) e desenha no
   mapa em azul tracejado, com "Esconder trilha". A trilha continua um registro de deslocamento: nunca vira cabo.
+
+### Excluir uma atividade
+
+Excluir uma atividade e **logico** (`deleted = true`, nunca ha DELETE) e leva junto os elementos, cabos, fotos e a trilha dela,
+tudo com a mesma hora, numa so transacao do aparelho. Pode o **dono** e o **administrador** (o escritorio nao); o dono do registro
+nao muda e cada linha excluida pelo administrador entra em `admin_edits` (quem, quando, antes/depois). Limites conhecidos:
+
+- O administrador nunca baixa a trilha GPS dos outros, entao a trilha de um tecnico excluida por ele **continua guardada** no
+  servidor (`track_points`); so deixa de aparecer em qualquer tela. Excluida pelo proprio dono, a trilha sobe como excluida.
+- Se um aparelho que ainda nao sabia da exclusao enviar um registro novo para essa atividade, ele chega ao servidor; o painel
+  ignora tudo o que pertence a uma atividade excluida.
 
 ## Painel web do escritorio (so leitura)
 

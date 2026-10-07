@@ -43,6 +43,16 @@ describe('overview', () => {
     expect(o.technicians).toBe(2);
   });
 
+  it('o que sobrou de uma atividade excluida nao conta (elementos, cabos e fotos)', () => {
+    const o = overview({
+      activities: [act({ id: 'AV', ownerId: 'u1' }), act({ id: 'AG', ownerId: 'u1', deleted: true })],
+      elements: [el({ activityId: 'AV' }), el({ activityId: 'AG' })],
+      cables: [cable(100, { activityId: 'AV' }), cable(900, { activityId: 'AG' })],
+      photos: [photo({ activityId: 'AV' }), photo({ activityId: 'AG' })],
+    });
+    expect(o).toMatchObject({ activities: 1, elements: 1, cables: 1, totalMeters: 100, photos: 1 });
+  });
+
   it('nao conta o que foi excluido (atividade, elemento, cabo, foto)', () => {
     const o = overview({
       activities: [act({ ownerId: 'u1' }), act({ ownerId: 'u2', deleted: true })],

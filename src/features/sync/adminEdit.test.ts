@@ -211,3 +211,49 @@ describe('reabrir atividade: uma aberta por tecnico', () => {
     expect(err).toBe('ALREADY_OPEN');
   });
 });
+
+describe('o administrador exclui a atividade de um tecnico', () => {
+  it('a atividade e tudo o que e dela ficam excluidos no servidor (o dono nao muda) e o administrador nao ve "alteracoes substituidas"', async () => {
+    const { act, p1, p2, cable } = await seeded();
+    const removal = await davi.as(() => davi.acts.remove(act.id));
+    expect(removal).toMatchObject({ elements: 2, cables: 1, photos: 0, trackPoints: 0 }); // a trilha da Ana nunca foi baixada para o administrador
+    const r = await davi.sync();
+    expect(r.pushed).toBe(4);
+    expect(r.lostEdits).toBe(0);
+    for (const [table, id] of [['activities', act.id], ['elements', p1.id], ['elements', p2.id], ['cables', cable.id]] as const) {
+      expect(server.get(table, id), `${table} ${id}`).toMatchObject({ deleted: true, owner_id: 'ana', updated_by: 'davi' });
+    }
+    expect(server.adminEdits.filter((e) => e.after.deleted === true)).toHaveLength(4); // fica registrado quem excluiu cada um
+    expect(await davi.counts()).toMatchObject({ pending: 0, blocked: 0 });
+  });
+
+  it('a tecnica recebe: some da lista dela, nada fica pendente e a atividade aberta deixa de existir', async () => {
+    const { act, p1 } = await seeded();
+    await davi.as(() => davi.acts.remove(act.id));
+    await davi.sync();
+    const r = await ana.sync();
+    expect(r.lostEdits).toBe(0);
+    expect(await ana.as(() => ana.acts.list())).toEqual([]);
+    expect(await ana.as(() => ana.acts.getOpen())).toBeNull();
+    expect((await ana.db.elements.get(p1.id))).toMatchObject({ deleted: true, ownerId: 'ana', syncStatus: 'synced' });
+    expect(await ana.counts()).toMatchObject({ pending: 0, blocked: 0 });
+  });
+
+  it('o dono excluindo a propria atividade tambem sobe a trilha como excluida', async () => {
+    const { act, track } = await seeded();
+    const removal = await ana.as(() => ana.acts.remove(act.id));
+    expect(removal.trackPoints).toBe(3);
+    await ana.sync();
+    for (const t of track) expect(server.get('track_points', t.id), t.id).toMatchObject({ deleted: true });
+    expect(server.get('activities', act.id)).toMatchObject({ deleted: true });
+  });
+
+  it('o escritorio nao exclui (so leitura): o app recusa antes de gravar qualquer coisa', async () => {
+    const clara = await dev('clara', 'escritorio');
+    const { act } = await seeded();
+    await clara.sync();
+    const err = await clara.as(() => clara.acts.remove(act.id).then(() => null, (e: { code: string }) => e.code));
+    expect(err).toBe('NOT_OWNER');
+    expect(await clara.counts()).toMatchObject({ pending: 0 });
+  });
+});

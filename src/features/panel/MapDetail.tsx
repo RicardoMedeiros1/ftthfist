@@ -97,7 +97,7 @@ export default function MapDetail({ selection, data, onClose, onFocus }: { selec
       {!found && <div className="alert" role="alert">Este item não existe mais (foi excluído ou ainda não chegou).</div>}
       {el && <ElementCard key={el.id} el={el} activity={byId.get(el.activityId)} />}
       {cable && <CableCard key={cable.id} cable={cable} activity={byId.get(cable.activityId)} />}
-      {activity && <ActivityInfo key={activity.id} activity={activity} elements={data.elements} cables={data.cables} />}
+      {activity && <ActivityInfo key={activity.id} activity={activity} elements={data.elements} cables={data.cables} onDeleted={onClose} />}
     </aside>
   );
 }

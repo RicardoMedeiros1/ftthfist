@@ -124,6 +124,15 @@ const cableText = (c: Cable) => normalize(`${c.cableType} ${c.fiberCount} fibras
 
 // ---------- aplicar ----------
 
+/**
+ * Os registros vivos de uma lista: sem os excluidos E sem os de uma atividade excluida (a exclusao da atividade leva tudo junto,
+ * mas um registro que chegou depois, de um aparelho que ainda nao sabia, nao pode reaparecer no painel).
+ */
+export function liveItems<T extends { activityId: string; deleted: boolean }>(items: T[], activities: Pick<Activity, 'id' | 'deleted'>[]): T[] {
+  const gone = new Set(activities.filter((a) => a.deleted).map((a) => a.id));
+  return items.filter((x) => !x.deleted && !gone.has(x.activityId));
+}
+
 export interface MapData {
   activities: Activity[];
   elements: NetworkElement[];
@@ -153,8 +162,8 @@ export function activityPasses(a: Activity, f: ActivityFilterValues, from: numbe
 
 export function applyMapFilters(data: MapData, f: MapFilters): MapView {
   const acts = data.activities.filter((a) => !a.deleted);
-  const els = data.elements.filter((e) => !e.deleted);
-  const cbs = data.cables.filter((c) => !c.deleted);
+  const els = liveItems(data.elements, data.activities);
+  const cbs = liveItems(data.cables, data.activities);
   const byId = new Map(acts.map((a) => [a.id, a]));
   const from = f.from ? dayStart(f.from) : null;
   const to = f.to ? dayEnd(f.to) : null;

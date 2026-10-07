@@ -169,3 +169,6 @@
 .panel-filterbar .panel-counts { flex: 1 1 220px; }
 .panel-totals-table { font-size: 15px; }
 .panel-totals-table th, .panel-totals-table td { padding-left: 8px; padding-right: 8px; }
+
+/* a faixa da trilha dentro do mapa do painel: no canto, sem cobrir o botao de Ruas/Satelite */
+.panel-map-wrap .remote-track-bar { top: 10px; left: 10px; right: 130px; }

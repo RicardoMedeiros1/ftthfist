@@ -4,7 +4,7 @@ import { createPanelMapStore } from './panelMapStore';
 
 describe('panelMapStore', () => {
   it('comeca sem filtros, sem selecao e em "Ruas"', () => {
-    expect(createPanelMapStore().getState()).toEqual({ filters: DEFAULT_MAP_FILTERS, selection: null, view: null, base: 'ruas', focus: null, focusApplied: 0 });
+    expect(createPanelMapStore().getState()).toEqual({ filters: DEFAULT_MAP_FILTERS, selection: null, view: null, base: 'ruas', focus: null, focusApplied: 0, fitTo: null, fitApplied: 0 });
   });
 
   it('setFilters junta com o que ja esta e resetFilters volta ao padrao', () => {
@@ -36,6 +36,20 @@ describe('panelMapStore', () => {
     expect(s.getState().focusApplied).toBe(focus!.seq);
     s.focus({ kind: 'atividade', id: 'a1' });
     expect(s.getState().focus!.seq).toBeGreaterThan(s.getState().focusApplied);
+  });
+
+  it('pedido para enquadrar uma area: vale ate o mapa atender, e cada pedido e novo', () => {
+    const s = createPanelMapStore();
+    s.requestFit([1, 2, 3, 4]);
+    const first = s.getState().fitTo!;
+    expect(first).toMatchObject({ bounds: [1, 2, 3, 4] });
+    expect(first.seq).toBeGreaterThan(s.getState().fitApplied);
+    s.markFitApplied(first.seq);
+    s.markFitApplied(0);
+    expect(s.getState().fitApplied).toBe(first.seq);
+    s.requestFit([1, 2, 3, 4]);
+    expect(s.getState().fitTo!.seq).toBeGreaterThan(first.seq);
+    expect(s.getState().focus).toBeNull(); // nao abre ficha nenhuma
   });
 
   it('select (clique no mapa) abre o item sem pedir enquadramento', () => {

@@ -1,6 +1,9 @@
 import { Fragment, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Path } from 'leaflet';
 import { CircleMarker, MapContainer, Marker, Polyline, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import type { Cable, NetworkElement } from '../../db/types';
+import RemoteTrackBar from '../admin/RemoteTrackBar';
+import RemoteTrackLayer from '../admin/RemoteTrackLayer';
 import { CASING_COLOR, CASING_EXTRA, cableStyle } from '../cables/style';
 import { elementIcon } from '../elements/leafletIcon';
 import { ELEMENT_META } from '../elements/meta';
@@ -8,7 +11,10 @@ import { BASE_LAYERS } from '../map/layers';
 import type { Bounds } from '../map/mapCommands';
 import type { MapData, MapView } from './mapFilters';
 import { panelMapStore, usePanelMap, type Selection } from './panelMapStore';
+import { guardCanvasRedraw } from './leafletGuard';
 import { MARKER_LIMIT, boxOf, cablesInBox, padBox, pointInBox } from './viewport';
+
+guardCanvasRedraw();
 
 /** Teto de pontos desenhados como bolinhas (acima de MARKER_LIMIT); mais que isto a tela so atrapalha. */
 const DOT_LIMIT = 8000;
@@ -37,9 +43,21 @@ function Resizer() {
     ro.observe(map.getContainer());
     return () => ro.disconnect();
   }, [map]);
-  // Sair do painel no meio de uma animacao de zoom: o fim da animacao chegaria a um mapa ja removido (erro do Leaflet).
-  // O cleanup de layout roda antes do que remove o mapa.
-  useLayoutEffect(() => () => void map.stop(), [map]);
+  // Sair do painel com o mapa em movimento ou com linhas na tela. O cleanup de layout roda ANTES do que remove o mapa:
+  //  - para qualquer animacao (o fim dela chegaria a um mapa ja removido);
+  //  - tira as linhas/circulos daqui, enquanto o desenho em canvas ainda existe (se o canvas morre primeiro, remover a
+  //    linha depois agenda um redesenho que roda sem canvas: erro do Leaflet).
+  useLayoutEffect(
+    () => () => {
+      map.stop();
+      const paths: Path[] = [];
+      map.eachLayer((l) => {
+        if (l instanceof Path) paths.push(l);
+      });
+      paths.forEach((l) => map.removeLayer(l));
+    },
+    [map],
+  );
   return null;
 }
 
@@ -60,6 +78,18 @@ function FitToView({ view, fitKey }: { view: MapView; fitKey: string }) {
     done.current = fitKey;
     fit(map, b);
   }, [view, fitKey, map]);
+  return null;
+}
+
+/** Enquadra uma area pedida de fora (a trilha de um tecnico que acabou de chegar). */
+function FitRequests() {
+  const map = useMap();
+  const req = usePanelMap((s) => s.fitTo);
+  useEffect(() => {
+    if (!req || req.seq <= panelMapStore.getState().fitApplied) return;
+    panelMapStore.markFitApplied(req.seq);
+    fit(map, req.bounds);
+  }, [req, map]);
   return null;
 }
 
@@ -145,8 +175,11 @@ export default function NetworkMap({ data, view, fitKey, onSelect }: { data: Map
         <Resizer />
         <FitToView view={view} fitKey={fitKey} />
         <Focus data={data} />
+        <FitRequests />
+        <RemoteTrackLayer />
         <Layers elements={elements} cables={cables} dense={dense} selected={selection} onSelect={onSelect} />
       </MapContainer>
+      <RemoteTrackBar />
       <button className="btn btn-small panel-map-base" onClick={() => panelMapStore.setBase(other.id)} aria-label={`Trocar para ${other.label}`}>
         {other.label}
       </button>

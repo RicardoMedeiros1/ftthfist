@@ -91,6 +91,14 @@ describe('computeTotals', () => {
   });
 });
 
+describe('atividade excluida', () => {
+  it('cabos e elementos que sobraram de uma atividade excluida nao entram nos totais', () => {
+    const gone = act({ id: 'AG', technician: 'Ana', ownerId: 'u-ana', deleted: true });
+    const d = { activities: [...data.activities, gone], elements: [...data.elements, el('AG', 'poste')], cables: [...data.cables, cab('AG', 500, 0)] };
+    expect(sumTotals(computeTotals(d, F()))).toEqual(sumTotals(computeTotals(data, F())));
+  });
+});
+
 describe('sumTotals', () => {
   it('soma as linhas', () => {
     const t = sumTotals(computeTotals(data, F()));

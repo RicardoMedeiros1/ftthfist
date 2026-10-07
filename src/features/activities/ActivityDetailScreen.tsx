@@ -4,6 +4,8 @@ import { AdminBanner, EditedByNote } from '../../components/AdminNote';
 import NotMineNote from '../../components/NotMineNote';
 import { useAccount } from '../account/accountStore';
 import { adminApi, remoteTrackStore } from '../admin/adminRuntime';
+import { panelAccess } from '../panel/access';
+import DeleteActivity from './DeleteActivity';
 import ScreenShell from '../../components/ScreenShell';
 import { db } from '../../db/db';
 import type { Cable, NetworkElement, Photo } from '../../db/types';
@@ -34,7 +36,7 @@ export default function ActivityDetailScreen() {
   const photos = useLiveQuery(() => (id ? db.photos.where('activityId').equals(id).filter((p) => !p.deleted).toArray() : Promise.resolve([] as Photo[])), [id]);
   const mine = useIsMine(a);
   const editable = useCanEdit(a);
-  const isAdmin = useAccount((acc) => acc.status === 'ativo' && acc.profile?.role === 'admin');
+  const canSeeTrack = useAccount((acc) => panelAccess(acc.status, acc.profile?.role) === 'liberado'); // escritorio e administrador
 
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState('');
@@ -206,7 +208,7 @@ export default function ActivityDetailScreen() {
       <div className="detail-actions">
         <button className="btn" disabled={!bounds} onClick={seeOnMap}>Ver no mapa</button>
         <button className="btn" onClick={() => navigate('exportar', { id: a.id })}>Exportar</button>
-        {isAdmin && !mine && adminApi && (
+        {canSeeTrack && !mine && adminApi && (
           <button
             className="btn"
             onClick={() => {
@@ -231,6 +233,7 @@ export default function ActivityDetailScreen() {
               <button className="btn" onClick={() => void run(() => activities.reopen(a.id))}>Reabrir</button>
             )}
           </div>
+          <DeleteActivity activity={a} onDeleted={back} />
         </>
       ) : (
         <NotMineNote author={a.technician} what="atividade" />

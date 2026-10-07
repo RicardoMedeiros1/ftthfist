@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import type { BaseLayerId } from '../map/layers';
+import type { Bounds } from '../map/mapCommands';
 import { DEFAULT_MAP_FILTERS, type MapFilters } from './mapFilters';
 
 // O estado do mapa do painel (filtros, item aberto, ultima vista) fica fora da tela: abrir a ficha de um elemento e voltar
@@ -25,10 +26,13 @@ export interface PanelMapState {
   focus: (Selection & { seq: number }) | null;
   /** Ultimo pedido de enquadramento que o mapa ja atendeu (o pedido pode vir de outra secao, antes de o mapa existir). */
   focusApplied: number;
+  /** Pedido de enquadrar uma area (ex.: a trilha que acabou de chegar). Mesmo esquema de `focus`. */
+  fitTo: { bounds: Bounds; seq: number } | null;
+  fitApplied: number;
 }
 
 export function createPanelMapStore() {
-  let state: PanelMapState = { filters: DEFAULT_MAP_FILTERS, selection: null, view: null, base: 'ruas', focus: null, focusApplied: 0 };
+  let state: PanelMapState = { filters: DEFAULT_MAP_FILTERS, selection: null, view: null, base: 'ruas', focus: null, focusApplied: 0, fitTo: null, fitApplied: 0 };
   let seq = 0;
   const listeners = new Set<() => void>();
   const set = (patch: Partial<PanelMapState>) => {
@@ -48,6 +52,8 @@ export function createPanelMapStore() {
     focus: (s: Selection) => set({ selection: s, focus: { ...s, seq: ++seq } }),
     setView: (view: SavedView) => set({ view }),
     markFocusApplied: (seq: number) => set({ focusApplied: Math.max(state.focusApplied, seq) }),
+    requestFit: (bounds: Bounds) => set({ fitTo: { bounds, seq: ++seq } }),
+    markFitApplied: (n: number) => set({ fitApplied: Math.max(state.fitApplied, n) }),
     setBase: (base: BaseLayerId) => set({ base }),
   };
 }

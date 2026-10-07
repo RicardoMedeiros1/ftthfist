@@ -1,5 +1,6 @@
 import { db, newBase, touch, type RotaFibraDB } from '../../db/db';
-import type { Activity, ActivityKind, Material } from '../../db/types';
+import type { Activity, ActivityKind, BaseRecord, Material } from '../../db/types';
+import { detachElementFromCables, recomputeCable, unlinkReserves } from '../cables/cableLinks';
 import { canEdit, isMine, notMineMessage } from '../../lib/ownership';
 import { MAX_DESCRIPTION, sanitizeMaterials } from './materials';
 
@@ -22,6 +23,14 @@ export interface ActivityPatch {
   osNumber?: string;
   description?: string;
   materials?: Material[];
+}
+
+/** O que saiu junto com a atividade (para a mensagem de confirmacao e o aviso depois). */
+export interface ActivityRemoval {
+  elements: number;
+  cables: number;
+  photos: number;
+  trackPoints: number;
 }
 
 export interface NewActivityInput {
@@ -113,6 +122,39 @@ export function activityRepo(database: RotaFibraDB = db) {
         if (!canEdit(a)) throw new ActivityRuleError('NOT_OWNER', notMineMessage('atividade'));
         if (a.status === 'concluida') return;
         await database.activities.update(id, touch<Activity>({ status: 'concluida', endedAt: Date.now() }));
+      });
+    },
+
+    /**
+     * Exclusao LOGICA da atividade e de tudo o que e dela (elementos, cabos, fotos e trilha), de uma vez e com a mesma hora
+     * (o servidor reconhece como um so envio). Dono ou administrador. Cabos e reservas de OUTRAS atividades que dependiam
+     * de algo daqui ficam no lugar, sem o vinculo.
+     */
+    async remove(id: string): Promise<ActivityRemoval> {
+      return database.transaction('rw', [database.activities, database.elements, database.cables, database.photos, database.trackPoints], async () => {
+        const a = await database.activities.get(id);
+        if (!a || a.deleted) throw new ActivityRuleError('NOT_FOUND', 'Atividade não encontrada.');
+        if (!canEdit(a)) throw new ActivityRuleError('NOT_OWNER', notMineMessage('atividade'));
+        const now = Date.now();
+        const mark = async <T extends { id: string }>(find: () => Promise<T[]>, update: (rid: string, changes: never) => Promise<unknown>): Promise<T[]> => {
+          const found = await find();
+          for (const x of found) await update(x.id, touch<BaseRecord>({ deleted: true }, now) as never);
+          return found;
+        };
+        await database.activities.update(id, touch<Activity>({ deleted: true }, now));
+        const cables = await mark(() => database.cables.where('activityId').equals(id).filter((x) => !x.deleted).toArray(), (rid, ch) => database.cables.update(rid, ch));
+        const elements = await mark(() => database.elements.where('activityId').equals(id).filter((x) => !x.deleted).toArray(), (rid, ch) => database.elements.update(rid, ch));
+        const photos = await mark(() => database.photos.where('activityId').equals(id).filter((x) => !x.deleted).toArray(), (rid, ch) => database.photos.update(rid, ch));
+        const trackPoints = await mark(() => database.trackPoints.where('activityId').equals(id).filter((x) => !x.deleted).toArray(), (rid, ch) => database.trackPoints.update(rid, ch));
+        // o que ficou em outras atividades e dependia disto: cabo que passava por um poste daqui segue com o ponto solto,
+        // reserva que era de um cabo daqui fica sem cabo, e o total do cabo de fora perde a reserva que saiu
+        for (const c of cables) await unlinkReserves(database, c.id);
+        for (const e of elements) {
+          await detachElementFromCables(database, e.id);
+          const cableId = (e.attrs as { cableId?: string }).cableId;
+          if (e.type === 'reserva' && cableId) await recomputeCable(database, cableId);
+        }
+        return { elements: elements.length, cables: cables.length, photos: photos.length, trackPoints: trackPoints.length };
       });
     },
 

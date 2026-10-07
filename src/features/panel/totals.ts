@@ -2,7 +2,7 @@ import type { Activity, ActivityKind, Cable, ElementType, NetworkElement } from 
 import { round2 } from '../../lib/geo';
 import { ELEMENT_TYPES } from '../elements/meta';
 import { buildCsv, type CsvCell } from './csv';
-import { dayEnd, dayStart, ownerKey } from './mapFilters';
+import { dayEnd, dayStart, liveItems, ownerKey } from './mapFilters';
 
 // Totais por tecnico e periodo (secao "Totais" do painel). Funcoes puras; os mesmos numeros que o tecnico viu no app.
 //
@@ -77,18 +77,18 @@ export function computeTotals(data: TotalsData, f: TotalsFilters): TotalsRow[] {
     const owner = ownerKey(a);
     if (wanted(owner) && (f.kind === 'todas' || a.kind === f.kind) && inPeriod(a.startedAt)) row(owner, a.technician).activities++;
   }
-  for (const c of data.cables) {
+  for (const c of liveItems(data.cables, data.activities)) {
     const owner = recordOwner(c);
-    if (c.deleted || !wanted(owner) || !kindOk(c.activityId) || !inPeriod(c.createdAt)) continue;
+    if (!wanted(owner) || !kindOk(c.activityId) || !inPeriod(c.createdAt)) continue;
     const r = row(owner, c.createdBy);
     r.cables++;
     r.lengthMeters += c.lengthMeters;
     r.reserveMeters += c.reserveMeters;
     r.totalMeters += c.totalMeters;
   }
-  for (const e of data.elements) {
+  for (const e of liveItems(data.elements, data.activities)) {
     const owner = recordOwner(e);
-    if (e.deleted || !wanted(owner) || !kindOk(e.activityId) || !inPeriod(e.createdAt)) continue;
+    if (!wanted(owner) || !kindOk(e.activityId) || !inPeriod(e.createdAt)) continue;
     const r = row(owner, e.createdBy);
     r.elements++;
     r.byType[e.type]++;

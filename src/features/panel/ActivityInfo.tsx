@@ -5,12 +5,17 @@ import { db } from '../../db/db';
 import { formatDateTime, formatDuration } from '../../lib/format';
 import { formatMeters } from '../../lib/geo';
 import { navigate } from '../../lib/route';
+import { useAccount } from '../account/accountStore';
+import { adminApi, remoteTrackStore } from '../admin/adminRuntime';
+import { useIsMine } from '../../lib/useOwnership';
+import DeleteActivity from '../activities/DeleteActivity';
 import { KIND_LABEL } from '../activities/labels';
 import { formatMaterial } from '../activities/materials';
 import { summarizeActivity } from '../activities/summary';
 import { cableLabel } from '../cables/cableChoices';
 import { elementSvg } from '../elements/elementSvg';
 import { ELEMENT_META } from '../elements/meta';
+import { panelAccess } from './access';
 
 const PAGE = 10;
 
@@ -24,8 +29,10 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 /** Ficha de uma atividade (so leitura): quem, quando, materiais, totais e o que ha nela. Usada no mapa e na tabela do painel. */
-export default function ActivityInfo({ activity, elements, cables, onShowOnMap }: { activity: Activity; elements: NetworkElement[]; cables: Cable[]; onShowOnMap?: () => void }) {
+export default function ActivityInfo({ activity, elements, cables, onShowOnMap, onDeleted }: { activity: Activity; elements: NetworkElement[]; cables: Cable[]; onShowOnMap?: () => void; onDeleted?: () => void }) {
   const photos = useLiveQuery(() => db.photos.where('activityId').equals(activity.id).filter((p) => !p.deleted).count(), [activity.id]);
+  const mine = useIsMine(activity);
+  const canSeeTrack = useAccount((a) => panelAccess(a.status, a.profile?.role) === 'liberado');
   const [allEls, setAllEls] = useState(false);
   const [allCables, setAllCables] = useState(false);
   const els = elements.filter((e) => e.activityId === activity.id && !e.deleted).sort((a, b) => a.createdAt - b.createdAt);
@@ -74,7 +81,19 @@ export default function ActivityInfo({ activity, elements, cables, onShowOnMap }
         {onShowOnMap && <button className="btn" onClick={onShowOnMap} disabled={els.length === 0 && cbs.length === 0}>Ver no mapa</button>}
         <button className="btn" onClick={() => navigate('atividade', { id: activity.id })}>Abrir atividade</button>
         <button className="btn" onClick={() => navigate('exportar', { id: activity.id })}>Exportar</button>
+        {canSeeTrack && !mine && adminApi && (
+          <button
+            className="btn"
+            onClick={() => {
+              void remoteTrackStore.show(activity.id, `${activity.title} · ${activity.technician}`);
+              navigate('painel', { id: 'mapa' });
+            }}
+          >
+            Ver trilha GPS
+          </button>
+        )}
       </div>
+      <DeleteActivity activity={activity} onDeleted={onDeleted} />
 
       <section className="field" aria-label="Elementos">
         <span className="label">Elementos ({els.length})</span>

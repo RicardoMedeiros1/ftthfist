@@ -159,6 +159,7 @@ export default function ActivitiesTableSection() {
               activity={selected}
               elements={data.elements}
               cables={data.cables}
+              onDeleted={() => panelTableStore.select(null)}
               onShowOnMap={() => {
                 panelMapStore.focus({ kind: 'atividade', id: selected.id });
                 navigate('painel', { id: 'mapa' });

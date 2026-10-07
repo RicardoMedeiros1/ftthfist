@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { mapCommands } from '../map/mapCommands';
+import { panelMapStore } from '../panel/panelMapStore';
 import { isSupabaseConfigured, loadSupabaseClient } from '../account/supabaseClient';
 import { AdminError, createSupabaseAdminApi, type AdminApi } from './adminApi';
 import { createRemoteTrackStore, type RemoteTrackState } from './remoteTrack';
@@ -35,7 +36,9 @@ export const remoteTrackStore = createRemoteTrackStore({
   api: () => adminApi,
   onReady: (bounds) => {
     if (!bounds) return;
-    if (bounds[0] === bounds[2] && bounds[1] === bounds[3]) mapCommands.center(bounds[0], bounds[1], 19);
+    // quem pediu a trilha estava no painel? entao e o mapa do painel que enquadra (o do app de campo fica atras dele)
+    if (window.location.hash.startsWith('#/painel')) panelMapStore.requestFit(bounds);
+    else if (bounds[0] === bounds[2] && bounds[1] === bounds[3]) mapCommands.center(bounds[0], bounds[1], 19);
     else mapCommands.fitBounds(bounds);
   },
 });

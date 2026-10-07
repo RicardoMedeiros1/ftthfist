@@ -437,6 +437,31 @@ describe.skipIf(!enabled)('motor de sincronização contra Postgres + PostgREST 
       expect(await count('sync_conflicts')).toBe(1);
     });
 
+    it('o administrador exclui a atividade da Ana: tudo fica excluido no servidor, o dono continua a Ana, fica o registro e a Ana recebe sem aviso de substituicao', async () => {
+      const ana = await device('ana');
+      const { act, p1, p2, cable } = await fieldWork(ana, 'Ana');
+      await ana.sync();
+      const davi = await device('davi', 'admin');
+      await davi.sync();
+      const removal = await davi.as(() => davi.acts.remove(act.id));
+      expect(removal).toMatchObject({ elements: 2, cables: 1 });
+      const r = await davi.sync();
+      expect(r).toMatchObject({ pushed: 4, newlyBlocked: 0, lostEdits: 0 });
+      const rows = await db.admin<{ t: string; deleted: boolean; owner_id: string; updated_by: string }>(
+        `select 'a' t, deleted, owner_id, updated_by from public.activities where id = $1
+         union all select 'e', deleted, owner_id, updated_by from public.elements where id in ($2, $3)
+         union all select 'c', deleted, owner_id, updated_by from public.cables where id = $4`, [act.id, p1.id, p2.id, cable.id]);
+      expect(rows).toHaveLength(4);
+      for (const x of rows) expect(x).toMatchObject({ deleted: true, owner_id: IDS.ana, updated_by: IDS.davi });
+      // a trilha gravada continua no servidor (o administrador nunca baixa a trilha dos outros), mas a atividade ja nao existe
+      expect((await db.admin<{ n: string }>(`select count(*) n from public.track_points where activity_id = $1 and not deleted`, [act.id]))[0]!.n).toBe('3');
+      expect((await adminRows()).filter((l) => l.after.deleted === true)).toHaveLength(4);
+      const back = await ana.sync();
+      expect(back.lostEdits).toBe(0);
+      expect(await ana.as(() => ana.acts.list())).toEqual([]);
+      expect(await ana.counts()).toMatchObject({ pending: 0, blocked: 0 });
+    });
+
     it('escritorio e tecnico nao conseguem alterar o que e de outro pelo servidor', async () => {
       const ana = await device('ana');
       const { p1 } = await fieldWork(ana, 'Ana');

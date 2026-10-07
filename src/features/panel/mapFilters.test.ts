@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Activity, Cable, NetworkElement } from '../../db/types';
-import { DEFAULT_MAP_FILTERS, activeMapFilterCount, applyMapFilters, dayEnd, dayStart, ownerKey, presetRange, searchHits, technicianOptions, toDateInput, type MapFilters } from './mapFilters';
+import { DEFAULT_MAP_FILTERS, activeMapFilterCount, applyMapFilters, liveItems, dayEnd, dayStart, ownerKey, presetRange, searchHits, technicianOptions, toDateInput, type MapFilters } from './mapFilters';
 
 const base = { id: 'x', createdAt: 1, updatedAt: 1, createdBy: 'a', deleted: false, syncStatus: 'synced' as const };
 let n = 0;
@@ -116,6 +116,21 @@ describe('applyMapFilters', () => {
   it('atividades da lista: so as que passam e (com busca) as que combinam ou tem item achado', () => {
     expect(ids(applyMapFilters(data, F({ owner: 'u-ana' })).activities)).toEqual(['A1']);
     expect(ids(applyMapFilters(data, F({ query: 'OC-1' })).activities)).toEqual(['A2']);
+  });
+});
+
+describe('atividade excluida', () => {
+  const gone = act({ id: 'AG', deleted: true });
+  const withGone = { activities: [...data.activities, gone], elements: [...data.elements, el('AG', { id: 'EG' })], cables: [...data.cables, cable('AG', { id: 'CG' })] };
+  it('o que ficou dela (chegou depois da exclusao) nao aparece nem conta nos totais', () => {
+    const v = applyMapFilters(withGone, F());
+    expect(ids(v.elements)).toEqual(['E1', 'E2', 'E3']);
+    expect(ids(v.cables)).toEqual(['C1', 'C2']);
+    expect(v.totals).toEqual({ activities: 2, elements: 3, cables: 2 });
+  });
+  it('liveItems tira os excluidos e os de atividade excluida, e deixa os de atividade que ainda nao chegou', () => {
+    const items = [{ id: 'a', activityId: 'A1', deleted: false }, { id: 'b', activityId: 'AG', deleted: false }, { id: 'c', activityId: 'A1', deleted: true }, { id: 'd', activityId: 'A404', deleted: false }];
+    expect(liveItems(items, [{ id: 'A1', deleted: false }, { id: 'AG', deleted: true }]).map((x) => x.id)).toEqual(['a', 'd']);
   });
 });
 
