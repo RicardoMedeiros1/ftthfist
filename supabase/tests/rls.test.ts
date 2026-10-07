@@ -489,6 +489,25 @@ describe.skipIf(!DB_URL)('conferir-desenho.sql (a migration do desenho do projet
     expect(rows.filter((r) => r.resultado !== 'OK')).toEqual([]);
   });
 
+  const migration = () => readFileSync(new URL('../migrations/20261006150700_projetos_desenho.sql', import.meta.url), 'utf8');
+
+  it('o arquivo pode ser rodado de novo (colado duas vezes) sem erro e sem alterar nada', async () => {
+    await db.admin(migration());
+    await db.admin(migration());
+    expect((await db.admin<{ resultado: string }>(script())).filter((r) => r.resultado !== 'OK')).toEqual([]);
+  });
+
+  it('rodar de novo completa o que faltava (colagem cortada)', async () => {
+    await db.run('postgres', async (tx) => {
+      await tx.q(`alter table public.projects drop constraint projects_plan_valid`);
+      await tx.q(`drop function public.plan_is_valid(jsonb)`);
+      await tx.q(migration());
+      expect((await tx.q<{ resultado: string }>(script())).filter((r) => r.resultado !== 'OK')).toEqual([]);
+      // a funcao refeita volta a recusar coordenada fora do mapa
+      expect((await tx.q<{ ok: boolean }>(`select public.plan_is_valid('{"lines":[],"points":[{"id":"a","type":"poste","lat":999,"lng":0}]}'::jsonb) as ok`))[0]!.ok).toBe(false);
+    });
+  });
+
   it('acusa FALTA quando a migration nao foi aplicada ate o fim (regra, funcao e coluna)', async () => {
     await db.run('postgres', async (tx) => {
       await tx.q(`alter table public.projects drop constraint projects_plan_valid`);

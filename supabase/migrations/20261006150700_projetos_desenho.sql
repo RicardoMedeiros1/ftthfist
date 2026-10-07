@@ -1,5 +1,5 @@
 -- RotaFibra - desenho do projeto: o administrador desenha no mapa o tracado e os pontos projetados, e o tecnico ve como guia.
--- Aplicar depois do arquivo 13 (...150600_projetos), em ordem do nome.
+-- Aplicar depois do arquivo 13 (...150600_projetos), em ordem do nome. Pode ser rodado de novo sem erro (nao repete o que ja existe).
 
 set search_path = public, extensions;
 
@@ -10,7 +10,7 @@ do $$ begin
 end $$;
 
 -- [lat, lng] dentro do mundo.
-create function public.plan_coord_ok(v jsonb) returns boolean language plpgsql immutable set search_path = public as
+create or replace function public.plan_coord_ok(v jsonb) returns boolean language plpgsql immutable set search_path = public as
 $$
 begin
   if jsonb_typeof(v) is distinct from 'array' then return false; end if;
@@ -23,7 +23,7 @@ end $$;
 
 -- O desenho: {"lines": [{"id", "points": [[lat, lng], ...]}], "points": [{"id", "type", "lat", "lng", "code"?}]}
 -- Mesmos limites do app (src/features/projects/plan.ts): 200 tracados, 2000 pontos, 5000 vertices por tracado, 20000 no total.
-create function public.plan_is_valid(p jsonb) returns boolean language plpgsql immutable set search_path = public as
+create or replace function public.plan_is_valid(p jsonb) returns boolean language plpgsql immutable set search_path = public as
 $$
 declare l jsonb; v jsonb; pt jsonb; total int := 0;
 begin
@@ -48,6 +48,10 @@ begin
 end $$;
 
 -- Sem desenho = nulo. Quem escreve (administrador) e quem le (como o resto do projeto) nao muda.
-alter table public.projects add column plan jsonb;
-alter table public.projects add constraint projects_plan_valid check (plan is null or public.plan_is_valid(plan));
+alter table public.projects add column if not exists plan jsonb;
+do $$ begin
+  if not exists (select 1 from pg_constraint where conname = 'projects_plan_valid' and conrelid = 'public.projects'::regclass) then
+    alter table public.projects add constraint projects_plan_valid check (plan is null or public.plan_is_valid(plan));
+  end if;
+end $$;
 -- fim: desenho do projeto
