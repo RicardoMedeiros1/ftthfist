@@ -75,6 +75,8 @@ export function createSyncStore(deps: SyncStoreDeps) {
   const listeners = new Set<() => void>();
   let running = false;
   let rerun = false;
+  /** Algo novo foi gravado com um ciclo em andamento: o ciclo ja tinha lido a fila, entao precisa de outro logo depois. */
+  let grewWhileRunning: 'comum' | 'trilha' | null = null;
   let failures = 0;
   let lastAutoAt = -Infinity;
   let cancelTimer: (() => void) | null = null;
@@ -113,6 +115,9 @@ export function createSyncStore(deps: SyncStoreDeps) {
     set({ pending: c.pending, blocked: c.blocked });
     // sem internet: o app nao tem como enviar agora; deixa o navegador acordar o envio quando a internet voltar
     if (c.pending > 0 && deps.who() && !deps.isOnline()) deps.backgroundSync?.();
+    if (grew && running && deps.who()) {
+      grewWhileRunning = grewOther || grewWhileRunning === 'comum' ? 'comum' : 'trilha';
+    }
     if (grew && !running && deps.who() && deps.isOnline()) {
       // Gravou algo novo: envia logo (junta gravacoes seguidas). So o ponto de TRILHA (grava a cada poucos segundos) fica
       // limitado a um ciclo a cada MIN_AUTO_INTERVAL_MS; poste, cabo, foto e atividade sobem apos o agrupamento.
@@ -204,9 +209,15 @@ export function createSyncStore(deps: SyncStoreDeps) {
     } finally {
       running = false;
       await refreshCounts(); // le a conta de agora, entao serve mesmo se mudou no meio
+      const grew = grewWhileRunning;
+      grewWhileRunning = null;
       if (rerun) {
         rerun = false;
         schedule(0, 'repetir');
+      } else if (grew && report && deps.who() && deps.isOnline()) {
+        // gravou durante o ciclo: sem isto o registro ficaria pendente ate o proximo gatilho (a contagem acima ja o absorveu).
+        // Se o ciclo falhou, vale o recuo crescente ja agendado.
+        schedule(grew === 'comum' ? CHANGE_DEBOUNCE_MS : Math.max(CHANGE_DEBOUNCE_MS, lastAutoAt + MIN_AUTO_INTERVAL_MS - deps.now()), 'mudanca');
       }
     }
     return report;

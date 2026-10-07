@@ -225,6 +225,81 @@ describe('alteração comum não espera o intervalo da trilha', () => {
   });
 });
 
+describe('gravou durante um ciclo', () => {
+  /** Inicia um ciclo "pendurado" (o motor ainda esta enviando) e devolve como termina-lo. */
+  async function startHangingCycle() {
+    await h.store.start();
+    await flush();
+    h.cycles.length = 0;
+    let release!: () => void;
+    h.setOutcome(() => new Promise((r) => (release = () => r(REPORT))));
+    h.changeCounts(1);
+    await h.tick(CHANGE_DEBOUNCE_MS);
+    expect(h.store.getState().phase).toBe('sincronizando');
+    return () => {
+      h.setOutcome(async () => REPORT);
+      release();
+    };
+  }
+
+  it('um poste gravado enquanto o ciclo roda sobe logo depois dele (nao fica pendente esperando outro gatilho)', async () => {
+    const finish = await startHangingCycle();
+    h.changeCounts(2); // o tecnico marca outro poste com o ciclo ainda rodando
+    finish();
+    await flush();
+    expect(h.cycles).toHaveLength(1);
+    await h.tick(CHANGE_DEBOUNCE_MS);
+    expect(h.cycles).toHaveLength(2);
+  });
+
+  it('ponto de trilha gravado durante o ciclo continua limitado ao intervalo minimo', async () => {
+    const finish = await startHangingCycle();
+    h.changeCounts(2, 0, 1); // so cresceu a trilha
+    finish();
+    await flush();
+    await h.tick(CHANGE_DEBOUNCE_MS);
+    expect(h.cycles).toHaveLength(1);
+    await h.tick(MIN_AUTO_INTERVAL_MS);
+    expect(h.cycles).toHaveLength(2);
+  });
+
+  it('um poste seguido de pontos de trilha durante o mesmo ciclo: o poste manda (sobe em poucos segundos)', async () => {
+    const finish = await startHangingCycle();
+    h.changeCounts(2); // poste
+    h.changeCounts(3, 0, 1); // e depois a trilha cresce
+    finish();
+    await flush();
+    await h.tick(CHANGE_DEBOUNCE_MS);
+    expect(h.cycles).toHaveLength(2);
+  });
+
+  it('se o ciclo falhou, vale a espera crescente (a gravacao nao fura o recuo)', async () => {
+    await h.store.start();
+    await flush();
+    h.cycles.length = 0;
+    let fail!: () => void;
+    h.setOutcome(() => new Promise((_r, rej) => (fail = () => rej(new CycleAbort('server', 'x')))));
+    h.changeCounts(1);
+    await h.tick(CHANGE_DEBOUNCE_MS);
+    h.changeCounts(2);
+    h.setOutcome(async () => REPORT);
+    fail();
+    await flush();
+    await h.tick(CHANGE_DEBOUNCE_MS + 1_000);
+    expect(h.cycles).toHaveLength(1); // ainda no recuo de 15 s
+    await h.tick(15_000);
+    expect(h.cycles).toHaveLength(2);
+  });
+
+  it('sem nada novo durante o ciclo, nao abre outro', async () => {
+    const finish = await startHangingCycle();
+    finish();
+    await flush();
+    await h.tick(MIN_AUTO_INTERVAL_MS);
+    expect(h.cycles).toHaveLength(1);
+  });
+});
+
 describe('um ciclo de cada vez', () => {
   it('"sincronizar agora" durante um ciclo não abre outro em paralelo; repete uma vez depois', async () => {
     await h.store.start();
