@@ -114,3 +114,14 @@ describe('meus projetos (tecnico)', () => {
     expect(hashFor('meu-projeto')).toBe('#/');
   });
 });
+
+describe('desenho do projeto', () => {
+  it('rota propria, sem confundir com o projeto', () => {
+    expect(parseLocation('#/projeto/abc/desenho')).toEqual({ route: 'projeto-desenho', id: 'abc' });
+    expect(parseLocation('#/projeto/abc')).toEqual({ route: 'projeto', id: 'abc' });
+    expect(parseRoute('#/projeto//desenho')).toBe('map');
+    expect(hashFor('projeto-desenho', 'a b')).toBe('#/projeto/a%20b/desenho');
+    expect(parseLocation(hashFor('projeto-desenho', 'a b'))).toEqual({ route: 'projeto-desenho', id: 'a b' });
+    expect(hashFor('projeto-desenho')).toBe('#/');
+  });
+});

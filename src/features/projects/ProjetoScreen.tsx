@@ -14,6 +14,7 @@ import { useAdminData } from '../admin/useAdminData';
 import { assignable, roleSuffix } from './assignable';
 import { emptyForm, formFromProject, formatCoordinates, parseCoordinates, validateForm, TITLE_MAX, type FormErrors, type ProjectForm } from './projectForm';
 import { patchFromInput } from './projectRows';
+import { planSummary } from './plan';
 import { formatDueDate, isOverdue, projectState, STATE_LABEL } from './projectState';
 import type { LinkedActivity, Project } from './types';
 import './projects.css';
@@ -251,6 +252,12 @@ export default function ProjetoScreen() {
               {project.status === 'aberto' && <button className="btn btn-danger btn-block" disabled={busy || !online} onClick={() => setAsk({ kind: 'cancelar' })}>Cancelar projeto</button>}
               {project.status !== 'aberto' && <button className="btn btn-block" disabled={busy || !online} onClick={() => setAsk({ kind: 'reabrir' })}>Reabrir projeto</button>}
             </div>
+          </section>
+          <section className="card" aria-label="Desenho do projeto">
+            <div className="card-title">Desenho no mapa</div>
+            <div className="card-meta">{planSummary(project.plan)}</div>
+            <p className="hint">Marque o traçado e os pontos no mapa. O técnico vê como guia; ele continua marcando os postes e cabos de verdade no campo.</p>
+            <button className="btn btn-block" disabled={busy || !online} onClick={() => navigate('projeto-desenho', { id: project.id })}>{project.plan ? 'Editar desenho' : 'Desenhar no mapa'}</button>
           </section>
           <section className="field" aria-label="Atividades do projeto">
             <span className="label">Atividades deste projeto ({linked.length})</span>

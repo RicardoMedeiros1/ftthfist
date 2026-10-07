@@ -12,6 +12,7 @@ import PanelScreen from './features/panel/PanelScreen';
 import MeuProjetoScreen from './features/projects/MeuProjetoScreen';
 import MeusProjetosScreen from './features/projects/MeusProjetosScreen';
 import ProjectNotice from './features/projects/ProjectNotice';
+import ProjetoDesenhoScreen from './features/projects/ProjetoDesenhoScreen';
 import ProjetoScreen from './features/projects/ProjetoScreen';
 import ProjetosScreen from './features/projects/ProjetosScreen';
 import { initSync } from './features/sync/syncRuntime';
@@ -84,6 +85,7 @@ export default function App() {
       {route === 'alteracoes' && <AlteracoesScreen />}
       {route === 'projetos' && <ProjetosScreen />}
       {(route === 'projeto' || route === 'projeto-novo') && <ProjetoScreen />}
+      {route === 'projeto-desenho' && <ProjetoDesenhoScreen />}
       {route === 'meus-projetos' && <MeusProjetosScreen />}
       {route === 'meu-projeto' && <MeuProjetoScreen />}
       {route === 'painel' && <PanelScreen />}
