@@ -294,3 +294,34 @@ describe('atividade ligada ao projeto', () => {
     expect('completesProject' in got).toBe(false);
   });
 });
+
+describe('desenho do projeto', () => {
+  const plan = { lines: [{ id: 'l1', points: [[-23.55, -46.63], [-23.551, -46.631]] }], points: [{ id: 'p1', type: 'cto', lat: -23.55, lng: -46.63, code: 'CTO-1' }] };
+  it('chega ao tecnico junto com o projeto, e ao administrador e ao escritorio', async () => {
+    save('p1', 'ana', { plan });
+    for (const d of [ana, davi, clara]) await d.sync();
+    for (const d of [ana, davi, clara]) expect((await d.db.projects.get('p1'))!.plan, d.userId).toEqual(plan);
+  });
+  it('mudar o desenho chega como qualquer outra mudanca, e apagar tambem', async () => {
+    save('p1', 'ana', { plan });
+    await ana.sync();
+    const plan2 = { lines: [], points: [{ id: 'p2', type: 'poste', lat: 1, lng: 2 }] };
+    save('p1', 'ana', { plan: plan2 });
+    await ana.sync();
+    expect((await ana.db.projects.get('p1'))!.plan).toEqual(plan2);
+    save('p1', 'ana', { plan: null });
+    await ana.sync();
+    expect('plan' in (await ana.db.projects.get('p1'))!).toBe(false);
+  });
+  it('projeto sem desenho nao ganha o campo', async () => {
+    save('p1', 'ana');
+    await ana.sync();
+    expect('plan' in (await ana.db.projects.get('p1'))!).toBe(false);
+  });
+  it('desenho corrompido no servidor nao derruba o projeto: ele chega sem o que nao presta', async () => {
+    save('p1', 'ana', { plan: { lines: [{ id: 'a', points: [[0, 0]] }], points: [{ id: 'ok', type: 'poste', lat: 1, lng: 2 }, { id: 'ruim', type: 'zzz', lat: 1, lng: 2 }] } });
+    await ana.sync();
+    expect((await ana.db.projects.get('p1'))!.plan).toEqual({ lines: [], points: [{ id: 'ok', type: 'poste', lat: 1, lng: 2 }] });
+  });
+});
+

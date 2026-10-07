@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { linkedFromRow, patchFromInput, projectFromRow, rowFromPatch } from './projectRows';
+import type { ProjectPlan } from './types';
 
 const row = {
   id: 'p1', owner_id: 'adm', assigned_to: 'u1', title: 'Rua X', kind: 'manutencao', os_number: 'OS-1', description: 'd', address: 'end',
@@ -63,5 +64,33 @@ describe('linkedFromRow', () => {
   it('padroes: aberta, nao termina o projeto, sem data se vier ilegivel', () => {
     const l = linkedFromRow({ id: 'a2', title: null, technician: null, status: 'x', started_at: 'lixo' });
     expect(l).toEqual({ id: 'a2', title: '', technician: '', status: 'aberta', completesProject: false, deleted: false });
+  });
+});
+
+describe('desenho do projeto', () => {
+  const plan: ProjectPlan = { lines: [{ id: 'l1', points: [[-23.55, -46.63], [-23.551, -46.631]] }], points: [{ id: 'p1', type: 'cto', lat: -23.55, lng: -46.63, code: 'CTO-1' }] };
+  it('chega do servidor como desenho do projeto', () => {
+    expect(projectFromRow({ ...row, plan }).plan).toEqual(plan);
+  });
+  it('sem desenho, nulo, vazio ou ilegivel: o campo fica ausente (nunca null nem objeto vazio)', () => {
+    for (const bad of [undefined, null, {}, { lines: [], points: [] }, 'x', 7, { lines: 'a' }]) {
+      const p = projectFromRow({ ...row, plan: bad });
+      expect('plan' in p).toBe(false);
+    }
+  });
+  it('um desenho com pedacos invalidos chega so com o que presta', () => {
+    const p = projectFromRow({ ...row, plan: { lines: [{ id: 'a', points: [[0, 0]] }], points: [{ id: 'ok', type: 'poste', lat: 1, lng: 2 }, { id: 'ruim', type: 'x', lat: 1, lng: 2 }] } });
+    expect(p.plan).toEqual({ lines: [], points: [{ id: 'ok', type: 'poste', lat: 1, lng: 2 }] });
+  });
+  it('o formulario comum NUNCA manda o desenho (editar o nome nao o apaga)', () => {
+    const patch = patchFromInput({ assignedTo: 'u', title: 't', kind: 'implantacao', description: '', address: '' });
+    expect('plan' in patch).toBe(false);
+    expect('plan' in rowFromPatch(patch)).toBe(false);
+  });
+  it('a tela de desenho manda o desenho, ou null para apagar; undefined nao mexe', () => {
+    expect(rowFromPatch({ plan })).toEqual({ plan });
+    expect(rowFromPatch({ plan: null })).toEqual({ plan: null });
+    expect(rowFromPatch({ plan: undefined })).toEqual({});
+    expect(rowFromPatch({ title: 'x', plan })).toEqual({ title: 'x', plan });
   });
 });

@@ -476,3 +476,29 @@ describe.skipIf(!DB_URL)('conferir-projetos.sql (a migration dos projetos design
     });
   });
 });
+
+describe.skipIf(!DB_URL)('conferir-desenho.sql (a migration do desenho do projeto)', () => {
+  let db: TestDb;
+  beforeAll(async () => { db = await createTestDb(); });
+  afterAll(async () => { await db?.drop(); });
+  const script = () => readFileSync(new URL('../conferir-desenho.sql', import.meta.url), 'utf8');
+
+  it('num banco com todas as migrations, todas as linhas dizem OK', async () => {
+    const rows = await db.admin<{ item: string; resultado: string }>(script());
+    expect(rows).toHaveLength(3);
+    expect(rows.filter((r) => r.resultado !== 'OK')).toEqual([]);
+  });
+
+  it('acusa FALTA quando a migration nao foi aplicada ate o fim (regra, funcao e coluna)', async () => {
+    await db.run('postgres', async (tx) => {
+      await tx.q(`alter table public.projects drop constraint projects_plan_valid`);
+      await tx.q(`drop function public.plan_is_valid(jsonb)`);
+      const falta = (await tx.q<{ resultado: string; item: string }>(script())).filter((r) => r.resultado === 'FALTA').map((r) => r.item);
+      expect(falta).toHaveLength(2); // a regra e uma das duas funcoes
+      expect(falta.join(' ')).toContain('projects_plan_valid');
+      expect(falta.join(' ')).toContain('funcoes');
+      await tx.q(`alter table public.projects drop column plan`);
+      expect((await tx.q<{ resultado: string }>(script())).filter((r) => r.resultado === 'FALTA')).toHaveLength(3);
+    });
+  });
+});

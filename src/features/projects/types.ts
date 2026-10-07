@@ -3,7 +3,7 @@ import type { ActivityKind } from '../../db/types';
 // Projeto designado: o administrador cria, o tecnico executa (as atividades dele ficam ligadas ao projeto).
 // O registro em si (`Project`) e a copia local do servidor e mora em db/types.
 
-export type { Project, ProjectStatus } from '../../db/types';
+export type { PlanLine, PlanPoint, PlanPointType, Project, ProjectPlan, ProjectStatus } from '../../db/types';
 
 /** O que se mostra: mistura o que o administrador marcou com o andamento das atividades ligadas. */
 export type ProjectState = 'pendente' | 'em_andamento' | 'concluido' | 'cancelado';

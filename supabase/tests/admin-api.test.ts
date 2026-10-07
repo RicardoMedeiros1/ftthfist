@@ -218,6 +218,25 @@ describe.skipIf(!enabled)('ferramentas do administrador contra o servidor de ver
       expect((await apiAs('davi').listProjects())[0]!.title).toBe('Rua das Flores');
     });
 
+    it('o desenho: grava, volta igual, apaga com null; editar o resto nao o apaga; desenho malformado e recusado (invalid)', async () => {
+      const plan = { lines: [{ id: 'l1', points: [[-23.55, -46.63], [-23.551, -46.631]] as [number, number][] }], points: [{ id: 'p1', type: 'cto' as const, lat: -23.55, lng: -46.63, code: 'CTO-1' }] };
+      await apiAs('davi').createProject(P1, input);
+      expect('plan' in (await apiAs('davi').listProjects())[0]!).toBe(false);
+      expect((await apiAs('davi').updateProject(P1, { plan })).plan).toEqual(plan);
+      expect((await apiAs('ana').listProjects())[0]!.plan).toEqual(plan); // o tecnico responsavel recebe
+      const edited = await apiAs('davi').updateProject(P1, patchFromInput({ ...input, title: 'Outro nome', description: 'nova instrucao' }));
+      expect(edited).toMatchObject({ title: 'Outro nome', plan });
+      await expect(apiAs('davi').updateProject(P1, { plan: { lines: [{ id: 'x', points: [[0, 0]] }], points: [] } })).rejects.toMatchObject({ kind: 'invalid' });
+      expect((await apiAs('davi').listProjects())[0]!.plan).toEqual(plan); // a recusa nao estragou o que ja havia
+      const cleared = await apiAs('davi').updateProject(P1, { plan: null });
+      expect('plan' in cleared).toBe(false);
+    });
+
+    it('o tecnico nao grava o desenho (denied)', async () => {
+      await apiAs('davi').createProject(P1, input);
+      await expect(apiAs('ana').updateProject(P1, { plan: { lines: [], points: [{ id: 'p', type: 'poste', lat: 1, lng: 2 }] } })).rejects.toMatchObject({ kind: 'denied' });
+    });
+
     it('atividades ligadas: por projeto, sem as excluidas, em ordem de inicio, com o "terminou o projeto"', async () => {
       await apiAs('davi').createProject(P1, input);
       await apiAs('davi').createProject(P2, { ...input, title: 'Sem atividade' });

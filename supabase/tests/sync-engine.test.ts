@@ -561,6 +561,21 @@ describe.skipIf(!enabled)('motor de sincronização contra Postgres + PostgREST 
       expect(await db.admin(`select project_id, completes_project from public.activities where id = $1`, [act.id])).toEqual([{ project_id: null, completes_project: false }]);
     });
 
+    it('o desenho do projeto desce para o tecnico e o administrador, e uma mudanca de desenho chega', async () => {
+      const plan = { lines: [{ id: 'l1', points: [[-23.55, -46.63], [-23.551, -46.631]] }], points: [{ id: 'p1', type: 'ceo', lat: -23.55, lng: -46.63 }] };
+      await give(PA, 'ana');
+      await db.admin(`update public.projects set plan = $2::jsonb where id = $1`, [PA, JSON.stringify(plan)]);
+      const ana = await device('ana');
+      const davi = await device('davi', 'admin');
+      await ana.sync();
+      await davi.sync();
+      expect((await ana.db.projects.get(PA))!.plan).toEqual(plan);
+      expect((await davi.db.projects.get(PA))!.plan).toEqual(plan);
+      await db.admin(`update public.projects set plan = null where id = $1`, [PA]);
+      await ana.sync();
+      expect('plan' in (await ana.db.projects.get(PA))!).toBe(false);
+    });
+
     it('o tecnico nao ve (nem recebe) projeto de outro, mesmo conhecendo o id: a conferencia por id tambem passa pela RLS', async () => {
       await give(PB, 'bruno');
       const ana = await device('ana');

@@ -154,6 +154,31 @@ export interface TrackPoint extends BaseRecord {
 /** O que o administrador grava. `concluido` marcado a mao vale mesmo sem atividade concluida. */
 export type ProjectStatus = 'aberto' | 'concluido' | 'cancelado';
 
+/** Tipos de ponto que o administrador pode projetar (o que se marca no campo, menos ocorrencia). */
+export type PlanPointType = 'poste' | 'cto' | 'ceo' | 'reserva' | 'outro';
+
+/** Um traçado projetado (linha de cabo). Cada ponto e [latitude, longitude]. */
+export interface PlanLine {
+  id: string;
+  points: [number, number][];
+}
+
+/** Um ponto projetado (poste, CTO...). */
+export interface PlanPoint {
+  id: string;
+  type: PlanPointType;
+  lat: number;
+  lng: number;
+  /** Codigo/plaqueta previsto (opcional). */
+  code?: string;
+}
+
+/** O desenho do projeto: o que o administrador projetou no mapa para o tecnico seguir. Nunca vira cabo sozinho. */
+export interface ProjectPlan {
+  lines: PlanLine[];
+  points: PlanPoint[];
+}
+
 export interface Project {
   id: string;
   /** Quem criou (administrador). */
@@ -170,6 +195,8 @@ export interface Project {
   /** `AAAA-MM-DD`, dia local. */
   dueDate?: string;
   status: ProjectStatus;
+  /** O que o administrador desenhou no mapa (ausente = sem desenho). */
+  plan?: ProjectPlan;
   deleted: boolean;
   createdAt: number;
   updatedAt: number;

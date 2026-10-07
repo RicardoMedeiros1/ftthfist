@@ -1,4 +1,5 @@
-import type { LinkedActivity, Project, ProjectInput, ProjectStatus } from './types';
+import { parsePlan } from './plan';
+import type { LinkedActivity, Project, ProjectInput, ProjectPlan, ProjectStatus } from './types';
 
 // Traducao entre o projeto do app (camelCase) e a linha do servidor (snake_case).
 
@@ -17,6 +18,8 @@ export interface ProjectPatch {
   dueDate?: string | null;
   status?: ProjectStatus;
   deleted?: boolean;
+  /** O desenho do mapa; `null` apaga. So a tela de desenho manda isto: o formulario comum nunca (ver `patchFromInput`). */
+  plan?: ProjectPlan | null;
 }
 
 const str = (v: unknown) => (typeof v === 'string' ? v : undefined);
@@ -27,6 +30,7 @@ export function projectFromRow(r: Row): Project {
   const lng = num(r.lng);
   const os = str(r.os_number);
   const due = str(r.due_date);
+  const plan = parsePlan(r.plan);
   return {
     id: String(r.id),
     ownerId: String(r.owner_id),
@@ -39,6 +43,7 @@ export function projectFromRow(r: Row): Project {
     ...(lat !== undefined && lng !== undefined ? { lat, lng } : {}),
     ...(due ? { dueDate: due } : {}),
     status: r.status === 'concluido' || r.status === 'cancelado' ? r.status : 'aberto',
+    ...(plan ? { plan } : {}),
     deleted: r.deleted === true,
     createdAt: Date.parse(String(r.created_at)),
     updatedAt: Date.parse(String(r.updated_at)),
@@ -46,7 +51,7 @@ export function projectFromRow(r: Row): Project {
   };
 }
 
-/** O formulario sempre manda o projeto inteiro: o que ficou vazio apaga o que havia (`null`). */
+/** O formulario sempre manda o projeto inteiro: o que ficou vazio apaga o que havia (`null`). O desenho fica de fora de proposito: editar o nome nunca o apaga. */
 export function patchFromInput(input: ProjectInput): ProjectPatch {
   return {
     assignedTo: input.assignedTo,
@@ -63,7 +68,7 @@ export function patchFromInput(input: ProjectInput): ProjectPatch {
 
 const COLUMN: Record<keyof ProjectPatch, string> = {
   assignedTo: 'assigned_to', title: 'title', kind: 'kind', osNumber: 'os_number', description: 'description', address: 'address',
-  lat: 'lat', lng: 'lng', dueDate: 'due_date', status: 'status', deleted: 'deleted',
+  lat: 'lat', lng: 'lng', dueDate: 'due_date', status: 'status', deleted: 'deleted', plan: 'plan',
 };
 
 /** So os campos presentes (um `undefined` nunca vira "apagar"). */
