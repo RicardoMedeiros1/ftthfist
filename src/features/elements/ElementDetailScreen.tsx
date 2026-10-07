@@ -1,17 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { AdminBanner, EditedByNote } from '../../components/AdminNote';
 import NotMineNote from '../../components/NotMineNote';
 import ScreenShell from '../../components/ScreenShell';
 import { db } from '../../db/db';
-import type { Photo } from '../../db/types';
 import { formatDateTime } from '../../lib/format';
 import { formatAccuracy } from '../../lib/geo';
 import { goBack, navigate, useRouteId } from '../../lib/route';
-import { useOnlineStatus } from '../../lib/useOnlineStatus';
-import { needsDownload } from '../sync/photoFiles';
-import { photoFiles } from '../sync/syncRuntime';
 import { adminDeleteText } from '../../lib/ownership';
 import { useCanEdit, useIsMine } from '../../lib/useOwnership';
 import { KIND_LABEL } from '../activities/labels';
@@ -26,6 +22,7 @@ import { elementSvg } from './elementSvg';
 import { ELEMENT_META } from './meta';
 import { CameraButton, PhotoGrid, PhotoViewer } from './PhotoParts';
 import { photoStore } from './photoRepo';
+import { useElementPhotos } from './useElementPhotos';
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
@@ -41,7 +38,6 @@ export default function ElementDetailScreen() {
   const id = useRouteId();
   // undefined = carregando · null = não existe (ou foi excluído)
   const el = useLiveQuery(async () => (id ? ((await elementStore.get(id)) ?? null) : null), [id]);
-  const photos = useLiveQuery(() => (id ? photoStore.listFor(id) : Promise.resolve([] as Photo[])), [id]);
   const activity = useLiveQuery(
     async () => (el ? ((await db.activities.get(el.activityId)) ?? null) : null),
     [el?.activityId],
@@ -57,39 +53,7 @@ export default function ElementDetailScreen() {
   const [viewerId, setViewerId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const online = useOnlineStatus();
-  // Fotos de colegas: o registro chega pela sincronizacao e o arquivo baixa ao abrir o elemento (com internet)
-  const [download, setDownload] = useState<'idle' | 'baixando' | 'sem-rede' | 'falhou'>('idle');
-  const missing = (photos ?? []).filter(needsDownload).length;
-  const elementId = el?.id;
-  useEffect(() => {
-    if (!elementId || !photoFiles || missing === 0 || !online) return;
-    let cancelled = false;
-    setDownload('baixando');
-    void photoFiles.download(elementId).then((r) => {
-      if (!cancelled) setDownload(r.offline ? 'sem-rede' : r.failed > 0 ? 'falhou' : 'idle');
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [elementId, missing, online]);
-  const items = useMemo(
-    () =>
-      (photos ?? []).map((p) => ({
-        id: p.id,
-        blob: p.blob,
-        note: p.blob
-          ? undefined
-          : !p.storagePath
-            ? 'Ainda não enviada'
-            : !online || download === 'sem-rede'
-              ? 'Sem internet'
-              : download === 'falhou'
-                ? 'Não foi possível baixar'
-                : 'Baixando…',
-      })),
-    [photos, online, download],
-  );
+  const items = useElementPhotos(el?.id);
 
   const back = () => goBack('map');
   const fail = (err: unknown, fallback: string) =>
