@@ -46,3 +46,7 @@
 .plan-handle-sel { background: #ffd400; width: 24px; height: 24px; margin: 10px; }
 .plan-handle-mid { width: 14px; height: 14px; margin: 15px; background: #00e5ff; opacity: .9; }
 .plan-panel > .alert, .plan-panel > .ok-note { margin-top: 10px; }
+.plan-import { display: flex; flex-direction: column; gap: 6px; }
+.plan-import .hint { margin: 0; }
+.plan-import-actions { flex-direction: column; }
+.plan-import-actions .btn { width: 100%; }

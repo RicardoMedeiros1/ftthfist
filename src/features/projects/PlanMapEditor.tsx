@@ -22,6 +22,8 @@ export interface PlanMapProps {
   initial: InitialView;
   /** Pedido de "ir para este lugar"; `seq` muda a cada pedido. */
   jumpTo: { lat: number; lng: number; seq: number } | null;
+  /** Pedido de "enquadrar esta area" (depois de importar um arquivo); `seq` muda a cada pedido. */
+  fitTo: { bounds: Bounds; seq: number } | null;
   onMapClick(lat: number, lng: number): void;
   onSelect(sel: Selection | null): void;
   onMovePoint(id: string, lat: number, lng: number): void;
@@ -41,6 +43,18 @@ function Jump({ to }: { to: PlanMapProps['jumpTo'] }) {
     if (!to || to.seq <= done.current) return;
     done.current = to.seq;
     map.setView([to.lat, to.lng], Math.max(map.getZoom(), 18), { animate: false });
+  }, [to, map]);
+  return null;
+}
+
+function Fit({ to }: { to: PlanMapProps['fitTo'] }) {
+  const map = useMap();
+  const done = useRef(0);
+  useEffect(() => {
+    if (!to || to.seq <= done.current) return;
+    done.current = to.seq;
+    const [s, w, n, e] = to.bounds;
+    map.fitBounds([[s, w], [n, e]], { padding: [40, 40], maxZoom: 19, animate: false });
   }, [to, map]);
   return null;
 }
@@ -66,7 +80,7 @@ const TYPE_OF = (p: { type: PlanPointType }) => p.type;
 
 /** O mapa onde o administrador desenha. So desenha e avisa o que foi tocado/arrastado: quem decide o que mudar e a tela. */
 export default function PlanMapEditor(props: PlanMapProps) {
-  const { plan, mode, selection, drawingId, baseLayer, initial, jumpTo } = props;
+  const { plan, mode, selection, drawingId, baseLayer, initial, jumpTo, fitTo } = props;
   const layer = BASE_LAYERS[baseLayer];
   const picking = mode === 'selecionar'; // nos outros modos todo toque e para desenhar (nada atrapalha o clique)
   const selLine = selection?.kind === 'line' ? selection.id : selection?.kind === 'vertex' ? selection.lineId : null;
@@ -80,6 +94,7 @@ export default function PlanMapEditor(props: PlanMapProps) {
       <TileLayer key={layer.id} url={layer.url} attribution={layer.attribution} maxZoom={layer.maxZoom} crossOrigin="anonymous" />
       <Clicks onClick={props.onMapClick} />
       <Jump to={jumpTo} />
+      <Fit to={fitTo} />
       <ZoomButtons />
 
       {plan.lines.map((l) => {

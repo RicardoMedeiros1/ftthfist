@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { SETTING_KEYS, getSetting } from '../../db/db';
 import type { PlanPointType, ProjectPlan } from '../../db/types';
@@ -11,6 +11,8 @@ import { adminApi } from '../admin/adminRuntime';
 import { adminErrorText } from '../admin/people';
 import { useAdminData } from '../admin/useAdminData';
 import { Chips } from '../elements/fields';
+import type { Bounds } from '../map/mapCommands';
+import { ReferenceImportError, browserParseXml, parseReferenceFile } from '../reference/kmlImport';
 import { ELEMENT_META } from '../elements/meta';
 import type { BaseLayerId } from '../map/layers';
 import { PLAN_POINT_TYPES, emptyPlan, isEmptyPlan, lineMeters, planBounds, planSummary, validatePlan } from './plan';
@@ -19,6 +21,7 @@ import {
   movePoint, newEditor, planToSave, pruneSelection, redo, setPointCode, setPointType, undo, type Editor, type Selection,
 } from './planEditor';
 import PlanMapEditor, { type InitialView, type Mode } from './PlanMapEditor';
+import { applyImport, hasUsable, importMessage, noUsableText, planImportFromLayer, type ImportMode, type PlanImport } from './planImport';
 import { parseCoordinates } from './projectForm';
 import './plan.css';
 
@@ -52,7 +55,11 @@ export default function ProjetoDesenhoScreen() {
   const [drawing, setDrawing] = useState<string | null>(null);
   const [base, setBase] = useState<BaseLayerId>('ruas');
   const [jump, setJump] = useState<{ lat: number; lng: number; seq: number } | null>(null);
+  const [fit, setFit] = useState<{ bounds: Bounds; seq: number } | null>(null);
   const [jumpText, setJumpText] = useState('');
+  const picker = useRef<HTMLInputElement>(null);
+  const [reading, setReading] = useState(false);
+  const [pending, setPending] = useState<PlanImport | null>(null);
   const [codeDraft, setCodeDraft] = useState('');
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -178,6 +185,41 @@ export default function ProjetoDesenhoScreen() {
     return () => window.removeEventListener('keydown', h);
   }, []);
 
+  // Importar um KML/KMZ: linhas viram traçados e pontos viram pontos "outro"; com desenho na tela, pergunta se substitui ou acrescenta.
+  async function pickFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // o mesmo arquivo pode ser escolhido de novo
+    if (!file || reading) return;
+    setReading(true);
+    setError(null);
+    setNote(null);
+    try {
+      const imp = planImportFromLayer(await parseReferenceFile(await file.arrayBuffer(), file.name, { parseXml: browserParseXml }));
+      if (!hasUsable(imp)) return setError(noUsableText(imp));
+      if (isEmptyPlan(edRef.current?.plan ?? emptyPlan())) doImport(imp, 'substituir');
+      else setPending(imp);
+    } catch (err) {
+      setError(err instanceof ReferenceImportError ? err.message : 'Não consegui ler este arquivo. Escolha um .kml ou .kmz.');
+    } finally {
+      setReading(false);
+    }
+  }
+
+  function doImport(imp: PlanImport, mode: ImportMode) {
+    const now = edRef.current?.plan;
+    if (!now) return;
+    const cur = drawing ? finishLine(now, drawing) : now; // o traçado em desenho termina antes (rascunho de 1 ponto some)
+    const out = applyImport(cur, imp, mode, () => crypto.randomUUID().slice(0, 8));
+    if (out.addedLines + out.addedPoints > 0) {
+      setDrawing(null);
+      apply(() => out.plan);
+    } else endDrawing();
+    setMode('selecionar');
+    setSel(null);
+    if (out.bounds) setFit({ bounds: out.bounds, seq: (fit?.seq ?? 0) + 1 });
+    setNote(importMessage(out, imp));
+  }
+
   async function save() {
     if (!adminApi || !p || !ed || busy) return;
     const toSave = planToSave(ed.plan);
@@ -236,6 +278,7 @@ export default function ProjetoDesenhoScreen() {
               baseLayer={base}
               initial={initial}
               jumpTo={jump}
+              fitTo={fit}
               onMapClick={onMapClick}
               onSelect={(s) => {
                 setNote(null);
@@ -344,6 +387,12 @@ export default function ProjetoDesenhoScreen() {
                 <button className="btn btn-danger" disabled={isEmptyPlan(plan)} onClick={() => setAsk('apagar-tudo')}>Apagar tudo</button>
               </div>
 
+              <div className="plan-import">
+                <input ref={picker} type="file" accept=".kml,.kmz,application/vnd.google-earth.kml+xml,application/vnd.google-earth.kmz" hidden onChange={(e) => void pickFile(e)} />
+                <button className="btn btn-block" disabled={reading} onClick={() => picker.current?.click()}>{reading ? 'Lendo o arquivo…' : 'Importar KML/KMZ'}</button>
+                <p className="hint">Linhas viram traçado e pontos viram pontos “Outro”, com o nome do arquivo como código. Áreas (polígonos) não entram.</p>
+              </div>
+
               <details className="plan-jump">
                 <summary>Ir para um lugar</summary>
                 <div className="field">
@@ -357,6 +406,21 @@ export default function ProjetoDesenhoScreen() {
         </section>
       </div>
 
+      {pending && (
+        <div className="confirm-backdrop">
+          <div className="confirm" role="alertdialog" aria-modal="true" aria-labelledby="import-title" aria-describedby="import-msg">
+            <h2 id="import-title">Importar para o desenho</h2>
+            <p id="import-msg">
+              O arquivo tem {pending.lines.length === 1 ? '1 traçado' : `${pending.lines.length} traçados`} e {pending.points.length === 1 ? '1 ponto' : `${pending.points.length} pontos`}. O desenho que está na tela tem: {summary}. Quer juntar os dois ou trocar pelo do arquivo? Dá para Desfazer depois.
+            </p>
+            <div className="confirm-actions plan-import-actions">
+              <button className="btn btn-primary" onClick={() => { const i = pending; setPending(null); doImport(i, 'acrescentar'); }}>Acrescentar</button>
+              <button className="btn btn-danger" onClick={() => { const i = pending; setPending(null); doImport(i, 'substituir'); }}>Substituir</button>
+              <button className="btn" autoFocus onClick={() => setPending(null)}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
       {ask === 'sair' && (
         <ConfirmDialog title="Sair sem salvar?" message="O desenho tem mudanças que ainda não foram salvas. Se sair agora, elas se perdem." confirmLabel="Sair sem salvar" danger onCancel={() => setAsk(null)} onConfirm={() => { setAsk(null); leave(); }} />
       )}

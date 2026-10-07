@@ -19,6 +19,31 @@ export const PLAN_LIMITS = {
   bytes: 300_000,
 } as const;
 
+/** Tira as metades soltas de caractere (emoji cortado): o banco recusa o texto com elas. */
+function wellFormed(s: string): string {
+  let out = '';
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    if (c >= 0xd800 && c <= 0xdbff) {
+      const next = s.charCodeAt(i + 1);
+      if (next >= 0xdc00 && next <= 0xdfff) {
+        out += s.slice(i, i + 2);
+        i++;
+      }
+    } else if (c < 0xdc00 || c > 0xdfff) out += s[i]!;
+  }
+  return out;
+}
+
+/** O codigo de um ponto pronto para guardar: aparado, sem metade de emoji e com no maximo PLAN_LIMITS.code letras. */
+export function cleanCode(raw: string): string {
+  const s = wellFormed(raw.trim());
+  if (s.length <= PLAN_LIMITS.code) return s;
+  const cut = s.slice(0, PLAN_LIMITS.code);
+  const last = cut.charCodeAt(cut.length - 1);
+  return last >= 0xd800 && last <= 0xdbff ? cut.slice(0, -1) : cut; // nao deixa o corte partir um emoji ao meio
+}
+
 export const PLAN_POINT_TYPES: readonly PlanPointType[] = ['poste', 'cto', 'ceo', 'reserva', 'outro'];
 
 export const emptyPlan = (): ProjectPlan => ({ lines: [], points: [] });

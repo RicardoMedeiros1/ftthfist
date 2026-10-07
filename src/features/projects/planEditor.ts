@@ -1,5 +1,5 @@
 import type { PlanLine, PlanPoint, PlanPointType, ProjectPlan } from '../../db/types';
-import { PLAN_LIMITS, isEmptyPlan } from './plan';
+import { PLAN_LIMITS, cleanCode, isEmptyPlan } from './plan';
 
 // As operacoes da tela de desenho, todas puras: cada uma devolve um desenho novo (ou o MESMO objeto quando nada mudou, para o
 // historico nao guardar passos vazios). A tela so liga toques e cliques a estas funcoes.
@@ -87,7 +87,7 @@ export const setPointType = (plan: ProjectPlan, id: string, type: PlanPointType)
 
 /** O codigo e cortado no limite e, vazio, deixa de existir (o ponto fica sem a chave). */
 export function setPointCode(plan: ProjectPlan, id: string, code: string): ProjectPlan {
-  const clean = code.trim().slice(0, PLAN_LIMITS.code);
+  const clean = cleanCode(code);
   return mapPoint(plan, id, (p) => {
     if ((p.code ?? '') === clean) return p;
     const { code: _old, ...rest } = p;
@@ -178,7 +178,7 @@ export function cleanPlan(plan: ProjectPlan): ProjectPlan {
     if (pts.length >= 2) lines.push({ id: l.id, points: pts });
   }
   const points = plan.points.map((p): PlanPoint => {
-    const code = (p.code ?? '').trim().slice(0, PLAN_LIMITS.code);
+    const code = cleanCode(p.code ?? '');
     return { id: p.id, type: p.type, lat: roundCoord(p.lat), lng: roundCoord(p.lng), ...(code ? { code } : {}) };
   });
   return { lines, points };
