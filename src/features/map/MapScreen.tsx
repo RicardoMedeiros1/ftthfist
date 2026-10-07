@@ -17,6 +17,7 @@ import { LegendSheet } from '../cables/Legend';
 import MapCommandHost from './MapCommandHost';
 import ReferenceLayers from '../reference/ReferenceLayers';
 import { references } from '../reference/referenceRepo';
+import ProjectPinsLayer from '../projects/ProjectPinsLayer';
 import TrackLayer from '../tracking/TrackLayer';
 import RemoteTrackBar from '../admin/RemoteTrackBar';
 import RemoteTrackLayer from '../admin/RemoteTrackLayer';
@@ -208,6 +209,7 @@ export default function MapScreen() {
         />
         {fix && <LocationMarker fix={fix} />}
         <ReferenceLayers />
+        <ProjectPinsLayer />
         <TrackLayer />
         <RemoteTrackLayer />
         <CablesLayer />

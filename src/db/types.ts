@@ -37,6 +37,10 @@ export interface Activity extends BaseRecord {
   status: ActivityStatus;
   description: string;
   materials: Material[];
+  /** Projeto designado de onde a atividade veio (ver features/projects). Ausente = atividade avulsa. */
+  projectId?: string;
+  /** Com esta atividade o tecnico terminou o projeto. So vale com `projectId`. */
+  completesProject?: boolean;
 }
 
 export type ElementType = 'poste' | 'cto' | 'ceo' | 'reserva' | 'ocorrencia' | 'outro';
@@ -141,6 +145,36 @@ export interface TrackPoint extends BaseRecord {
   speed?: number;
   /** Trecho da gravação: pausar, retomar ou a tela apagar abre um trecho novo (não se liga com linha reta ao anterior). */
   segment?: number;
+}
+
+// ---- Projetos designados ----
+// O administrador cria o projeto e o entrega a um tecnico. No aparelho e so uma COPIA do servidor (nunca e enviada):
+// por isso nao e um BaseRecord (sem syncStatus) e nao entra no backup (volta na proxima sincronizacao).
+
+/** O que o administrador grava. `concluido` marcado a mao vale mesmo sem atividade concluida. */
+export type ProjectStatus = 'aberto' | 'concluido' | 'cancelado';
+
+export interface Project {
+  id: string;
+  /** Quem criou (administrador). */
+  ownerId: string;
+  /** Tecnico responsavel. */
+  assignedTo: string;
+  title: string;
+  kind: ActivityKind;
+  osNumber?: string;
+  description: string;
+  address: string;
+  lat?: number;
+  lng?: number;
+  /** `AAAA-MM-DD`, dia local. */
+  dueDate?: string;
+  status: ProjectStatus;
+  deleted: boolean;
+  createdAt: number;
+  updatedAt: number;
+  /** Texto `server_updated_at` da ultima versao conhecida (cursor da sincronizacao). */
+  serverUpdatedAt?: string;
 }
 
 // ---- Camadas de referência (KML/KMZ importado) ----

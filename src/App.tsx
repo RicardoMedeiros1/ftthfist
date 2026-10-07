@@ -9,6 +9,9 @@ import SyncScreen from './features/sync/SyncScreen';
 import AlteracoesScreen from './features/admin/AlteracoesScreen';
 import PessoasScreen from './features/admin/PessoasScreen';
 import PanelScreen from './features/panel/PanelScreen';
+import MeuProjetoScreen from './features/projects/MeuProjetoScreen';
+import MeusProjetosScreen from './features/projects/MeusProjetosScreen';
+import ProjectNotice from './features/projects/ProjectNotice';
 import ProjetoScreen from './features/projects/ProjetoScreen';
 import ProjetosScreen from './features/projects/ProjetosScreen';
 import { initSync } from './features/sync/syncRuntime';
@@ -81,6 +84,8 @@ export default function App() {
       {route === 'alteracoes' && <AlteracoesScreen />}
       {route === 'projetos' && <ProjetosScreen />}
       {(route === 'projeto' || route === 'projeto-novo') && <ProjetoScreen />}
+      {route === 'meus-projetos' && <MeusProjetosScreen />}
+      {route === 'meu-projeto' && <MeuProjetoScreen />}
       {route === 'painel' && <PanelScreen />}
       {route === 'camadas' && <CamadasScreen />}
       {route === 'camada' && <LayerScreen />}
@@ -88,6 +93,7 @@ export default function App() {
       <div className="toast-host">
         <SavedNotice />
         <UpdatePrompt />
+        <ProjectNotice />
         <BackupReminder />
       </div>
     </>

@@ -5,8 +5,8 @@ chaves nem senhas). O deploy é conferido pelo número da versão em *Configura�
 
 ## 0. Antes de tudo (uma vez)
 
-- [ ] No Supabase, as **12 migrations** foram aplicadas em ordem e `supabase/conferir-passo-1.sql` (16 linhas) e
-      `supabase/conferir-admin.sql` (10 linhas) dizem `OK`. (`supabase/README.md`)
+- [ ] No Supabase, as **13 migrations** foram aplicadas em ordem e `supabase/conferir-passo-1.sql` (16 linhas),
+      `supabase/conferir-admin.sql` (10 linhas) e `supabase/conferir-projetos.sql` (6 linhas) dizem `OK`. (`supabase/README.md`)
 - [ ] Existe pelo menos **um administrador ativo** (README, passo 5). Recomendado: aumentar a validade do token (JWT expiry).
 - [ ] No GitHub, as **Variables** `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` estão preenchidas (chave **publicável**) e o deploy
       do Pages passou.
@@ -26,6 +26,19 @@ chaves nem senhas). O deploy é conferido pelo número da versão em *Configura�
 - [ ] **Trilha GPS:** iniciar, andar, pausar/retomar, encerrar. Conferir que **não** vira cabo.
 - [ ] Concluir a atividade; reabrir; editar título/OS/descrição/materiais.
 - [ ] Os botões ficam fáceis de tocar com uma mão, ao sol.
+
+**Projetos que o administrador designou** (precisa de internet uma vez para receber; depois funciona sem)
+- [ ] Ao abrir o app, no mapa, aparece **"Você tem N projetos para fazer"** (com 1 projeto, o nome dele). "Depois" esconde o aviso até
+      abrir o app de novo; "Ver" abre a lista (ou o próprio projeto, se for um só). Com o app aberto **sem internet** o aviso também aparece.
+- [ ] **Meus projetos** (também em Atividades): o atrasado vem primeiro; tocar abre as instruções, o prazo, o endereço e as atividades
+      já feitas. O projeto que tem ponto mostra um **pino amarelo** no mapa; "Ver no mapa" centraliza nele e "Como chegar" abre a rota
+      no aplicativo de mapas do celular.
+- [ ] **Iniciar este projeto**: a atividade nasce com o nome, o tipo e a OS do projeto, aberta, e o projeto passa a "Em andamento".
+      Com uma atividade já aberta o app avisa e não deixa iniciar outra. Concluída a atividade, dá para "Iniciar outra atividade neste
+      projeto". Na atividade aparece "Projeto: …" com "Abrir projeto".
+- [ ] O administrador **passa o projeto a outro técnico** ou **cancela**: na próxima sincronização ele some da lista de quem perdeu e
+      aparece na de quem recebeu (cancelado vai para "Encerrados", sem botão de iniciar). O que já foi feito continua.
+- [ ] Iniciar um projeto **sem internet** e, nesse meio tempo, o administrador cancelar o projeto: o trabalho sobe normalmente.
 
 **Voltar a internet**
 - [ ] O indicador vai de "Offline" a "Online" e tudo sobe sozinho (sem pendências) em poucos segundos.

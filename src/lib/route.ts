@@ -2,12 +2,12 @@ import { useSyncExternalStore } from 'react';
 
 // Navegação por hash: funciona em qualquer subpasta (GitHub Pages) e o botão
 // "voltar" do celular segue o histórico do app.
-export type Route = 'map' | 'atividades' | 'nova-atividade' | 'novo-elemento' | 'elemento' | 'novo-cabo' | 'cabo' | 'atividade' | 'trilha' | 'backup' | 'exportar' | 'camadas' | 'camada' | 'referencia' | 'conta' | 'sincronizacao' | 'pessoas' | 'alteracoes' | 'projetos' | 'projeto-novo' | 'projeto' | 'painel' | 'config';
+export type Route = 'map' | 'atividades' | 'nova-atividade' | 'novo-elemento' | 'elemento' | 'novo-cabo' | 'cabo' | 'atividade' | 'trilha' | 'backup' | 'exportar' | 'camadas' | 'camada' | 'referencia' | 'conta' | 'sincronizacao' | 'pessoas' | 'alteracoes' | 'projetos' | 'projeto-novo' | 'projeto' | 'meus-projetos' | 'meu-projeto' | 'painel' | 'config';
 
-type IdRoute = 'elemento' | 'cabo' | 'atividade' | 'exportar' | 'camada' | 'referencia' | 'painel' | 'projeto';
+type IdRoute = 'elemento' | 'cabo' | 'atividade' | 'exportar' | 'camada' | 'referencia' | 'painel' | 'projeto' | 'meu-projeto';
 
 // 'exportar' sem id exporta a rede inteira; com id, só aquela atividade. 'painel' sem id abre a visão geral; com id, a seção.
-const STATIC_HASH: Record<Exclude<Route, 'elemento' | 'cabo' | 'atividade' | 'camada' | 'referencia' | 'projeto'>, string> = {
+const STATIC_HASH: Record<Exclude<Route, 'elemento' | 'cabo' | 'atividade' | 'camada' | 'referencia' | 'projeto' | 'meu-projeto'>, string> = {
   map: '#/',
   atividades: '#/atividades',
   'nova-atividade': '#/atividades/nova',
@@ -23,6 +23,7 @@ const STATIC_HASH: Record<Exclude<Route, 'elemento' | 'cabo' | 'atividade' | 'ca
   alteracoes: '#/alteracoes',
   projetos: '#/projetos',
   'projeto-novo': '#/projetos/novo',
+  'meus-projetos': '#/meus-projetos',
   painel: '#/painel',
   config: '#/config',
 };
@@ -43,6 +44,7 @@ const WITH_ID: { route: IdRoute; re: RegExp }[] = [
   { route: 'referencia', re: /^#\/referencia\/([^/]+)$/ },
   { route: 'painel', re: /^#\/painel\/([^/]+)$/ },
   { route: 'projeto', re: /^#\/projeto\/([^/]+)$/ },
+  { route: 'meu-projeto', re: /^#\/meu-projeto\/([^/]+)$/ },
 ];
 
 export function parseLocation(hash: string): AppLocation {
@@ -65,7 +67,7 @@ export function parseRoute(hash: string): Route {
 }
 
 export function hashFor(route: Route, id?: string): string {
-  if (route === 'elemento' || route === 'cabo' || route === 'atividade' || route === 'camada' || route === 'referencia' || route === 'projeto') {
+  if (route === 'elemento' || route === 'cabo' || route === 'atividade' || route === 'camada' || route === 'referencia' || route === 'projeto' || route === 'meu-projeto') {
     return id ? `#/${route}/${encodeURIComponent(id)}` : STATIC_HASH.map;
   }
   if (route === 'exportar' && id) return `#/exportar/${encodeURIComponent(id)}`;

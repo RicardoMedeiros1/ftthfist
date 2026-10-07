@@ -1,5 +1,6 @@
 import { SETTING_KEYS, type RotaFibraDB } from '../../db/db';
 import type { Activity, BaseRecord, Cable, NetworkElement, Photo, TrackPoint } from '../../db/types';
+import { projectFromRow } from '../projects/projectRows';
 import { fromRemote, MappingError, toRemote, type RemoteRow } from './mapping';
 import { SyncHttpError, type RemoteApi } from './remote';
 import { PULL_ORDER, PUSH_ORDER, REMOTE_TABLE, photoPath, type SyncTable } from './tables';
@@ -67,7 +68,12 @@ export class CycleAbort extends Error {
 
 type Row = Activity | NetworkElement | Cable | Photo | TrackPoint;
 type BlockedMap = Record<string, { updatedAt: number; message: string }>;
-type Cursors = Partial<Record<SyncTable, string>>;
+/** Projetos so descem (o administrador os cria pela internet); a copia local e so leitura. */
+type PullKey = SyncTable | 'projects';
+type Cursors = Partial<Record<PullKey, string>>;
+const PULL_KEYS: readonly PullKey[] = [...PULL_ORDER, 'projects'];
+/** Quantos ids de projeto vao numa consulta (a lista vai na URL). */
+const RECONCILE_BATCH = 50;
 
 const key = (t: SyncTable, id: string) => `${t}:${id}`;
 
@@ -348,9 +354,40 @@ export function createSyncEngine(deps: SyncDeps, tuning: Partial<Tuning> = {}) {
     return lost;
   }
 
+  /** A copia local do projeto: o servidor manda (nao ha edicao local), entao a versao mais nova ou igual vence. */
+  async function applyProjects(rows: RemoteRow[]): Promise<void> {
+    const incoming = rows.map(projectFromRow);
+    await db.transaction('rw', db.projects, async () => {
+      const current = await db.projects.bulkGet(incoming.map((p) => p.id));
+      const toPut = incoming.filter((inc, i) => !current[i] || inc.updatedAt >= current[i]!.updatedAt);
+      if (toPut.length) await db.projects.bulkPut(toPut);
+    });
+  }
+
+  /**
+   * Um projeto passado a outro tecnico some da leitura do antigo (o servidor so mostra o que e seu), entao o "puxar" nunca
+   * traz essa mudanca. Por isso o tecnico confere, a cada ciclo, se os projetos abertos que ele tem ainda sao dele: o que o
+   * servidor nao devolve sai daqui. (Excluir ou cancelar chega pelo "puxar" normal, como atualizacao.)
+   */
+  async function reconcileProjects(who: Who): Promise<void> {
+    if (who.role !== 'tecnico') return; // administrador e escritorio leem todos: o "puxar" ja basta
+    const open = await db.projects.where('assignedTo').equals(who.userId).filter((p) => !p.deleted && p.status === 'aberto').toArray();
+    if (!open.length) return;
+    const still = new Set<string>();
+    for (let i = 0; i < open.length; i += RECONCILE_BATCH) {
+      const ids = open.slice(i, i + RECONCILE_BATCH).map((p) => p.id);
+      for (const r of await remote.fetchByIds('projects', ids)) still.add(String(r.id));
+    }
+    const gone = open.filter((p) => !still.has(p.id)).map((p) => p.id);
+    if (gone.length) await db.projects.bulkDelete(gone);
+  }
+
+  /** Servidor ainda sem a migration dos projetos (ou sem permissao): os projetos ficam de fora, o resto da sincronizacao segue. */
+  const projectsUnavailable = (e: unknown) => e instanceof SyncHttpError && e.kind === 'permanent';
+
   async function pull(who: Who, report: CycleReport, progress?: (p: Progress) => void): Promise<void> {
     const cursors = await getSetting<Cursors>(SETTING_KEYS.syncCursor, {});
-    for (const t of PULL_ORDER) {
+    for (const t of PULL_KEYS) {
       const cursor = cursors[t];
       const since = cursor ? new Date(Date.parse(cursor) - PULL_OVERLAP_MS).toISOString() : '1970-01-01T00:00:00Z';
       let after: { ts: string; id: string } | undefined;
@@ -358,13 +395,15 @@ export function createSyncEngine(deps: SyncDeps, tuning: Partial<Tuning> = {}) {
       for (;;) {
         let rows: RemoteRow[];
         try {
-          rows = await remote.pull(REMOTE_TABLE[t], { since, after, limit: pullPage });
+          rows = await remote.pull(t === 'projects' ? 'projects' : REMOTE_TABLE[t], { since, after, limit: pullPage });
         } catch (e) {
+          if (t === 'projects' && projectsUnavailable(e)) return;
           if (e instanceof SyncHttpError) throw new CycleAbort(e.kind === 'auth' ? 'auth' : e.kind === 'network' ? 'network' : 'server', e.message);
           throw e;
         }
         if (!rows.length) break;
-        report.lostEdits += await applyRemote(t, rows, who);
+        if (t === 'projects') await applyProjects(rows);
+        else report.lostEdits += await applyRemote(t, rows, who);
         report.pulled += rows.length;
         const last = rows[rows.length - 1]!;
         after = { ts: String(last.server_updated_at), id: String(last.id) };
@@ -377,6 +416,13 @@ export function createSyncEngine(deps: SyncDeps, tuning: Partial<Tuning> = {}) {
         cursors[t] = newest;
         await setSetting(SETTING_KEYS.syncCursor, { ...(await getSetting<Cursors>(SETTING_KEYS.syncCursor, {})), ...cursors });
       }
+    }
+    try {
+      await reconcileProjects(who);
+    } catch (e) {
+      if (projectsUnavailable(e)) return;
+      if (e instanceof SyncHttpError) throw new CycleAbort(e.kind === 'auth' ? 'auth' : e.kind === 'network' ? 'network' : 'server', e.message);
+      throw e;
     }
   }
 

@@ -10,6 +10,8 @@ import { isMine } from '../../lib/ownership';
 import { useCanEdit, useIsMine } from '../../lib/useOwnership';
 import { ActivityRuleError, activities } from './activityRepo';
 import { DEFAULT_FILTERS, activeFilterCount, filterActivities, ownerOptions, type ActivityFilters } from './filters';
+import { isTodo } from '../projects/myProjects';
+import { useMyProjects } from '../projects/useMyProjects';
 import { KIND_LABEL } from './labels';
 import './activities.css';
 
@@ -140,6 +142,8 @@ function Filters({
 
 export default function ActivitiesScreen() {
   const list = useLiveQuery(() => activities.list());
+  const { rows: projectRows } = useMyProjects();
+  const todoProjects = projectRows?.filter(isTodo).length ?? 0;
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<ActivityFilters>(DEFAULT_FILTERS);
   const owners = useMemo(() => ownerOptions(list ?? []), [list]);
@@ -159,6 +163,11 @@ export default function ActivitiesScreen() {
 
   return (
     <ScreenShell title="Atividades" onBack={() => goBack('map')}>
+      {projectRows !== undefined && projectRows.length > 0 && (
+        <button className="btn btn-block" onClick={() => navigate('meus-projetos')}>
+          Meus projetos{todoProjects > 0 ? ` (${todoProjects} para fazer)` : ''}
+        </button>
+      )}
       <button className="btn btn-primary btn-block" disabled={list === undefined || hasOpen} onClick={() => navigate('nova-atividade')}>
         + Nova atividade
       </button>

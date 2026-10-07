@@ -8,7 +8,7 @@ import { SyncHttpError, type PullQuery, type RemoteApi } from './remote';
 
 export type Role = 'tecnico' | 'escritorio' | 'admin';
 
-const TABLES = ['activities', 'elements', 'cables', 'photos', 'track_points'] as const;
+const TABLES = ['activities', 'elements', 'cables', 'photos', 'track_points', 'projects'] as const;
 const CHILD = new Set(['elements', 'cables', 'photos', 'track_points']);
 const MAX_PHOTO_BYTES = 3 * 1024 * 1024;
 const FIBERS = new Set([1, 2, 4, 6, 12, 24, 36, 48, 72, 144]);
@@ -34,6 +34,8 @@ export class TestServer {
   /** Relogio do servidor (ms). Avanca sozinho a cada gravacao (monotonico). */
   clock = Date.now();
   private tick = 0;
+  /** Tabelas que o servidor ainda nao tem (migration nao aplicada): ler uma delas e erro permanente (PGRST205). */
+  missingTables = new Set<string>();
   /** Sem rede: toda chamada falha como falha de conexao. */
   down = false;
   /** Erro a simular na proxima chamada (uma vez). */
@@ -53,11 +55,29 @@ export class TestServer {
     return `${new Date(this.clock).toISOString().slice(0, -1)}${String(this.tick % 1000).padStart(3, '0')}+00:00`;
   }
 
+  /**
+   * O administrador cria ou altera um projeto (pela internet, fora do motor de sincronizacao): o servidor carimba as datas e
+   * o projeto passa a existir para quem tem direito de le-lo. `row` usa os nomes das colunas (assigned_to, due_date...).
+   */
+  saveProject(row: RemoteRow): RemoteRow {
+    const id = String(row.id);
+    const old = this.rows.projects!.get(id);
+    const server = this.stamp();
+    const now = new Date(this.clock).toISOString();
+    const next: RemoteRow = { kind: 'implantacao', title: 'Projeto', description: '', address: '', status: 'aberto', deleted: false, created_at: now, owner_id: 'admin', ...old, ...row, updated_at: now, server_updated_at: server };
+    this.rows.projects!.set(id, next);
+    return next;
+  }
+
   count(table: string) {
     return this.rows[table]!.size;
   }
   get(table: string, id: string) {
     return this.rows[table]!.get(id);
+  }
+
+  private requireTable(table: string) {
+    if (this.missingTables.has(table)) throw new SyncHttpError('permanent', `Could not find the table 'public.${table}' in the schema cache`, 404, 'PGRST205');
   }
 
   private guard(fn: Call['fn'], table: string, who: string, n: number, query?: PullQuery) {
@@ -72,7 +92,9 @@ export class TestServer {
 
   client(userId: string): RemoteApi {
     const profile = () => this.profiles.get(userId);
-    const readable = (table: string, r: RemoteRow) => (table === 'track_points' ? r.owner_id === userId || profile()?.role !== 'tecnico' : true);
+    // trilha: so o dono, o escritorio e o administrador; projeto: o tecnico so le o que foi designado a ele
+    const readable = (table: string, r: RemoteRow) =>
+      table === 'track_points' ? r.owner_id === userId || profile()?.role !== 'tecnico' : table === 'projects' ? profile()?.role !== 'tecnico' || r.assigned_to === userId : true;
     const denied = () => new SyncHttpError('permanent', 'new row violates row-level security policy', 403, '42501');
     return {
       upsert: async (table, rows) => {
@@ -93,6 +115,11 @@ export class TestServer {
             if (old && !isAdmin && act.owner_id !== userId) throw denied();
           }
           if (table === 'elements' && !ELEMENT_TYPES.has(String(r.type))) throw new SyncHttpError('permanent', 'check constraint', 400, '23514');
+          if (table === 'activities') {
+            // so a existencia do projeto e exigida (chave estrangeira); "concluir o projeto" exige o projeto
+            if (r.project_id != null && !this.rows.projects!.has(String(r.project_id))) throw new SyncHttpError('dependency', 'violates foreign key constraint', 409, '23503');
+            if (r.completes_project === true && r.project_id == null) throw new SyncHttpError('permanent', 'check constraint', 400, '23514');
+          }
           if (table === 'cables') {
             if (!FIBERS.has(Number(r.fiber_count))) throw new SyncHttpError('permanent', 'check constraint', 400, '23514');
             if (!Array.isArray(r.vertices) || r.vertices.length < 2) throw new SyncHttpError('permanent', 'o cabo precisa de pelo menos 2 pontos', 400, '23514');
@@ -135,6 +162,7 @@ export class TestServer {
       },
       pull: async (table, q) => {
         this.guard('pull', table, userId, 0, q);
+        this.requireTable(table);
         const p = profile();
         if (!p || !p.active) return [];
         const sorted = [...this.rows[table]!.values()]
@@ -172,6 +200,7 @@ export class TestServer {
       },
       fetchByIds: async (table, ids) => {
         this.guard('fetchByIds', table, userId, ids.length);
+        this.requireTable(table);
         return ids.flatMap((id) => {
           const r = this.rows[table]!.get(id);
           return r && readable(table, r) ? [{ ...r }] : [];

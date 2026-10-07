@@ -1,35 +1,12 @@
 import type { ActivityKind } from '../../db/types';
 
 // Projeto designado: o administrador cria, o tecnico executa (as atividades dele ficam ligadas ao projeto).
+// O registro em si (`Project`) e a copia local do servidor e mora em db/types.
 
-/** O que o administrador grava. `concluido` marcado a mao vale mesmo sem atividade concluida. */
-export type ProjectStatus = 'aberto' | 'concluido' | 'cancelado';
+export type { Project, ProjectStatus } from '../../db/types';
 
 /** O que se mostra: mistura o que o administrador marcou com o andamento das atividades ligadas. */
 export type ProjectState = 'pendente' | 'em_andamento' | 'concluido' | 'cancelado';
-
-export interface Project {
-  id: string;
-  /** Quem criou (administrador). */
-  ownerId: string;
-  /** Tecnico responsavel. */
-  assignedTo: string;
-  title: string;
-  kind: ActivityKind;
-  osNumber?: string;
-  description: string;
-  address: string;
-  lat?: number;
-  lng?: number;
-  /** `AAAA-MM-DD`, dia local. */
-  dueDate?: string;
-  status: ProjectStatus;
-  deleted: boolean;
-  createdAt: number;
-  updatedAt: number;
-  /** Texto `server_updated_at` da ultima versao conhecida (cursor da sincronizacao). */
-  serverUpdatedAt?: string;
-}
 
 /** O que o administrador preenche (o servidor cuida do resto). */
 export interface ProjectInput {

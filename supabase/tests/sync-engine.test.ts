@@ -38,7 +38,7 @@ describe.skipIf(!enabled)('motor de sincronização contra Postgres + PostgREST 
 
   // cada teste parte de um servidor vazio (os papéis e os usuários continuam)
   beforeEach(async () => {
-    await db.admin('truncate public.track_points, public.photos, public.cables, public.elements, public.activities, public.sync_conflicts, public.admin_edits');
+    await db.admin('truncate public.track_points, public.photos, public.cables, public.elements, public.activities, public.sync_conflicts, public.admin_edits, public.projects');
   });
   afterEach(() => setActingUser(null));
 
@@ -484,5 +484,89 @@ describe.skipIf(!enabled)('motor de sincronização contra Postgres + PostgREST 
     const r = await clara.sync();
     expect(r.pulled).toBe(1 + 2 + 1);
     expect(r.pushed).toBe(0);
+  });
+  describe('projetos designados', () => {
+    const PA = '00000000-0000-4000-8000-00000000d001';
+    const PB = '00000000-0000-4000-8000-00000000d002';
+    const give = (id: string, to: Person, extra = '') =>
+      db.admin(`insert into public.projects (id, owner_id, assigned_to, kind, title${extra ? ', ' + extra.split('=')[0] : ''}) values ($1, $2, $3, 'implantacao', 'Projeto' ${extra ? ', ' + extra.split('=')[1] : ''}) on conflict (id) do update set assigned_to = excluded.assigned_to`, [id, IDS.davi, IDS[to]]);
+    const local = async (d: Awaited<ReturnType<typeof device>>) => (await d.db.projects.toArray()).map((p) => p.id).sort();
+
+    it('cada tecnico recebe so o que e dele; administrador e escritorio recebem todos', async () => {
+      await give(PA, 'ana');
+      await give(PB, 'bruno');
+      const [ana, bruno, davi, clara] = [await device('ana'), await device('bruno'), await device('davi', 'admin'), await device('clara', 'escritorio')];
+      for (const d of [ana, bruno, davi, clara]) await d.sync();
+      expect(await local(ana)).toEqual([PA]);
+      expect(await local(bruno)).toEqual([PB]);
+      expect(await local(davi)).toEqual([PA, PB]);
+      expect(await local(clara)).toEqual([PA, PB]);
+      expect(await ana.db.projects.get(PA)).toMatchObject({ ownerId: IDS.davi, assignedTo: IDS.ana, title: 'Projeto', kind: 'implantacao', status: 'aberto', deleted: false });
+    });
+
+    it('passar o projeto a outro tecnico: some do aparelho de quem tinha (RLS esconde) e aparece no do novo', async () => {
+      await give(PA, 'ana');
+      const ana = await device('ana');
+      const bruno = await device('bruno');
+      await ana.sync();
+      expect(await local(ana)).toEqual([PA]);
+      await give(PA, 'bruno');
+      await ana.sync();
+      await bruno.sync();
+      expect(await local(ana)).toEqual([]);
+      expect(await local(bruno)).toEqual([PA]);
+    });
+
+    it('cancelar e excluir (logico) chegam ao aparelho como atualizacao', async () => {
+      await give(PA, 'ana');
+      const ana = await device('ana');
+      await ana.sync();
+      await db.admin(`update public.projects set status = 'cancelado' where id = $1`, [PA]);
+      await ana.sync();
+      expect((await ana.db.projects.get(PA))!.status).toBe('cancelado');
+      await db.admin(`update public.projects set deleted = true where id = $1`, [PA]);
+      await ana.sync();
+      expect(await ana.db.projects.get(PA)).toMatchObject({ status: 'cancelado', deleted: true });
+    });
+
+    it('a atividade nasce ligada ao projeto, sobe com project_id e o administrador a recebe com o vinculo', async () => {
+      await give(PA, 'ana');
+      const ana = await device('ana');
+      await ana.sync();
+      const act = await ana.as(() => ana.acts.create({ kind: 'implantacao', title: 'Do projeto', projectId: PA }, 'Ana'));
+      await ana.db.activities.update(act.id, { completesProject: true, status: 'concluida', updatedAt: Date.now() + 1, syncStatus: 'pending' });
+      await ana.sync();
+      expect(await db.admin(`select project_id, completes_project, status from public.activities where id = $1`, [act.id])).toEqual([{ project_id: PA, completes_project: true, status: 'concluida' }]);
+      const davi = await device('davi', 'admin');
+      await davi.sync();
+      expect(await davi.db.activities.get(act.id)).toMatchObject({ projectId: PA, completesProject: true });
+    });
+
+    it('trabalho de campo nunca e recusado: projeto cancelado, excluido e passado a outro enquanto o celular estava sem internet', async () => {
+      await give(PA, 'ana');
+      const ana = await device('ana');
+      await ana.sync();
+      const act = await ana.as(() => ana.acts.create({ kind: 'implantacao', title: 'No campo', projectId: PA }, 'Ana'));
+      await db.admin(`update public.projects set status = 'cancelado', deleted = true, assigned_to = $2 where id = $1`, [PA, IDS.bruno]);
+      const r = await ana.sync();
+      expect(r.newlyBlocked).toBe(0);
+      expect(await ana.counts()).toMatchObject({ pending: 0, blocked: 0 });
+      expect((await db.admin<{ project_id: string }>(`select project_id from public.activities where id = $1`, [act.id]))[0]!.project_id).toBe(PA);
+    });
+
+    it('atividade avulsa sobe sem as colunas novas e sem problema', async () => {
+      const ana = await device('ana');
+      const act = await ana.as(() => ana.acts.create({ kind: 'manutencao', title: 'Avulsa' }, 'Ana'));
+      await ana.sync();
+      expect(await db.admin(`select project_id, completes_project from public.activities where id = $1`, [act.id])).toEqual([{ project_id: null, completes_project: false }]);
+    });
+
+    it('o tecnico nao ve (nem recebe) projeto de outro, mesmo conhecendo o id: a conferencia por id tambem passa pela RLS', async () => {
+      await give(PB, 'bruno');
+      const ana = await device('ana');
+      expect(await remoteFor('ana').fetchByIds('projects', [PB])).toEqual([]);
+      await ana.sync();
+      expect(await local(ana)).toEqual([]);
+    });
   });
 });

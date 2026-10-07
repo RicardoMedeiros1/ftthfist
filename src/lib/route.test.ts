@@ -101,3 +101,16 @@ describe('projetos', () => {
     expect(hashFor('projeto')).toBe('#/'); // sem id volta ao mapa, como os demais
   });
 });
+
+describe('meus projetos (tecnico)', () => {
+  it('lista e projeto por id, sem confundir com as telas do administrador', () => {
+    expect(parseLocation('#/meus-projetos')).toEqual({ route: 'meus-projetos' });
+    expect(parseLocation('#/meu-projeto/abc')).toEqual({ route: 'meu-projeto', id: 'abc' });
+    expect(parseLocation('#/projeto/abc')).toEqual({ route: 'projeto', id: 'abc' });
+    expect(parseRoute('#/meu-projeto')).toBe('map');
+    expect(hashFor('meus-projetos')).toBe('#/meus-projetos');
+    expect(hashFor('meu-projeto', 'x y')).toBe('#/meu-projeto/x%20y');
+    expect(parseLocation(hashFor('meu-projeto', 'x y'))).toEqual({ route: 'meu-projeto', id: 'x y' });
+    expect(hashFor('meu-projeto')).toBe('#/');
+  });
+});

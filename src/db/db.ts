@@ -5,6 +5,7 @@ import type {
   Cable,
   NetworkElement,
   Photo,
+  Project,
   ReferenceFeature,
   ReferenceLayer,
   SettingEntry,
@@ -21,6 +22,7 @@ export class RotaFibraDB extends Dexie {
   settings!: EntityTable<SettingEntry, 'key'>;
   referenceLayers!: EntityTable<ReferenceLayer, 'id'>;
   referenceFeatures!: EntityTable<ReferenceFeature, 'id'>;
+  projects!: EntityTable<Project, 'id'>;
 
   constructor(name = 'rotafibra') {
     super(name);
@@ -39,6 +41,10 @@ export class RotaFibraDB extends Dexie {
     this.version(2).stores({
       referenceLayers: 'id, updatedAt',
       referenceFeatures: 'id, layerId',
+    });
+    // v3: projetos designados (copia do servidor, so leitura). Tabela nova: o que ja esta gravado nao muda.
+    this.version(3).stores({
+      projects: 'id, assignedTo, updatedAt',
     });
   }
 }

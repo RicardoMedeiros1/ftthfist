@@ -65,6 +65,8 @@ export function toRemote(table: SyncTable, r: Local): RemoteRow {
         status: a.status,
         description: a.description,
         materials: a.materials,
+        // So vai quando ha projeto: a atividade avulsa segue com o mesmo envio de sempre (e funciona num servidor que ainda nao tem estas colunas)
+        ...(a.projectId ? { project_id: a.projectId, completes_project: a.completesProject === true } : {}),
       };
     }
     case 'elements': {
@@ -145,6 +147,8 @@ export function fromRemote(table: 'activities' | 'elements' | 'cables' | 'photos
         status: row.status as Activity['status'],
         description: String(row.description ?? ''),
         materials: Array.isArray(row.materials) ? (row.materials as Activity['materials']) : [],
+        ...(row.project_id ? { projectId: String(row.project_id) } : {}),
+        ...(row.completes_project === true ? { completesProject: true } : {}), // o servidor so aceita junto com project_id
       };
     case 'elements':
       return {

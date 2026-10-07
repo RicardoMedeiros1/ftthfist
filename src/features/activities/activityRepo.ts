@@ -37,6 +37,8 @@ export interface NewActivityInput {
   kind: ActivityKind;
   title: string;
   osNumber?: string;
+  /** Projeto designado de onde a atividade nasce (botao "Iniciar" do projeto). */
+  projectId?: string;
 }
 
 export function activityRepo(database: RotaFibraDB = db) {
@@ -89,6 +91,7 @@ export function activityRepo(database: RotaFibraDB = db) {
           status: 'aberta',
           description: '',
           materials: [],
+          ...(input.projectId ? { projectId: input.projectId } : {}),
         };
         await database.activities.add(activity);
         return activity;

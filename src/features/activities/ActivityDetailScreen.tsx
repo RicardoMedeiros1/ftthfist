@@ -17,6 +17,7 @@ import { cableLabel } from '../cables/cableChoices';
 import { elementSvg } from '../elements/elementSvg';
 import { ELEMENT_META } from '../elements/meta';
 import { mapCommands } from '../map/mapCommands';
+import ProjectLine from '../projects/ProjectLine';
 import { ActivityRuleError, activities } from './activityRepo';
 import { KIND_LABEL } from './labels';
 import { formatMaterial, MAX_DESCRIPTION } from './materials';
@@ -157,6 +158,7 @@ export default function ActivityDetailScreen() {
           Início {formatDateTime(a.startedAt)}
           {a.endedAt ? ` · Fim ${formatDateTime(a.endedAt)} · ${formatDuration(a.endedAt - a.startedAt)}` : ''}
         </div>
+        {a.projectId && <ProjectLine projectId={a.projectId} />}
       </article>
 
       {a.description && (

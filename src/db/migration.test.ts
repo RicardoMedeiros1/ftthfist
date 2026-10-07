@@ -19,7 +19,58 @@ function openV1(name: string) {
 
 const base = (id: string) => ({ id, createdAt: 1, updatedAt: 1, createdBy: 'Carlos', deleted: false, syncStatus: 'pending' });
 
-describe('migração do banco local (v1 → v2)', () => {
+// O esquema da v2 (v1 + camadas de referência), congelado: aparelhos que ja receberam as camadas de referência.
+function openV2(name: string) {
+  const old = new Dexie(name);
+  old.version(1).stores({
+    activities: 'id, status, kind, updatedAt, syncStatus',
+    elements: 'id, activityId, type, updatedAt, syncStatus',
+    cables: 'id, activityId, updatedAt, syncStatus',
+    photos: 'id, elementId, activityId, updatedAt, syncStatus',
+    trackPoints: 'id, activityId, timestamp, syncStatus',
+    settings: 'key',
+  });
+  old.version(2).stores({ referenceLayers: 'id, updatedAt', referenceFeatures: 'id, layerId' });
+  return old;
+}
+
+describe('migração do banco local (v2 → v3: projetos)', () => {
+  it('mantém o que já estava gravado e abre a tabela de projetos vazia e com os índices', async () => {
+    const name = `mig-${crypto.randomUUID()}`;
+    const old = openV2(name);
+    const act = { ...base('a1'), kind: 'manutencao', title: 'Rua B', technician: 'Ana', startedAt: 1, status: 'concluida', description: 'x', materials: [] };
+    await old.table('activities').add(act);
+    await old.table('settings').add({ key: 'technician', value: 'Ana' });
+    await old.table('referenceLayers').add({ id: 'L', updatedAt: 3, name: 'Camada' });
+    old.close();
+
+    const db = new RotaFibraDB(name);
+    await db.open();
+    expect(db.verno).toBe(3);
+    expect(await db.activities.toArray()).toEqual([act]);
+    expect(await db.settings.get('technician')).toEqual({ key: 'technician', value: 'Ana' });
+    expect(await db.referenceLayers.count()).toBe(1);
+    expect(await db.projects.count()).toBe(0);
+    await db.projects.bulkAdd([
+      { id: 'p1', ownerId: 'adm', assignedTo: 'u1', title: 'A', kind: 'implantacao', description: '', address: '', status: 'aberto', deleted: false, createdAt: 1, updatedAt: 1 },
+      { id: 'p2', ownerId: 'adm', assignedTo: 'u2', title: 'B', kind: 'manutencao', description: '', address: '', status: 'aberto', deleted: false, createdAt: 1, updatedAt: 2 },
+    ]);
+    expect((await db.projects.where('assignedTo').equals('u1').toArray()).map((p) => p.id)).toEqual(['p1']);
+    db.close();
+  });
+
+  it('a atividade antiga (sem projeto) continua valendo: projectId e completesProject sao opcionais', async () => {
+    const db = new RotaFibraDB(`mig-${crypto.randomUUID()}`);
+    await db.open();
+    await db.activities.add({ ...base('a1'), kind: 'implantacao', title: 'Sem projeto', technician: 'Ana', startedAt: 1, status: 'aberta', description: '', materials: [] } as never);
+    await db.activities.add({ ...base('a2'), kind: 'implantacao', title: 'Com projeto', technician: 'Ana', startedAt: 1, status: 'aberta', description: '', materials: [], projectId: 'p1', completesProject: true } as never);
+    expect(await db.activities.get('a1')).not.toHaveProperty('projectId');
+    expect(await db.activities.get('a2')).toMatchObject({ projectId: 'p1', completesProject: true });
+    db.close();
+  });
+});
+
+describe('migração do banco local (v1 → v3)', () => {
   it('mantém tudo o que já estava gravado e abre as tabelas novas vazias', async () => {
     const name = `mig-${crypto.randomUUID()}`;
     const old = openV1(name);
@@ -36,7 +87,7 @@ describe('migração do banco local (v1 → v2)', () => {
 
     const db = new RotaFibraDB(name);
     await db.open();
-    expect(db.verno).toBe(2);
+    expect(db.verno).toBe(3);
     for (const table of ['activities', 'elements', 'cables', 'trackPoints', 'settings'] as const) {
       const [got] = await db[table].toArray();
       expect(got).toEqual((rows as Record<string, unknown>)[table]);
@@ -69,11 +120,11 @@ describe('migração do banco local (v1 → v2)', () => {
     again.close();
   });
 
-  it('banco novo (sem nada antes) já nasce na v2', async () => {
+  it('banco novo (sem nada antes) já nasce na v3', async () => {
     const db = new RotaFibraDB(`mig-${crypto.randomUUID()}`);
     await db.open();
     expect(db.tables.map((t) => t.name).sort()).toEqual(
-      ['activities', 'cables', 'elements', 'photos', 'referenceFeatures', 'referenceLayers', 'settings', 'trackPoints'],
+      ['activities', 'cables', 'elements', 'photos', 'projects', 'referenceFeatures', 'referenceLayers', 'settings', 'trackPoints'],
     );
     db.close();
   });

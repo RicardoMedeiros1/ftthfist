@@ -3,39 +3,16 @@ import ScreenShell from '../../components/ScreenShell';
 import { goBack, navigate } from '../../lib/route';
 import { useOnlineStatus } from '../../lib/useOnlineStatus';
 import { useAccount } from '../account/accountStore';
-import { KIND_LABEL } from '../activities/labels';
 import { adminApi } from '../admin/adminRuntime';
 import { useAdminData } from '../admin/useAdminData';
 import { Chips } from '../elements/fields';
 import { assignable } from './assignable';
-import { buildRows, countByState, filterRows, formatDueDate, sortRows, STATE_FILTERS, STATE_LABEL, type ProjectRow, type StateFilter } from './projectState';
+import ProjectCard from './ProjectCard';
+import { buildRows, countByState, filterRows, sortRows, STATE_FILTERS, type StateFilter } from './projectState';
 import './projects.css';
 
 // Lembra o filtro ao voltar de um projeto (fica so na memoria: ao recarregar o app volta ao padrao).
 const remembered = { filter: 'abertos' as StateFilter, query: '', technician: '' };
-
-export function ProjectCard({ row, onOpen }: { row: ProjectRow; onOpen: () => void }) {
-  const { project: p, state } = row;
-  const done = row.linked.length;
-  return (
-    <li>
-      <button className="card project-card" data-state={state} data-overdue={row.overdue} onClick={onOpen}>
-        <span className="project-head">
-          <span className="card-title">{p.title}</span>
-          <span className="project-badges">
-            <span className={`badge badge-state-${state}`}>{STATE_LABEL[state]}</span>
-            {row.overdue && <span className="badge badge-overdue">Atrasado</span>}
-          </span>
-        </span>
-        <span className="card-meta">{KIND_LABEL[p.kind]}{p.osNumber ? ` · OS ${p.osNumber}` : ''} · {row.technicianName}</span>
-        {p.address && <span className="card-meta">{p.address}</span>}
-        <span className="card-meta">
-          {p.dueDate ? `Prazo ${formatDueDate(p.dueDate)}` : 'Sem prazo'} · {done === 0 ? 'nenhuma atividade ainda' : done === 1 ? '1 atividade' : `${done} atividades`}
-        </span>
-      </button>
-    </li>
-  );
-}
 
 /** Projetos designados: o administrador acompanha todos, cria e abre um para editar. Exige internet. */
 export default function ProjetosScreen() {

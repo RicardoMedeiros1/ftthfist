@@ -25,3 +25,27 @@
   background: #000; color: #fff; font-size: 18px; color-scheme: dark;
 }
 .field input[type='date']:focus, .field input[type='search']:focus { outline: 4px solid var(--accent); outline-offset: 2px; }
+
+/* aviso "Você tem N projetos" (dentro do .toast-host, empilha com os outros avisos) */
+.project-toast {
+  pointer-events: auto;
+  display: flex; flex-direction: column; align-items: stretch; gap: 8px;
+  padding: 10px 12px 10px 16px;
+  border: 3px solid var(--accent); border-radius: 14px;
+  background: #000; color: #fff;
+  font: 700 17px/1.25 system-ui, sans-serif;
+  box-shadow: 0 4px 16px rgba(0,0,0,.6);
+}
+.project-toast .update-actions { justify-content: flex-end; }
+.project-toast-sub { display: block; font-weight: 600; font-size: 15px; color: #ddd; overflow-wrap: anywhere; }
+.project-section { display: flex; flex-direction: column; gap: 10px; }
+.project-facts { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; font-size: 16px; }
+.project-facts dt { color: #bbb; font-weight: 700; }
+.project-facts dd { margin: 0; overflow-wrap: anywhere; }
+.project-instructions { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.project-pin { background: none; border: 0; }
+.project-pin .el-hit { filter: drop-shadow(0 1px 3px rgba(0,0,0,.7)); }
+
+/* "Ver no mapa" e "Como chegar" (um e botao, o outro e link): lado a lado, mesma cara, sem sublinhado */
+.project-map-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.project-map-actions .btn { flex: 1 1 150px; display: inline-flex; align-items: center; justify-content: center; text-align: center; text-decoration: none; }
