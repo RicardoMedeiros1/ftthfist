@@ -15,7 +15,7 @@ from (
           where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity
             and c.relname in ('profiles', 'activities', 'elements', 'cables', 'photos', 'track_points', 'sync_conflicts'))::text
   union all select 4, 'politicas de acesso nas tabelas (sem as do administrador)', '19',
-         (select count(*) from pg_policies where schemaname = 'public' and tablename <> 'admin_edits' and policyname !~ '_adm_')::text
+         (select count(*) from pg_policies where schemaname = 'public' and tablename not in ('admin_edits', 'projects') and policyname !~ '_adm_')::text
   union all select 5, 'politicas de acesso as fotos (storage)', '3',
          (select count(*) from pg_policies where schemaname = 'storage' and policyname in ('fotos_read', 'fotos_insert', 'fotos_update'))::text
   union all select 6, 'regra de conflito nas 5 tabelas de dados', '5',

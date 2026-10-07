@@ -5,7 +5,7 @@ aqui está só o esquema, as regras de acesso (RLS) e os testes que provam que e
 
 ```
 supabase/
-  migrations/   12 arquivos SQL pequenos, aplicar em ordem
+  migrations/   13 arquivos SQL pequenos, aplicar em ordem
   conferir-passo-1.sql   diz, item por item, se o banco ficou completo
   tests/        testes do banco (Postgres local) e o script de verificação direto na API
 ```
@@ -37,17 +37,18 @@ supabase/
 3. **Aplique as migrations, em ordem** (cada uma **uma vez só**). `supabase db push` nao e um arquivo: e um comando do
    Supabase CLI, que so vale a pena se voce tiver o repositorio no seu computador. O caminho simples nao instala nada:
    - *SQL Editor:* no painel do Supabase, **SQL Editor -> New query**, cole o conteudo de **um arquivo de
-     `supabase/migrations/` por vez, na ordem do nome**, e clique em **Run**. Sao 12 arquivos (`...150000_perfis`,
+     `supabase/migrations/` por vez, na ordem do nome**, e clique em **Run**. Sao 13 arquivos (`...150000_perfis`,
      `...150100_tabelas_atividades_elementos`, `...150110_tabelas_cabos_fotos`, `...150120_tabelas_trilha_indices`,
      `...150130_regras_de_conflito`, `...150140_permissoes_e_rls`, `...150200_fotos`, `...150300_painel`, `...150400_aprovacao_de_acesso`,
-     `...150500_admin_auditoria`, `...150510_admin_edita_tudo`, `...150520_admin_pessoas`).
+     `...150500_admin_auditoria`, `...150510_admin_edita_tudo`, `...150520_admin_pessoas`, `...150600_projetos`).
      Cada um termina com uma linha `-- fim: ...`: **confira no editor se ela esta la** antes de rodar. Os arquivos tem
      menos de 100 linhas de proposito: um colar a partir de um visualizador que corta em 100 linhas ja chegou truncado
      ao editor (erro de sintaxe no fim do texto), e as migrations sao so ASCII porque o editor ja reescreveu um script
      com acentos e o quebrou. Se o editor perguntar sobre "Row Level Security", o nosso SQL ja liga a RLS em todas as
      tabelas: qualquer botao serve (se der erro de sintaxe, use "Run without RLS").
    - **Confira o resultado:** rode `supabase/conferir-passo-1.sql` (arquivos 1 a 9: as 16 linhas devem dizer `OK`) e
-     `supabase/conferir-admin.sql` (arquivos 10 a 12, do administrador: as 10 linhas devem dizer `OK`). `FALTA` indica
+     `supabase/conferir-admin.sql` (arquivos 10 a 12, do administrador: as 10 linhas devem dizer `OK`) e
+     `supabase/conferir-projetos.sql` (arquivo 13, dos projetos designados: as 6 linhas devem dizer `OK`). `FALTA` indica
      qual parte nao foi aplicada ate o fim.
    - *CLI* (com o repositorio no computador, dentro da pasta do projeto): `npx supabase init`, `npx supabase login`,
      `npx supabase link --project-ref <ref>` e `npx supabase db push`. O `<ref>` e o trecho da URL do projeto
@@ -134,6 +135,20 @@ nao muda e cada linha excluida pelo administrador entra em `admin_edits` (quem, 
 - Se um aparelho que ainda nao sabia da exclusao enviar um registro novo para essa atividade, ele chega ao servidor; o painel
   ignora tudo o que pertence a uma atividade excluida.
 
+## Projetos designados (migration 13)
+
+O administrador cria um **projeto** (titulo, tipo, nº da OS, instrucoes, endereco, ponto no mapa e prazo opcionais) e o designa a
+um tecnico; o tecnico o ve ao abrir o app e, ao iniciar, a atividade nasce **ligada** a ele (`activities.project_id`). Regras:
+
+- **Quem escreve:** so o administrador ativo (e pela internet). Quem le: administrador e escritorio, todos; o tecnico, **so os
+  designados a ele** (inclusive os excluidos, para a exclusao chegar ao celular). Ninguem apaga linha: excluir e `deleted = true`.
+- **Designar:** so a tecnico ou administrador **ativo** (`23514` para escritorio ou conta desativada). Reatribuir e alterar `assigned_to`.
+- **O servidor manda no relogio** (`updated_at`, `server_updated_at`) e registra quem gravou (`updated_by`); o dono nao muda.
+- **O tecnico nao altera o projeto.** O andamento vem das atividades ligadas: `activities.completes_project = true` diz que, com
+  aquela atividade, o projeto terminou (so vale com `project_id`, regra `activities_completes_needs_project`).
+- **Trabalho de campo nunca e recusado:** o servidor confere so que o projeto existe (chave estrangeira). Se o administrador
+  cancelar, excluir ou reatribuir o projeto enquanto o tecnico trabalha sem internet, a atividade dele sobe normalmente.
+
 ## Painel web do escritorio (so leitura)
 
 O painel (`#/painel`, para escritorio e administrador) trabalha com o que o navegador ja sincronizou, inclusive sem internet. Do
@@ -154,6 +169,7 @@ Cada arquivo de teste cria um banco novo, aplica um *stub* do Supabase (`tests/s
 teste**, nunca aplicar no projeto real) e as migrations de verdade, e personifica cada usuário como o PostgREST faz.
 Sem `TEST_DATABASE_URL` esses testes são pulados e `npm test` segue normal.
 
+O teste `tests/projects.test.ts` cobre os projetos designados (quem le, quem escreve, designacao, vinculo da atividade).
 O teste `tests/admin-api.test.ts` roda as **ferramentas do administrador do app** (Pessoas, Alteracoes, trilha) do mesmo jeito.
 O teste `tests/sync-engine.test.ts` roda o **motor de sincronização do app** contra esse banco, atrás de um PostgREST de
 verdade e do cliente `supabase-js`/`postgrest-js`. Ele sobe o próprio PostgREST (um por execução, num banco novo) e só

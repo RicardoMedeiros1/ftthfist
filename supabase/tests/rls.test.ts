@@ -450,3 +450,29 @@ describe.skipIf(!DB_URL)('conferir-admin.sql (as migrations do administrador)', 
     });
   });
 });
+
+describe.skipIf(!DB_URL)('conferir-projetos.sql (a migration dos projetos designados)', () => {
+  let db: TestDb;
+  beforeAll(async () => { db = await createTestDb(); });
+  afterAll(async () => { await db?.drop(); });
+  const script = () => readFileSync(new URL('../conferir-projetos.sql', import.meta.url), 'utf8');
+
+  it('num banco com todas as migrations, todas as linhas dizem OK', async () => {
+    const rows = await db.admin<{ item: string; resultado: string }>(script());
+    expect(rows).toHaveLength(6);
+    expect(rows.filter((r) => r.resultado !== 'OK')).toEqual([]);
+  });
+
+  it('acusa FALTA quando a migration nao foi aplicada ate o fim (politica, gatilho e colunas da atividade)', async () => {
+    await db.run('postgres', async (tx) => {
+      await tx.q(`drop policy projects_admin_update on public.projects`);
+      await tx.q(`drop trigger trg_1_projects_guard on public.projects`);
+      await tx.q(`alter table public.activities drop column completes_project`);
+      const falta = (await tx.q<{ resultado: string; item: string }>(script())).filter((r) => r.resultado === 'FALTA').map((r) => r.item);
+      expect(falta).toHaveLength(4); // politicas, gatilho, colunas e a regra que dependia da coluna
+      expect(falta.join(' ')).toContain('politicas de projects');
+      expect(falta.join(' ')).toContain('trg_1_projects_guard');
+      expect(falta.join(' ')).toContain('completes_project');
+    });
+  });
+});

@@ -39,6 +39,6 @@ describe('migrations do Supabase: texto', () => {
         expect(rest.slice(end).startsWith(`alter table public.${m[1]} enable row level security;`), `${f}: ${m[1]} sem RLS logo após o create table`).toBe(true);
       }
     }
-    expect(tables).toBe(8); // + admin_edits
+    expect(tables).toBe(9); // + admin_edits, projects
   });
 });
