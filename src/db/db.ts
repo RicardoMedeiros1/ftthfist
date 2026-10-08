@@ -80,6 +80,8 @@ export const SETTING_KEYS = {
   cableTypes: 'cableTypes',
   cableDraft: 'cableDraft',
   lastCable: 'lastCable',
+  // último tipo e fibras usados num ramal (o "Derivar" já abre com eles marcados)
+  lastBranch: 'lastBranch',
   trackState: 'trackState',
   // conta (Fase 2): quem esta logado neste aparelho e o ultimo perfil conhecido (para funcionar sem internet)
   account: 'account',

@@ -6,6 +6,7 @@ import { pathLengthMeters, round2 } from '../../lib/geo';
 import { activityRepo } from '../activities/activityRepo';
 import { elementRepo } from '../elements/elementRepo';
 import { CableRuleError, cableRepo } from './cableRepo';
+import { routeOf } from './routes';
 
 let db: RotaFibraDB;
 let acts: ReturnType<typeof activityRepo>;
@@ -87,6 +88,95 @@ describe('criar cabo', () => {
     expect(c.id).toBe(cableId);
     expect(c.reserveMeters).toBe(17.5);
     expect(c.totalMeters).toBe(round2(c.lengthMeters + 17.5));
+  });
+});
+
+describe('criar vários cabos de uma vez (lançamento com ramais)', () => {
+  /** Tronco p0-p1-p2 e ramal p1-p3-p4 saindo do p1 (a "CEO"). */
+  async function tree() {
+    const { a, poles } = await withPoles(5);
+    const v = (...i: number[]) => i.map((k) => vOf(poles[k]!));
+    const trunkId = crypto.randomUUID();
+    const branchId = crypto.randomUUID();
+    const inputs = [
+      { id: trunkId, cableType: 'AS-80', fiberCount: 24, vertices: v(0, 1, 2), notes: 'rede nova' },
+      { id: branchId, cableType: 'drop', fiberCount: 2, vertices: v(1, 3, 4), links: [{ elementId: poles[1]!.id, cableId: trunkId }] },
+    ];
+    return { a, poles, trunkId, branchId, inputs };
+  }
+
+  it('grava todos na atividade aberta, na ordem, e devolve cada um', async () => {
+    const { a, trunkId, branchId, inputs } = await tree();
+    const saved = await cables.createMany(inputs, 'Maria');
+    expect(saved.map((c) => c.id)).toEqual([trunkId, branchId]);
+    expect(saved.every((c) => c.activityId === a.id && c.createdBy === 'Maria' && c.syncStatus === 'pending')).toBe(true);
+    expect(await db.cables.count()).toBe(2);
+    expect(saved[0]!.notes).toBe('rede nova');
+  });
+
+  it('o ramal sai ligado ao tronco no elemento da derivação, e a rota junta os dois', async () => {
+    const { poles, trunkId, branchId, inputs } = await tree();
+    const [trunk, branch] = await cables.createMany(inputs, 'J');
+    expect(trunk!.links).toBeUndefined(); // a ligação fica guardada no ramal, que é quem a fez
+    expect(branch!.links).toEqual([{ elementId: poles[1]!.id, cableId: trunkId }]);
+    const route = routeOf(trunkId, await cables.list());
+    expect([...route.cableIds].sort()).toEqual([trunkId, branchId].sort());
+  });
+
+  it('as reservas combinadas entram no total de cada cabo', async () => {
+    const { trunkId, branchId, inputs } = await tree();
+    await els.create({ type: 'reserva', lat: P[3]!.lat, lng: P[3]!.lng, positionSource: 'manual', attrs: { meters: 10, cableId: branchId } }, 'J');
+    await els.create({ type: 'reserva', lat: P[0]!.lat, lng: P[0]!.lng, positionSource: 'manual', attrs: { meters: 4, cableId: trunkId } }, 'J');
+    const [trunk, branch] = await cables.createMany(inputs, 'J');
+    expect([trunk!.reserveMeters, branch!.reserveMeters]).toEqual([4, 10]);
+    expect(branch!.totalMeters).toBe(round2(branch!.lengthMeters + 10));
+  });
+
+  it('tudo ou nada: um cabo inválido (ou sem atividade aberta) não deixa nenhum gravado', async () => {
+    const { inputs } = await tree();
+    const [t, b] = inputs as [(typeof inputs)[0], (typeof inputs)[1]];
+    expect(await code(cables.createMany([t, { ...b, fiberCount: 10 }], 'J'))).toBe('INVALID_FIBERS');
+    expect(await code(cables.createMany([t, { ...b, vertices: [b.vertices[0]!] }], 'J'))).toBe('TOO_FEW_VERTICES');
+    expect(await code(cables.createMany([t, { ...b, cableType: ' ' }], 'J'))).toBe('INVALID_TYPE');
+    expect(await code(cables.createMany([t, { ...b, colorStandard: 'x' as 'abnt' }], 'J'))).toBe('INVALID_STANDARD');
+    expect(await db.cables.count()).toBe(0);
+    await db.activities.clear();
+    expect(await code(cables.createMany(inputs, 'J'))).toBe('NO_OPEN_ACTIVITY');
+    expect(await db.cables.count()).toBe(0);
+  });
+
+  it('ligação que não vale é deixada de fora: cabo de fora do lote, ele mesmo, ou elemento por onde não passam', async () => {
+    const { poles, trunkId, inputs } = await tree();
+    const [t, b] = inputs as [(typeof inputs)[0], (typeof inputs)[1]];
+    const saved = await cables.createMany(
+      [
+        { ...t, links: [{ elementId: poles[1]!.id, cableId: trunkId }] }, // com ele mesmo
+        {
+          ...b,
+          links: [
+            { elementId: poles[1]!.id, cableId: crypto.randomUUID() }, // cabo que não está no lote
+            { elementId: poles[4]!.id, cableId: trunkId }, // o tronco não passa pelo p4
+            { elementId: poles[0]!.id, cableId: trunkId }, // o ramal não passa pelo p0
+            { elementId: poles[1]!.id, cableId: trunkId }, // esta vale
+            { elementId: poles[1]!.id, cableId: trunkId }, // repetida
+          ],
+        },
+      ],
+      'J',
+    );
+    expect(saved[0]!.links).toBeUndefined();
+    expect(saved[1]!.links).toEqual([{ elementId: poles[1]!.id, cableId: trunkId }]);
+  });
+
+  it('create continua gravando um cabo só (e não aceita ligação, que precisa de outro cabo)', async () => {
+    const { poles } = await withPoles(2);
+    const id = crypto.randomUUID();
+    const c = await cables.create(
+      { id, cableType: 'drop', fiberCount: 1, vertices: poles.map(vOf), links: [{ elementId: poles[0]!.id, cableId: id }] },
+      'J',
+    );
+    expect(c.links).toBeUndefined();
+    expect(await db.cables.count()).toBe(1);
   });
 });
 

@@ -5,7 +5,7 @@ import { draftStore, useDraft } from '../elements/draftStore';
 import { ElementRuleError } from '../elements/elementRepo';
 import { classifyAccuracy, formatAccuracy } from '../../lib/geo';
 import { addReserveHere, confirmPendingPole, discardCable, finishCable, markPoleHere, summaryOf, undoLast } from './cableActions';
-import { canFinishDraft, draftLengthMeters, draftReserveMeters, useCableDraft } from './cableDraft';
+import { activeCable, canFinishDraft, draftLengthMeters, draftReserveMeters, useCableDraft } from './cableDraft';
 import { CableRuleError } from './cableRepo';
 import CableSummaryDialog from './CableSummaryDialog';
 import { useLatestFix } from './gpsFeed';
@@ -40,9 +40,11 @@ export default function CablePanel() {
     );
   }
 
+  const current = activeCable(draft);
+  const trunk = draft.cables[0]!;
   const length = draftLengthMeters(draft);
   const reserves = draftReserveMeters(draft);
-  const points = draft.vertices.length;
+  const points = current.vertices.length;
   const bad = pending?.accuracy !== undefined && classifyAccuracy(pending.accuracy) === 'ruim';
 
   async function run(fn: () => Promise<void>) {
@@ -81,8 +83,8 @@ export default function CablePanel() {
       <div className="placement-status cabo-status" role="status">
         <div className="cabo-head">
           <span className="cabo-title">
-            <FiberLine fiberCount={draft.fiberCount} width={36} />
-            <strong>{draft.cableType}</strong> · {draft.fiberCount} fibras
+            <FiberLine fiberCount={current.fiberCount} width={36} />
+            <strong>{current.cableType}</strong> · {current.fiberCount} fibras
           </span>
           <button className="btn btn-small cabo-cancel" onClick={() => setConfirmCancel(true)}>
             Cancelar
@@ -158,8 +160,8 @@ export default function CablePanel() {
       )}
       {summaryOpen && (
         <CableSummaryDialog
-          cableType={draft.cableType}
-          fiberCount={draft.fiberCount}
+          cableType={trunk.cableType}
+          fiberCount={trunk.fiberCount}
           {...(() => {
             const s = summaryOf(draft);
             return { length: s.length, reserves: s.reserves, total: s.total };

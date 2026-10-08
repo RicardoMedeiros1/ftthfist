@@ -39,6 +39,8 @@ export interface NewCableInput {
   colorStandard?: ColorStandard;
   vertices: CableVertex[];
   notes?: string;
+  /** Ligações deste cabo com outros do mesmo lote (ver `createMany`). Em `create` não valem (não há outro cabo). */
+  links?: CableLink[];
 }
 
 export interface CablePatch {
@@ -94,6 +96,69 @@ export function cableRepo(database: RotaFibraDB = db) {
     return (await database.cables.get(c.id)) as Cable;
   }
 
+  /**
+   * Grava vários cabos de uma vez (tudo ou nada), como no lançamento com ramais. Cada cabo pode trazer as ligações dele
+   * (`links`): vale só a que aponta para outro cabo do mesmo lote e num elemento por onde os dois passam; as demais são
+   * deixadas de fora. Devolve os cabos na ordem recebida.
+   */
+  async function createMany(inputs: readonly NewCableInput[], technician: string): Promise<Cable[]> {
+    const checked = inputs.map((input) => {
+      const cableType = checkType(input.cableType);
+      const fiberCount = checkFibers(input.fiberCount);
+      if (input.vertices.length < 2) {
+        throw new CableRuleError('TOO_FEW_VERTICES', 'Um cabo precisa de pelo menos 2 pontos.');
+      }
+      return { input, cableType, fiberCount };
+    });
+
+    return database.transaction('rw', database.activities, database.elements, database.cables, async () => {
+      const open = await database.activities
+        .where('status')
+        .equals('aberta')
+        .filter((a) => !a.deleted && isMine(a))
+        .first();
+      if (!open) throw new CableRuleError('NO_OPEN_ACTIVITY', 'Inicie uma atividade antes de lançar um cabo.');
+
+      const created: Cable[] = [];
+      for (const { input, cableType, fiberCount } of checked) {
+        const vertices: CableVertex[] = [];
+        for (const v of input.vertices) vertices.push(await canonicalVertex(v));
+        const base = newBase(technician.trim() || open.technician);
+        created.push({
+          ...base,
+          ...(input.id ? { id: input.id } : {}),
+          cableType,
+          fiberCount,
+          ...(input.colorStandard ? { colorStandard: checkStandard(input.colorStandard) } : {}),
+          vertices,
+          ...totalsFor(vertices, 0),
+          activityId: open.id,
+          notes: input.notes?.trim() ?? '',
+        });
+      }
+
+      // Ligações: só entre cabos deste lote, no elemento por onde os dois passam.
+      const byId = new Map(created.map((c) => [c.id, c] as const));
+      const passes = (c: Cable, elementId: string) => c.vertices.some((v) => v.elementId === elementId);
+      checked.forEach(({ input }, i) => {
+        const cable = created[i]!;
+        const links: CableLink[] = [];
+        for (const l of input.links ?? []) {
+          const other = byId.get(l.cableId);
+          if (!other || other.id === cable.id || !passes(cable, l.elementId) || !passes(other, l.elementId)) continue;
+          if (links.some((x) => x.elementId === l.elementId && x.cableId === l.cableId)) continue;
+          links.push({ elementId: l.elementId, cableId: l.cableId });
+        }
+        if (links.length > 0) cable.links = links.slice(0, MAX_LINKS);
+      });
+
+      await database.cables.bulkAdd(created);
+      // Reservas que já apontam para estes cabos (criadas durante o lançamento) entram no total.
+      for (const c of created) await recomputeCable(database, c.id);
+      return Promise.all(created.map(async (c) => (await database.cables.get(c.id)) as Cable));
+    });
+  }
+
   return {
     /** Cabos não excluídos, de todas as atividades. */
     list: (): Promise<Cable[]> => database.cables.filter((c) => !c.deleted).toArray(),
@@ -105,40 +170,10 @@ export function cableRepo(database: RotaFibraDB = db) {
 
     /** Grava o cabo na atividade aberta. `technician` vazio usa o técnico da atividade. */
     async create(input: NewCableInput, technician: string): Promise<Cable> {
-      const cableType = checkType(input.cableType);
-      const fiberCount = checkFibers(input.fiberCount);
-      if (input.vertices.length < 2) {
-        throw new CableRuleError('TOO_FEW_VERTICES', 'Um cabo precisa de pelo menos 2 pontos.');
-      }
-
-      return database.transaction('rw', database.activities, database.elements, database.cables, async () => {
-        const open = await database.activities
-          .where('status')
-          .equals('aberta')
-          .filter((a) => !a.deleted && isMine(a))
-          .first();
-        if (!open) throw new CableRuleError('NO_OPEN_ACTIVITY', 'Inicie uma atividade antes de lançar um cabo.');
-
-        const vertices: CableVertex[] = [];
-        for (const v of input.vertices) vertices.push(await canonicalVertex(v));
-        const base = newBase(technician.trim() || open.technician);
-        const cable: Cable = {
-          ...base,
-          ...(input.id ? { id: input.id } : {}),
-          cableType,
-          fiberCount,
-          ...(input.colorStandard ? { colorStandard: checkStandard(input.colorStandard) } : {}),
-          vertices,
-          ...totalsFor(vertices, 0),
-          activityId: open.id,
-          notes: input.notes?.trim() ?? '',
-        };
-        await database.cables.add(cable);
-        // Reservas que já apontam para este cabo (criadas durante o lançamento) entram no total.
-        await recomputeCable(database, cable.id);
-        return (await database.cables.get(cable.id)) as Cable;
-      });
+      return (await createMany([input], technician))[0]!;
     },
+
+    createMany,
 
     async update(id: string, patch: CablePatch): Promise<Cable> {
       return database.transaction('rw', database.cables, async () => {

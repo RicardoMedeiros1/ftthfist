@@ -1,17 +1,23 @@
 import { SETTING_KEYS, db, getSetting, setSetting } from '../../db/db';
 import type { NetworkElement } from '../../db/types';
-import { distanceMeters, formatMeters, nearestWithin } from '../../lib/geo';
+import { distanceMeters, formatMeters, nearestWithin, round2 } from '../../lib/geo';
 import { classifyAccuracy } from '../../lib/geo';
+import { canEdit } from '../../lib/ownership';
 import { draftStore } from '../elements/draftStore';
 import { elementStore } from '../elements/elementRepo';
 import type { Map as LeafletMap, LatLng } from 'leaflet';
 import { unlinkReserves } from './cableLinks';
 import { cableStore } from './cableRepo';
 import {
+  activeCable,
   cableDraftStore,
-  draftLengthMeters,
-  draftReserveMeters,
+  cableLengthMeters,
+  cableReserveMeters,
+  cablesToSave,
+  lastVertex,
+  type CableChoice,
   type CableDraft,
+  type DraftCable,
 } from './cableDraft';
 import { gpsFeed } from './gpsFeed';
 import { quickCapture } from './quickCapture';
@@ -68,7 +74,7 @@ export async function markPoleHere(): Promise<MarkResult> {
   const fix = await quickCapture(gpsFeed);
   if (!fix) return { ok: false, message: 'Sem sinal de GPS agora. Tente de novo ou toque no mapa.' };
 
-  const last = d.vertices[d.vertices.length - 1];
+  const last = lastVertex(activeCable(d));
   if (last && distanceMeters(last, fix) < MIN_POLE_SPACING_M) {
     return { ok: false, message: 'Você está no mesmo ponto do último poste. Ande até o próximo e toque de novo.' };
   }
@@ -88,16 +94,36 @@ export async function confirmPendingPole(): Promise<void> {
   draftStore.discardPosition();
 }
 
+// ---- ramais ----
+
+export type BranchResult = { ok: true } | { ok: false; message: string };
+
+/** Deriva um ramal do último ponto (precisa ser um elemento já marcado) e guarda a escolha para a próxima derivação. */
+export async function branchHere(choice: CableChoice): Promise<BranchResult> {
+  if (!cableDraftStore.branch(choice)) {
+    return { ok: false, message: 'Derive de um poste, CEO ou CTO. Marque o ponto primeiro (toque num ponto solto não serve).' };
+  }
+  await setSetting(SETTING_KEYS.lastBranch, { cableType: choice.cableType, fiberCount: choice.fiberCount });
+  return { ok: true };
+}
+
+/** Termina o ramal e volta ao cabo de onde ele saiu. */
+export function endBranchHere(): BranchResult {
+  if (!cableDraftStore.endBranch()) return { ok: false, message: 'Marque ao menos um ponto do ramal antes de terminar.' };
+  return { ok: true };
+}
+
 // ---- reservas ----
 
-/** Reserva no último ponto lançado, ligada a este cabo. */
+/** Reserva no último ponto lançado, ligada ao cabo ativo. */
 export async function addReserveHere(meters: number): Promise<{ ok: boolean; message?: string }> {
   const d = cableDraftStore.getState();
-  const last = d?.vertices[d.vertices.length - 1];
-  if (!d || !last) return { ok: false, message: 'Marque ao menos um ponto antes de registrar a reserva.' };
+  const cable = d ? activeCable(d) : null;
+  const last = cable ? lastVertex(cable) : undefined;
+  if (!d || !cable || !last) return { ok: false, message: 'Marque ao menos um ponto antes de registrar a reserva.' };
   if (!(meters > 0) || !Number.isFinite(meters)) return { ok: false, message: 'Informe os metros da reserva.' };
   const el = await elementStore.create(
-    { type: 'reserva', lat: last.lat, lng: last.lng, positionSource: 'manual', attrs: { meters, cableId: d.cableId } },
+    { type: 'reserva', lat: last.lat, lng: last.lng, positionSource: 'manual', attrs: { meters, cableId: cable.cableId } },
     await technician(),
   );
   cableDraftStore.addReserve(el.id, meters);
@@ -106,40 +132,92 @@ export async function addReserveHere(meters: number): Promise<{ ok: boolean; mes
 
 // ---- desfazer / finalizar / descartar ----
 
-/** Desfaz a última ação. Poste ou reserva criados por ela saem do mapa (exclusão lógica); elementos que já existiam ficam. */
+/** Desfaz a última ação. Elemento ou reserva criados por ela saem do mapa (exclusão lógica); elementos que já existiam ficam. */
 export async function undoLast(): Promise<void> {
   const a = cableDraftStore.undo();
   if (!a) return;
-  const created = a.kind === 'reserve' ? a.elementId : a.createdElementId;
+  const created = a.kind === 'reserve' ? a.elementId : a.kind === 'vertex' ? a.createdElementId : undefined;
   if (created) await elementStore.remove(created).catch(() => undefined);
 }
 
-export function summaryOf(d: CableDraft) {
-  const length = draftLengthMeters(d);
-  const reserves = draftReserveMeters(d);
-  return { length, reserves, total: Math.round((length + reserves) * 100) / 100 };
+export interface CableSummaryItem {
+  cable: DraftCable;
+  length: number;
+  reserves: number;
+  total: number;
 }
 
-/** Salva o cabo e encerra o lançamento. */
-export async function finishCable(notes: string): Promise<string> {
+/** O que será salvo: cada cabo com a sua metragem, e a soma de todos. */
+export function summaryOf(d: CableDraft) {
+  const items: CableSummaryItem[] = cablesToSave(d).map((cable) => {
+    const length = cableLengthMeters(cable);
+    const reserves = cableReserveMeters(d, cable.cableId);
+    return { cable, length, reserves, total: round2(length + reserves) };
+  });
+  const length = round2(items.reduce((sum, i) => sum + i.length, 0));
+  const reserves = round2(items.reduce((sum, i) => sum + i.reserves, 0));
+  return { items, length, reserves, total: round2(length + reserves) };
+}
+
+/** Fibra de entrada de uma CTO, escolhida no resumo: o cabo (do lançamento) e a fibra dele. */
+export interface CtoFeedPick {
+  elementId: string;
+  cableId: string;
+  fiber: number;
+}
+
+/**
+ * Salva tudo o que foi lançado (o tronco e os ramais) de uma vez, já ligado: cada ramal é ligado ao cabo de onde saiu, no
+ * elemento da derivação. `feeds` grava, nas CTOs onde um cabo termina, a fibra que elas pegaram. Tudo ou nada.
+ */
+export async function finishCable(notes: string, feeds: readonly CtoFeedPick[] = []): Promise<string> {
   const d = cableDraftStore.getState();
   if (!d) throw new Error('Nenhum cabo em lançamento.');
-  const cable = await cableStore.create(
-    { id: d.cableId, cableType: d.cableType, fiberCount: d.fiberCount, ...(d.colorStandard ? { colorStandard: d.colorStandard } : {}), vertices: d.vertices, notes },
-    await technician(),
-  );
-  await setSetting(SETTING_KEYS.lastCable, { cableType: d.cableType, fiberCount: d.fiberCount });
+  const toSave = cablesToSave(d);
+  const savedIds = new Set(toSave.map((c) => c.cableId));
+  const inputs = toSave.map((c, i) => ({
+    id: c.cableId,
+    cableType: c.cableType,
+    fiberCount: c.fiberCount,
+    ...(c.colorStandard ? { colorStandard: c.colorStandard } : {}),
+    vertices: c.vertices,
+    // as observações valem para o lançamento todo: ficam no primeiro cabo
+    notes: i === 0 ? notes : '',
+    // o ramal se liga ao cabo de onde saiu, no elemento da derivação (o primeiro ponto dele)
+    ...(c.parentId && savedIds.has(c.parentId) && c.vertices[0]?.elementId
+      ? { links: [{ elementId: c.vertices[0].elementId, cableId: c.parentId }] }
+      : {}),
+  }));
+
+  const who = await technician();
+  const cables = await db.transaction('rw', db.activities, db.elements, db.cables, async () => {
+    const saved = await cableStore.createMany(inputs, who);
+    for (const f of feeds) {
+      const cable = saved.find((c) => c.id === f.cableId);
+      const el = await db.elements.get(f.elementId);
+      if (!cable || !el || el.deleted || el.type !== 'cto' || !canEdit(el)) continue;
+      if (!Number.isInteger(f.fiber) || f.fiber < 1 || f.fiber > cable.fiberCount) continue;
+      await elementStore.update(el.id, { attrs: { ...(el.attrs as object), feedCableId: cable.id, feedFiber: f.fiber } });
+    }
+    return saved;
+  });
+
+  const trunk = toSave[0]!;
+  await setSetting(SETTING_KEYS.lastCable, { cableType: trunk.cableType, fiberCount: trunk.fiberCount });
   cableDraftStore.clear();
-  const msg = `Cabo salvo: ${formatMeters(cable.totalMeters)}`;
+  const total = round2(cables.reduce((sum, c) => sum + c.totalMeters, 0));
+  const msg = cables.length === 1 ? `Cabo salvo: ${formatMeters(total)}` : `${cables.length} cabos salvos: ${formatMeters(total)}`;
   draftStore.saved(msg);
   return msg;
 }
 
-/** Descarta o lançamento. Postes e reservas já marcados continuam no mapa (reservas ficam sem cabo). */
+/** Descarta o lançamento. Elementos e reservas já marcados continuam no mapa (reservas ficam sem cabo). */
 export async function discardCable(): Promise<void> {
   const d = cableDraftStore.getState();
   if (d) {
-    await db.transaction('rw', db.elements, db.cables, () => unlinkReserves(db, d.cableId));
+    await db.transaction('rw', db.elements, db.cables, async () => {
+      for (const c of d.cables) await unlinkReserves(db, c.cableId);
+    });
   }
   cableDraftStore.clear();
   draftStore.cancel();
