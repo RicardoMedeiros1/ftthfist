@@ -205,6 +205,7 @@
 :root[data-theme] .panel-table th:first-child,
 :root[data-theme] .panel-table td:first-child { background: var(--bg); }
 :root[data-theme] .panel-table tfoot td { border-top-color: var(--border); }
+:root[data-theme] .panel-table tfoot td:first-child { background: var(--surface); }
 :root[data-theme] .panel-table tbody tr:hover,
 :root[data-theme] .panel-table tbody tr:hover td:first-child { background: var(--surface-2); }
 :root[data-theme] .panel-table tr[aria-selected='true'],

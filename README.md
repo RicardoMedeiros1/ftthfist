@@ -62,7 +62,7 @@ Estas regras guiam todas as decisões do projeto.
 | 1 | **Offline-first** | Tudo é salvo primeiro no aparelho (IndexedDB). Nenhuma ação de campo depende de internet; a sincronização acontece depois. |
 | 2 | **O cabo é desenhado poste a poste** | O traçado liga elementos marcados. A trilha GPS é um registro de deslocamento separado e **nunca** vira cabo sozinha. |
 | 3 | **Precisão visível** | Todo ponto de GPS guarda a precisão em metros. Acima de 15 m o app avisa e oferece ajustar o ponto arrastando sobre o satélite. |
-| 4 | **Feito para campo** | Mobile-first, botões de no mínimo 48 px, alto contraste (legível no sol), uso com uma mão, poucos toques e confirmação antes de excluir. |
+| 4 | **Feito para campo** | Mobile-first, botões de no mínimo 48 px, alto contraste (legível no sol), uso com uma mão (barra de abas e botão MARCAR ao alcance do polegar), dois temas de cor, poucos toques e confirmação antes de excluir. |
 | 5 | **Sem credenciais no frontend** | No app só existe a chave pública do Supabase, protegida por RLS. |
 | 6 | **Exclusão sempre lógica** | `deleted = true`, nunca `DELETE`, para não quebrar a sincronização. |
 
@@ -107,7 +107,7 @@ Capturas com **dados de exemplo e mapa ilustrativo**: as ruas e as quadras vêm 
   <tr>
     <td align="center" width="25%"><img src="docs/img/01-marcar-poste.png" alt="Marcando um poste com GPS de 4 metros de precisão" width="190"><br><b>Marcar um poste</b><br><sub>GPS ±4 m: posição pronta</sub></td>
     <td align="center" width="25%"><img src="docs/img/02-gps-impreciso.png" alt="GPS impreciso: mapa de satélite e marcador para ajustar" width="190"><br><b>GPS impreciso</b><br><sub>Acima de 15 m, o app avisa e abre o satélite para ajustar</sub></td>
-    <td align="center" width="25%"><img src="docs/img/03-lancar-tronco.png" alt="Lançamento do cabo-tronco com escolha de Poste, CEO ou CTO" width="190"><br><b>Lançar o tronco</b><br><sub>Poste, CEO ou CTO a cada ponto</sub></td>
+    <td align="center" width="25%"><img src="docs/img/03-lancar-tronco.png" alt="Lançamento do cabo-tronco: caminho no alto, escolha de Poste, CEO ou CTO e o botão MARCAR" width="190"><br><b>Lançar o tronco</b><br><sub>Poste, CEO ou CTO a cada ponto, no botão MARCAR</sub></td>
     <td align="center" width="25%"><img src="docs/img/04-derivar-ramal.png" alt="Diálogo para derivar um ramal a partir de uma CEO" width="190"><br><b>Derivar um ramal</b><br><sub>Tipo e fibras do ramal, a partir da CEO</sub></td>
   </tr>
   <tr>
@@ -115,6 +115,19 @@ Capturas com **dados de exemplo e mapa ilustrativo**: as ruas e as quadras vêm 
     <td align="center"><img src="docs/img/06-finalizar-lancamento.png" alt="Resumo do lançamento com tronco, ramais e fibra de cada CTO" width="190"><br><b>Finalizar</b><br><sub>Tronco, ramais e a fibra de cada CTO</sub></td>
     <td align="center"><img src="docs/img/07-rota-acesa.png" alt="Rota acesa no mapa com os três cabos ligados e as CTOs" width="190"><br><b>Rota acesa</b><br><sub>Tocar num cabo mostra a rede toda, ligada</sub></td>
     <td align="center"><img src="docs/img/08-fibras-do-cabo.png" alt="Ficha do cabo com as fibras e tubos nas cores da ABNT" width="190"><br><b>Fibras do cabo</b><br><sub>Cores ABNT, por tubo</sub></td>
+  </tr>
+</table>
+
+### Dois temas de cor
+
+Cada pessoa escolhe em *Ajustes › Aparência* (vale só para o aparelho dela). O desenho é o mesmo; o mapa fica claro nos dois.
+
+<table>
+  <tr>
+    <td align="center" width="25%"><img src="docs/img/12-tema-polegar-mapa.png" alt="Tema Polegar: mapa com a rede e a barra de abas" width="190"><br><b>Polegar</b><br><sub>Grafite e verde-limão: contraste alto, bom ao sol</sub></td>
+    <td align="center" width="25%"><img src="docs/img/03-lancar-tronco.png" alt="Tema Polegar: lançando o cabo" width="190"><br><b>Polegar</b><br><sub>Lançando o cabo com o polegar</sub></td>
+    <td align="center" width="25%"><img src="docs/img/14-tema-fibra-mapa.png" alt="Tema Fibra: mapa com a rede e a barra de abas" width="190"><br><b>Fibra</b><br><sub>Azul-petróleo e ciano: suave, ótimo à noite</sub></td>
+    <td align="center" width="25%"><img src="docs/img/15-tema-fibra-lancamento.png" alt="Tema Fibra: lançando o cabo" width="190"><br><b>Fibra</b><br><sub>Mesmo lançamento no outro tema</sub></td>
   </tr>
 </table>
 
