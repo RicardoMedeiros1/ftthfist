@@ -7,3 +7,12 @@
 .fiber-tubes { display: flex; flex-direction: column; gap: 8px; }
 .fiber-tubes details { border: 3px solid #fff; border-radius: 12px; padding: 4px 12px 10px; }
 .fiber-tubes summary { display: flex; align-items: center; gap: 10px; min-height: 48px; font-size: 17px; font-weight: 700; cursor: pointer; }
+
+/* ligar cabos num elemento */
+.link-list { display: flex; flex-direction: column; gap: 8px; }
+.link-row { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 12px; text-align: left; border: 3px solid #fff; border-radius: 12px; background: #000; color: #fff; font: inherit; touch-action: manipulation; }
+.link-row[aria-pressed='true'] { border-color: var(--accent); background: #1a1500; }
+.link-box { flex: none; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border: 3px solid #fff; border-radius: 8px; font-weight: 800; font-size: 20px; }
+.link-row[aria-pressed='true'] .link-box { background: var(--accent); border-color: var(--accent); color: #000; }
+.link-text { display: flex; flex-direction: column; gap: 2px; font-size: 17px; }
+.link-text small { font-size: 14px; color: #bbb; }

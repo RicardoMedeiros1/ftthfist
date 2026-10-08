@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { RotaFibraDB } from '../../db/db';
+import { setActingRole, setActingUser } from '../../lib/ownership';
 import { pathLengthMeters, round2 } from '../../lib/geo';
 import { activityRepo } from '../activities/activityRepo';
 import { elementRepo } from '../elements/elementRepo';
@@ -248,5 +249,128 @@ describe('padrão de cores das fibras', () => {
     const c = await cables.create({ cableType: 'AS-80', fiberCount: 12, vertices: v }, 'Carlos');
     expect(await code(cables.update(c.id, { colorStandard: 'ABNT' as never }))).toBe('INVALID_STANDARD');
     expect((await cables.get(c.id))!.colorStandard).toBeUndefined();
+  });
+});
+
+
+describe('ligar cabos num elemento', () => {
+  /** Tronco e duas derivações, todos passando pelo mesmo CEO (o elemento do meio do tronco). */
+  async function net() {
+    const { poles } = await withPoles(5);
+    const v = (...i: number[]) => i.map((k) => ({ elementId: poles[k]!.id, lat: poles[k]!.lat, lng: poles[k]!.lng }));
+    const t = await cables.create({ cableType: 'AS-80', fiberCount: 48, vertices: v(0, 1, 2) }, 'Carlos');
+    const d1 = await cables.create({ cableType: 'AS-80', fiberCount: 12, vertices: v(1, 3) }, 'Carlos');
+    const d2 = await cables.create({ cableType: 'drop', fiberCount: 2, vertices: v(1, 4) }, 'Carlos');
+    return { t, d1, d2, ceo: poles[1]!.id, poles };
+  }
+  const linksOf = async (id: string) => (await cables.get(id))!.links;
+
+  it('liga dois cabos: a ligação fica guardada em um deles, marcada para enviar', async () => {
+    const { t, d1, ceo } = await net();
+    await cables.setLinksAt(ceo, [t.id, d1.id]);
+    const stored = [await linksOf(t.id), await linksOf(d1.id)];
+    expect(stored.filter((l) => l && l.length > 0)).toHaveLength(1); // só um dos dois guarda
+    const holder = stored[0]?.length ? t : d1;
+    expect((await cables.get(holder.id))!.syncStatus).toBe('pending');
+    expect((await linksOf(holder.id))![0]!.elementId).toBe(ceo);
+  });
+  it('três cabos ligam todos com todos; repetir a mesma ligação não muda nada', async () => {
+    const { t, d1, d2, ceo } = await net();
+    await cables.setLinksAt(ceo, [t.id, d1.id, d2.id]);
+    const total = async () => [t, d1, d2].reduce(async (n, c) => (await n) + ((await linksOf(c.id))?.length ?? 0), Promise.resolve(0));
+    expect(await total()).toBe(3);
+    const before = await db.cables.toArray();
+    await cables.setLinksAt(ceo, [t.id, d1.id, d2.id]);
+    expect(await total()).toBe(3);
+    expect(await db.cables.toArray()).toEqual(before); // nada foi regravado
+  });
+  it('desmarcar um cabo tira só as ligações dele; nenhum cabo desliga tudo', async () => {
+    const { t, d1, d2, ceo } = await net();
+    await cables.setLinksAt(ceo, [t.id, d1.id, d2.id]);
+    await cables.setLinksAt(ceo, [t.id, d1.id]);
+    const left = (await db.cables.toArray()).flatMap((c) => c.links ?? []);
+    expect(left).toHaveLength(1);
+    await cables.setLinksAt(ceo, []);
+    expect((await db.cables.toArray()).flatMap((c) => c.links ?? [])).toEqual([]);
+  });
+  it('marcar um cabo só é erro e não grava nada', async () => {
+    const { t, ceo } = await net();
+    expect(await code(cables.setLinksAt(ceo, [t.id]))).toBe('SELECT_TWO');
+    expect(await linksOf(t.id)).toBeUndefined();
+  });
+  it('cabo que não passa pelo elemento é ignorado (não conta nem como "um só")', async () => {
+    const { t, d1, ceo } = await net();
+    const far = [await els.create(pole(-23.7, -46.7), 'Carlos'), await els.create(pole(-23.7001, -46.7001), 'Carlos')];
+    const away = await cables.create({ cableType: 'AS-80', fiberCount: 12, vertices: far.map((p) => ({ elementId: p.id, lat: p.lat, lng: p.lng })) }, 'Carlos');
+    await cables.setLinksAt(ceo, [t.id, d1.id, away.id]);
+    expect((await db.cables.toArray()).flatMap((c) => c.links ?? [])).toHaveLength(1);
+    expect(await linksOf(away.id)).toBeUndefined();
+  });
+  it('cabo com 200 ligações já não aceita mais uma (o servidor recusaria)', async () => {
+    const { t, d1, ceo } = await net();
+    const full = Array.from({ length: 200 }, (_, i) => ({ elementId: ceo, cableId: `00000000-0000-4000-8000-${String(100000 + i).padStart(12, '0')}` }));
+    await db.cables.update(t.id, { links: full });
+    await db.cables.update(d1.id, { ownerId: 'outro' });
+    try {
+      setActingUser('carlos');
+      setActingRole('tecnico');
+      await db.cables.update(t.id, { ownerId: 'carlos' });
+      expect(await code(cables.setLinksAt(ceo, [t.id, d1.id]))).toBe('TOO_MANY_LINKS');
+      expect((await db.cables.get(t.id))!.links).toHaveLength(200);
+    } finally {
+      setActingUser(null);
+      setActingRole(null);
+    }
+  });
+  it('cabos excluídos não entram', async () => {
+    const { t, d1, d2, ceo } = await net();
+    await cables.remove(d2.id);
+    await cables.setLinksAt(ceo, [t.id, d1.id, d2.id]);
+    expect((await db.cables.toArray()).flatMap((c) => c.links ?? [])).toHaveLength(1);
+    expect((await db.cables.get(d2.id))!.links).toBeUndefined();
+  });
+
+  describe('de quem é cada cabo', () => {
+    it('a ligação fica no meu cabo; ligar dois cabos que não são meus é recusado; o administrador pode tudo', async () => {
+      const { t, d1, ceo } = await net();
+      try {
+        // os dois cabos são do Carlos; Bruno (outro técnico) não consegue ligá-los
+        await db.cables.toCollection().modify({ ownerId: 'carlos' });
+        setActingUser('bruno');
+        setActingRole('tecnico');
+        expect(await code(cables.setLinksAt(ceo, [t.id, d1.id]))).toBe('NOT_OWNER');
+        // o administrador pode
+        setActingUser('davi');
+        setActingRole('admin');
+        await cables.setLinksAt(ceo, [t.id, d1.id]);
+        expect((await db.cables.toArray()).flatMap((c) => c.links ?? [])).toHaveLength(1);
+      } finally {
+        setActingUser(null);
+        setActingRole(null);
+      }
+    });
+    it('ligar o meu cabo a um de outro grava no meu; desfazer uma ligação guardada no cabo do outro é recusado', async () => {
+      const { t, d1, ceo } = await net();
+      try {
+        await db.cables.update(t.id, { ownerId: 'carlos' });
+        await db.cables.update(d1.id, { ownerId: 'bruno' });
+        setActingUser('bruno');
+        setActingRole('tecnico');
+        await cables.setLinksAt(ceo, [t.id, d1.id]);
+        expect(await linksOf(t.id)).toBeUndefined();
+        expect(await linksOf(d1.id)).toHaveLength(1); // ficou no cabo do Bruno
+        // o Carlos não consegue desfazer: a ligação está no cabo do Bruno
+        setActingUser('carlos');
+        expect(await code(cables.setLinksAt(ceo, []))).toBe('NOT_OWNER');
+        expect(await linksOf(d1.id)).toHaveLength(1);
+        // o Bruno consegue
+        setActingUser('bruno');
+        await cables.setLinksAt(ceo, []);
+        expect(await linksOf(d1.id)).toEqual([]);
+      } finally {
+        setActingUser(null);
+        setActingRole(null);
+      }
+    });
   });
 });

@@ -12,6 +12,7 @@ import { adminDeleteText } from '../../lib/ownership';
 import { useCanEdit, useIsMine } from '../../lib/useOwnership';
 import { KIND_LABEL } from '../activities/labels';
 import { cableChoicesNear } from '../cables/cableChoices';
+import ElementCableLinks from '../cables/ElementCableLinks';
 import { cableStore } from '../cables/cableRepo';
 import { useTechnician } from '../settings/useTechnician';
 import { attrsToFormStrings, describeAttrs } from './attrsView';
@@ -176,6 +177,8 @@ export default function ElementDetailScreen() {
         {el.notes && <Row label="Observações" value={el.notes} />}
         <Row label="Registrado" value={`${el.createdBy} · ${formatDateTime(el.createdAt)}`} />
       </div>
+
+      <ElementCableLinks elementId={el.id} />
 
       <section className="field" aria-label="Fotos">
         <span className="label">Fotos ({items.length})</span>

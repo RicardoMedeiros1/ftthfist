@@ -18,6 +18,7 @@ import { ELEMENT_META } from '../elements/meta';
 import { Chips } from '../elements/fields';
 import { CableRuleError, cableStore } from './cableRepo';
 import { ColorStandardChips } from './colorStandard';
+import CableConnections from './CableConnections';
 import FiberList from './FiberList';
 import { DEFAULT_COLOR_STANDARD, STANDARD_LABEL, tubeCount, type ColorStandard } from './fibers';
 import { useCableTypes } from './cableTypes';
@@ -190,6 +191,8 @@ export default function CableDetailScreen() {
         </span>
         <FiberList fiberCount={cable.fiberCount} standard={cable.colorStandard ?? DEFAULT_COLOR_STANDARD} />
       </section>
+
+      <CableConnections cableId={cable.id} />
 
       <section className="field" aria-label="Pontos do traçado">
         <span className="label">Pontos do traçado</span>

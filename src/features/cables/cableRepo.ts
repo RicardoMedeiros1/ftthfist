@@ -1,9 +1,11 @@
 import { db, newBase, touch, type RotaFibraDB } from '../../db/db';
-import type { Cable, CableVertex, ColorStandard, FiberCount } from '../../db/types';
+import type { Cable, CableLink, CableVertex, ColorStandard, FiberCount } from '../../db/types';
 import { round2 } from '../../lib/geo';
 import { canEdit, isMine, notMineMessage } from '../../lib/ownership';
 import { moveElementWithCables, recomputeCable, totalsFor, unlinkReserves } from './cableLinks';
 import { isColorStandard } from './fibers';
+import { MAX_LINKS } from './linkData';
+import { cablesAt, planLinks } from './routes';
 import { isFiberCount } from './style';
 
 export type CableRuleCode =
@@ -13,6 +15,8 @@ export type CableRuleCode =
   | 'INVALID_POSITION'
   | 'INVALID_FIBERS'
   | 'INVALID_STANDARD'
+  | 'SELECT_TWO'
+  | 'TOO_MANY_LINKS'
   | 'INVALID_TYPE'
   | 'NOT_FOUND'
   | 'NOT_OWNER';
@@ -49,6 +53,7 @@ const validCoord = (lat: number, lng: number) =>
 
 const invalidPosition = () => new CableRuleError('INVALID_POSITION', 'Posição inválida. Marque o ponto de novo.');
 const notFound = () => new CableRuleError('NOT_FOUND', 'Cabo não encontrado.');
+const notOwner = () => new CableRuleError('NOT_OWNER', 'Nenhum destes dois cabos é seu. Só quem registrou um deles (ou o administrador) pode ligá-los.');
 
 function checkType(t: string): string {
   const v = t.trim();
@@ -145,6 +150,44 @@ export function cableRepo(database: RotaFibraDB = db) {
         if (patch.notes !== undefined) changes.notes = patch.notes.trim();
         await database.cables.update(c.id, touch<Cable>(changes));
         return (await database.cables.get(id)) as Cable;
+      });
+    },
+
+    /**
+     * Deixa ligados entre si, neste elemento, exatamente os cabos de `wantedIds` (que passam por ele): uma ligação para cada par.
+     * Marcar 1 só cabo não faz sentido (erro); nenhum desliga tudo. A ligação fica guardada no cabo de quem a faz (o meu, se
+     * houver); desfazer uma ligação guardada no cabo de outra pessoa só o dono (ou o administrador) consegue.
+     */
+    async setLinksAt(elementId: string, wantedIds: readonly string[]): Promise<void> {
+      await database.transaction('rw', database.cables, async () => {
+        const all = await database.cables.filter((c) => !c.deleted).toArray();
+        const here = new Set(cablesAt(all, elementId).map((c) => c.id));
+        const wanted = new Set(wantedIds.filter((id) => here.has(id)));
+        if (wanted.size === 1) throw new CableRuleError('SELECT_TWO', 'Marque pelo menos 2 cabos para ligar (ou nenhum, para desligar).');
+        const plan = planLinks(all, elementId, wanted);
+        const byId = new Map(all.map((c) => [c.id, c] as const));
+        const next = new Map<string, CableLink[]>();
+        const linksOf = (id: string): CableLink[] => next.get(id) ?? [...(byId.get(id)!.links ?? [])];
+        const holds = (id: string, other: string) => linksOf(id).some((l) => l.elementId === elementId && l.cableId === other);
+
+        for (const r of plan.remove) {
+          for (const [holder, other] of [[r.a, r.b], [r.b, r.a]] as const) {
+            if (!holds(holder, other)) continue;
+            const h = byId.get(holder)!;
+            if (!canEdit(h)) throw new CableRuleError('NOT_OWNER', `Essa ligação está guardada num cabo registrado por ${h.createdBy}. Só essa pessoa (ou o administrador) pode desfazê-la.`);
+            next.set(holder, linksOf(holder).filter((l) => !(l.elementId === elementId && l.cableId === other)));
+          }
+        }
+        for (const ad of plan.add) {
+          const pair = [byId.get(ad.a)!, byId.get(ad.b)!];
+          const holder = pair.find((c) => isMine(c)) ?? pair.find((c) => canEdit(c));
+          if (!holder) throw notOwner();
+          const other = holder.id === ad.a ? ad.b : ad.a;
+          const links = [...linksOf(holder.id), { elementId, cableId: other }];
+          if (links.length > MAX_LINKS) throw new CableRuleError('TOO_MANY_LINKS', 'Este cabo já tem ligações demais.');
+          next.set(holder.id, links);
+        }
+        for (const [id, links] of next) await database.cables.update(id, touch<Cable>({ links }));
       });
     },
 
