@@ -12,6 +12,7 @@ import { adminDeleteText } from '../../lib/ownership';
 import { useCanEdit, useIsMine } from '../../lib/useOwnership';
 import { KIND_LABEL } from '../activities/labels';
 import { cableChoicesNear } from '../cables/cableChoices';
+import CtoFeedInfo from '../cables/CtoFeedInfo';
 import ElementCableLinks from '../cables/ElementCableLinks';
 import { cableStore } from '../cables/cableRepo';
 import { useTechnician } from '../settings/useTechnician';
@@ -131,6 +132,7 @@ export default function ElementDetailScreen() {
             type={el.type}
             values={values}
             onChange={setValues}
+            feed={{ position: { lat: el.lat, lng: el.lng }, elementId: el.id }}
             cableChoices={
               el.type === 'reserva' && cables
                 ? cableChoicesNear(el, cables, undefined, (el.attrs as { cableId?: string }).cableId, el.ownerId)
@@ -177,6 +179,8 @@ export default function ElementDetailScreen() {
         {el.notes && <Row label="Observações" value={el.notes} />}
         <Row label="Registrado" value={`${el.createdBy} · ${formatDateTime(el.createdAt)}`} />
       </div>
+
+      {el.type === 'cto' && <CtoFeedInfo attrs={el.attrs} editable={editable} />}
 
       <ElementCableLinks elementId={el.id} />
 

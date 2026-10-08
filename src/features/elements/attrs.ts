@@ -1,4 +1,5 @@
 import type { ElementAttrsByType, ElementType } from '../../db/types';
+import { isUuid } from '../cables/linkData';
 
 const OWNERS = ['concessionaria', 'proprio', 'outro'] as const;
 const PROBLEMS = ['rompimento', 'atenuacao', 'poste_caido', 'caixa_danificada', 'outro'] as const;
@@ -34,9 +35,15 @@ export function sanitizeAttrs(type: ElementType, raw: unknown): ElementAttrsByTy
       return compact({ owner: oneOf(OWNERS, r.owner), ownerCode: str(r.ownerCode) });
     case 'cto': {
       const splitter = str(r.splitter);
+      // cabo e fibra de entrada: valem juntos (fibra começa em 1); pela metade, nenhum dos dois fica
+      const feedCableId = isUuid(r.feedCableId) ? r.feedCableId : undefined;
+      const feedFiber = num(r.feedFiber, true);
+      const feed = feedCableId !== undefined && feedFiber !== undefined && feedFiber >= 1;
       return compact({
         capacity: num(r.capacity, true),
         splitter: splitter && /^\d+:\d+$/.test(splitter) ? splitter : undefined,
+        feedCableId: feed ? feedCableId : undefined,
+        feedFiber: feed ? feedFiber : undefined,
       });
     }
     case 'ceo':

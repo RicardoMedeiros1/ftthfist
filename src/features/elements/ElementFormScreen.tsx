@@ -94,7 +94,7 @@ export default function ElementFormScreen() {
           </div>
         </div>
 
-        <ElementFields type={type} values={values} onChange={setValues} cableChoices={cableChoices} />
+        <ElementFields type={type} values={values} onChange={setValues} cableChoices={cableChoices} feed={{ position: { lat: position.lat, lng: position.lng } }} />
 
         <div className="field">
           <span className="label">Fotos</span>

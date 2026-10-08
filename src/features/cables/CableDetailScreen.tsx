@@ -19,6 +19,7 @@ import { Chips } from '../elements/fields';
 import { CableRuleError, cableStore } from './cableRepo';
 import { ColorStandardChips } from './colorStandard';
 import CableConnections from './CableConnections';
+import { usedFibers } from './feed';
 import FiberList from './FiberList';
 import { DEFAULT_COLOR_STANDARD, STANDARD_LABEL, tubeCount, type ColorStandard } from './fibers';
 import { useCableTypes } from './cableTypes';
@@ -55,6 +56,7 @@ export default function CableDetailScreen() {
     const found = await Promise.all(ids.map((x) => elementStore.get(x)));
     return new Map(found.flatMap((e) => (e ? [[e.id, e] as const] : [])));
   }, [cable]);
+  const ctos = useLiveQuery(() => db.elements.where('type').equals('cto').filter((e) => !e.deleted).toArray());
   const types = useCableTypes();
   const mine = useIsMine(cable);
   const editable = useCanEdit(cable); // o dono ou o administrador
@@ -165,6 +167,7 @@ export default function CableDetailScreen() {
   }
 
   const vs = cable.vertices;
+  const fed = usedFibers(ctos ?? [], cable.id);
   return (
     <ScreenShell title="Cabo" onBack={back}>
       <div className="card element-summary">
@@ -189,7 +192,8 @@ export default function CableDetailScreen() {
           Fibras ({cable.fiberCount}) · cores {STANDARD_LABEL[cable.colorStandard ?? DEFAULT_COLOR_STANDARD]}
           {tubeCount(cable.fiberCount) > 0 ? ` · ${tubeCount(cable.fiberCount)} tubos` : ''}
         </span>
-        <FiberList fiberCount={cable.fiberCount} standard={cable.colorStandard ?? DEFAULT_COLOR_STANDARD} />
+        {fed.size > 0 && <p className="hint">{fed.size} {fed.size === 1 ? 'fibra alimenta' : 'fibras alimentam'} CTO. As fibras em uso aparecem marcadas.</p>}
+        <FiberList fiberCount={cable.fiberCount} standard={cable.colorStandard ?? DEFAULT_COLOR_STANDARD} notes={fed} />
       </section>
 
       <CableConnections cableId={cable.id} />

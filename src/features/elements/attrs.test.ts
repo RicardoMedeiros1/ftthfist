@@ -10,6 +10,22 @@ describe('sanitizeAttrs', () => {
     expect(sanitizeAttrs('poste', { owner: 'invasor' })).toEqual({});
   });
 
+  it('cto: cabo e fibra de entrada valem juntos; pela metade, nenhum dos dois', () => {
+    const C = '00000000-0000-4000-8000-0000000000c1';
+    expect(sanitizeAttrs('cto', { feedCableId: C, feedFiber: '7' })).toEqual({ feedCableId: C, feedFiber: 7 });
+    expect(sanitizeAttrs('cto', { feedCableId: C, feedFiber: 7 })).toEqual({ feedCableId: C, feedFiber: 7 });
+    expect(sanitizeAttrs('cto', { feedCableId: C, feedFiber: '' })).toEqual({});
+    expect(sanitizeAttrs('cto', { feedCableId: C })).toEqual({});
+    expect(sanitizeAttrs('cto', { feedFiber: '3' })).toEqual({});
+    expect(sanitizeAttrs('cto', { feedCableId: C, feedFiber: '0' })).toEqual({});
+    expect(sanitizeAttrs('cto', { feedCableId: C, feedFiber: '-1' })).toEqual({});
+    expect(sanitizeAttrs('cto', { feedCableId: 'abc', feedFiber: '3' })).toEqual({});
+    expect(sanitizeAttrs('cto', { capacity: '8', feedCableId: C, feedFiber: '12' })).toEqual({ capacity: 8, feedCableId: C, feedFiber: 12 });
+  });
+  it('só a CTO guarda a fibra de entrada', () => {
+    const C = '00000000-0000-4000-8000-0000000000c1';
+    for (const t of ['poste', 'ceo', 'reserva', 'ocorrencia', 'outro'] as const) expect(sanitizeAttrs(t, { feedCableId: C, feedFiber: 3 })).not.toHaveProperty('feedFiber');
+  });
   it('cto: converte texto em inteiro e valida o splitter', () => {
     expect(sanitizeAttrs('cto', { capacity: '16', splitter: '1:16' })).toEqual({ capacity: 16, splitter: '1:16' });
     expect(sanitizeAttrs('cto', { capacity: '7,6', splitter: 'abc' })).toEqual({ capacity: 8 });

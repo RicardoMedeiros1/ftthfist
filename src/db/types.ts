@@ -63,6 +63,9 @@ export interface CtoAttrs {
   splitter?: string; // '1:8' | '1:16'…
   oltName?: string; // Fase 3
   ponPort?: string; // Fase 3
+  /** Cabo e fibra (a partir de 1) que alimentam esta CTO. Os dois juntos ou nenhum. */
+  feedCableId?: string;
+  feedFiber?: number;
 }
 export interface CeoAttrs {
   trays?: number;

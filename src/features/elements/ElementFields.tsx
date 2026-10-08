@@ -1,5 +1,7 @@
 import type { ElementType } from '../../db/types';
 import type { CableChoice } from '../cables/cableChoices';
+import CtoFeedFields from '../cables/CtoFeedFields';
+import type { LatLng } from '../../lib/geo';
 import { Chips, NumberField, TextField } from './fields';
 
 export interface FieldValues {
@@ -25,16 +27,26 @@ const PROBLEMS = [
   { value: 'outro', label: 'Outro' },
 ] as const;
 
+/** Onde a CTO está (e quem ela é, se já existe): serve para achar os cabos que a alimentam. */
+export interface FeedContext {
+  position: LatLng;
+  elementId?: string;
+}
+
 function TypeFields({
   type,
   attrs,
   set,
+  setMany,
   cableChoices,
+  feed,
 }: {
   type: ElementType;
   attrs: Record<string, string>;
   set: (k: string, v: string) => void;
+  setMany: (patch: Record<string, string>) => void;
   cableChoices: CableChoice[];
+  feed?: FeedContext;
 }) {
   const get = (k: string) => attrs[k] ?? '';
   switch (type) {
@@ -58,6 +70,7 @@ function TypeFields({
             </div>
           </NumberField>
           <Chips label="Splitter" value={get('splitter')} options={SPLITTERS} onChange={(v) => set('splitter', v)} />
+          {feed && <CtoFeedFields attrs={attrs} setMany={setMany} position={feed.position} elementId={feed.elementId} />}
         </>
       );
     case 'ceo':
@@ -99,12 +112,15 @@ export default function ElementFields({
   values,
   onChange,
   cableChoices = [],
+  feed,
 }: {
   type: ElementType;
   values: FieldValues;
   onChange: (v: FieldValues) => void;
   /** Cabos próximos (para ligar uma reserva); só aparece em Reserva. */
   cableChoices?: CableChoice[];
+  /** Posição da CTO: liga a escolha da fibra de entrada (só em CTO). */
+  feed?: FeedContext;
 }) {
   return (
     <>
@@ -113,7 +129,9 @@ export default function ElementFields({
         type={type}
         attrs={values.attrs}
         set={(k, v) => onChange({ ...values, attrs: { ...values.attrs, [k]: v } })}
+        setMany={(patch) => onChange({ ...values, attrs: { ...values.attrs, ...patch } })}
         cableChoices={cableChoices}
+        feed={feed}
       />
       <div className="field">
         <label htmlFor="notes">Observações</label>
