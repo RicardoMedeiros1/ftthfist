@@ -5,7 +5,7 @@ aqui está só o esquema, as regras de acesso (RLS) e os testes que provam que e
 
 ```
 supabase/
-  migrations/   14 arquivos SQL pequenos, aplicar em ordem
+  migrations/   15 arquivos SQL pequenos, aplicar em ordem
   conferir-passo-1.sql   diz, item por item, se o banco ficou completo
   tests/        testes do banco (Postgres local) e o script de verificação direto na API
 ```
@@ -37,10 +37,10 @@ supabase/
 3. **Aplique as migrations, em ordem** (cada uma **uma vez só**). `supabase db push` nao e um arquivo: e um comando do
    Supabase CLI, que so vale a pena se voce tiver o repositorio no seu computador. O caminho simples nao instala nada:
    - *SQL Editor:* no painel do Supabase, **SQL Editor -> New query**, cole o conteudo de **um arquivo de
-     `supabase/migrations/` por vez, na ordem do nome**, e clique em **Run**. Sao 14 arquivos (`...150000_perfis`,
+     `supabase/migrations/` por vez, na ordem do nome**, e clique em **Run**. Sao 15 arquivos (`...150000_perfis`,
      `...150100_tabelas_atividades_elementos`, `...150110_tabelas_cabos_fotos`, `...150120_tabelas_trilha_indices`,
      `...150130_regras_de_conflito`, `...150140_permissoes_e_rls`, `...150200_fotos`, `...150300_painel`, `...150400_aprovacao_de_acesso`,
-     `...150500_admin_auditoria`, `...150510_admin_edita_tudo`, `...150520_admin_pessoas`, `...150600_projetos`, `...150700_projetos_desenho`).
+     `...150500_admin_auditoria`, `...150510_admin_edita_tudo`, `...150520_admin_pessoas`, `...150600_projetos`, `...150700_projetos_desenho`, `...150800_cabos_fibras`).
      Cada um termina com uma linha `-- fim: ...`: **confira no editor se ela esta la** antes de rodar. Os arquivos tem
      menos de 100 linhas de proposito: um colar a partir de um visualizador que corta em 100 linhas ja chegou truncado
      ao editor (erro de sintaxe no fim do texto), e as migrations sao so ASCII porque o editor ja reescreveu um script
@@ -49,8 +49,9 @@ supabase/
    - **Confira o resultado:** rode `supabase/conferir-passo-1.sql` (arquivos 1 a 9: as 16 linhas devem dizer `OK`) e
      `supabase/conferir-admin.sql` (arquivos 10 a 12, do administrador: as 10 linhas devem dizer `OK`) e
      `supabase/conferir-projetos.sql` (arquivo 13, dos projetos designados: as 6 linhas devem dizer `OK`) e
-     `supabase/conferir-desenho.sql` (arquivo 14, do desenho do projeto: as 3 linhas devem dizer `OK`). `FALTA` indica
-     qual parte nao foi aplicada ate o fim. O arquivo 14 (e o de aprovacao de acesso) **pode ser colado de novo sem erro**: so cria
+     `supabase/conferir-desenho.sql` (arquivo 14, do desenho do projeto: as 3 linhas devem dizer `OK`) e
+     `supabase/conferir-fibras.sql` (arquivo 15, das fibras e ligacoes de cabos: as 3 linhas devem dizer `OK`). `FALTA` indica
+     qual parte nao foi aplicada ate o fim. Os arquivos 14 e 15 (e o de aprovacao de acesso) **podem ser colados de novo sem erro**: so cria
      o que ainda nao existe, entao serve tambem para completar uma colagem cortada. Os outros dao "already exists" se repetidos:
      isso quer dizer que ja estavam aplicados (confira com o `conferir-...` correspondente).
    - *CLI* (com o repositorio no computador, dentro da pasta do projeto): `npx supabase init`, `npx supabase login`,
@@ -165,6 +166,18 @@ tecnico responsavel ve isso como guia. Fica na coluna `projects.plan` (jsonb, nu
   O app confere os mesmos limites antes de enviar (`src/features/projects/plan.ts`, um pouco mais folgado no tamanho).
 - **O tracado projetado nunca vira cabo sozinho**: e so um guia; o cabo continua sendo lancado poste a poste no campo.
 - Editar o nome, o prazo etc. do projeto **nunca apaga o desenho** (o formulario comum nem manda a coluna).
+
+### Fibras e ligacao de cabos (migration 15)
+
+O cabo passa a guardar o **padrao de cores das fibras** e as **ligacoes** com outros cabos (guia em `docs/fibras.md`):
+
+- `cables.color_standard` (texto, nulo = ABNT): so aceita `abnt` ou `tia598` (erro `23514`, regra `cables_color_standard_valid`).
+- `cables.links` (jsonb, padrao `[]`): lista de `{"elementId", "cableId"}` (uuid dos dois), ate 200 por cabo (regra `cables_links_valid`, funcao
+  `cable_links_valid`). Sao **so referencias**, sem chave estrangeira: cabo ou elemento que some deixa a ligacao sem efeito no app.
+- Quem grava e quem le e o mesmo do cabo (RLS: o dono, ou o administrador). A fibra de entrada de uma CTO fica nos `attrs` dela
+  (`feedCableId`, `feedFiber`): nao precisa de coluna.
+- O app **so manda as colunas novas quando o cabo as usa**: um servidor sem esta migration continua recebendo os cabos de sempre
+  (so o padrao de cores e as ligacoes nao sobem ate aplicar o arquivo).
 
 ## Painel web do escritorio (so leitura)
 

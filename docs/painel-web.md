@@ -18,6 +18,8 @@ Para acompanhar a rede e o histórico no computador. É a **mesma aplicação** 
 - **Mapa da rede:** todos os técnicos no mesmo mapa, com filtros (técnico, tipo e situação da atividade, período, tipos de elemento,
   nº de fibras, elementos/cabos), busca (código, OS, atividade, técnico), ficha de leitura com fotos e "Abrir ficha completa".
   Com mais de 1500 pontos na tela eles viram bolinhas leves; aproximando, voltam os símbolos.
+- No mapa, **clicar num cabo** (ou achá-lo na busca) **acende a rota** (os cabos ligados a ele); a ficha mostra a rota e as CTOs com a fibra de
+  cada uma. Detalhes em `docs/fibras.md`.
 - **Atividades:** tabela ordenável (técnico, tipo, situação, início, duração, elementos, cabos, metros, fotos), filtros, busca que
   também acha pelo que há *dentro* da atividade (código de poste, tipo de cabo), rodapé com a soma do que está filtrado e ficha
   com materiais, totais e lista de elementos e cabos.

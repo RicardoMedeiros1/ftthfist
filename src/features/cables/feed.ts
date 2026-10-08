@@ -82,3 +82,11 @@ export function describeFeed(feed: Feed, cables: readonly Cable[]): FeedView {
   if (!info) return { cable, fiber: null, text: `Fibra ${feed.fiber} (este cabo só tem ${cable.fiberCount} fibras)` };
   return { cable, fiber: info, text: fiberLabel(info) };
 }
+
+/** "Fibra 7 · Marrom (AS-80 · 12 fibras)" para mostrar numa linha; null se a CTO não tem fibra de entrada. */
+export function feedText(attrs: unknown, cables: readonly Cable[]): string | null {
+  const feed = readFeed(attrs);
+  if (!feed) return null;
+  const v = describeFeed(feed, cables);
+  return v.cable ? `${v.text} (${v.cable.cableType} · ${v.cable.fiberCount} fibras)` : v.text;
+}

@@ -4,14 +4,17 @@ import { describeAttrs } from '../elements/attrsView';
 import { ELEMENT_META } from '../elements/meta';
 import { PhotoGrid, PhotoViewer } from '../elements/PhotoParts';
 import { useElementPhotos } from '../elements/useElementPhotos';
+import { feedText } from '../cables/feed';
 import { FiberLine } from '../cables/Legend';
+import RouteSummaryView from '../cables/RouteSummaryView';
+import { summarizeRoute } from '../cables/routeSummary';
 import type { Activity, Cable, NetworkElement } from '../../db/types';
 import { formatDateTime } from '../../lib/format';
 import { formatAccuracy, formatMeters } from '../../lib/geo';
 import { navigate } from '../../lib/route';
 import ActivityInfo from './ActivityInfo';
 import type { MapData } from './mapFilters';
-import type { Selection } from './panelMapStore';
+import { panelMapStore, type Selection } from './panelMapStore';
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
@@ -24,7 +27,7 @@ function Row({ label, value }: { label: string; value: string }) {
 
 const activityLine = (a: Activity | undefined) => (a ? `${a.title} · ${a.technician}${a.osNumber ? ` · OS ${a.osNumber}` : ''}` : 'Atividade ainda não sincronizada');
 
-function ElementCard({ el, activity }: { el: NetworkElement; activity?: Activity }) {
+function ElementCard({ el, activity, cables }: { el: NetworkElement; activity?: Activity; cables: readonly Cable[] }) {
   const meta = ELEMENT_META[el.type];
   const photos = useElementPhotos(el.id);
   const [viewerId, setViewerId] = useState<string | null>(null);
@@ -45,6 +48,7 @@ function ElementCard({ el, activity }: { el: NetworkElement; activity?: Activity
         {describeAttrs(el).map((r) => (
           <Row key={r.label} label={r.label} value={r.value} />
         ))}
+        {el.type === 'cto' && feedText(el.attrs, cables) && <Row label="Fibra de entrada" value={feedText(el.attrs, cables)!} />}
         {el.notes && <Row label="Observações" value={el.notes} />}
         <Row label="Registrado" value={`${el.createdBy} · ${formatDateTime(el.createdAt)}`} />
       </div>
@@ -58,7 +62,8 @@ function ElementCard({ el, activity }: { el: NetworkElement; activity?: Activity
   );
 }
 
-function CableCard({ cable, activity }: { cable: Cable; activity?: Activity }) {
+function CableCard({ cable, activity, data }: { cable: Cable; activity?: Activity; data: MapData }) {
+  const route = summarizeRoute(cable.id, data.cables, data.elements);
   return (
     <>
       <div className="card element-summary">
@@ -76,6 +81,16 @@ function CableCard({ cable, activity }: { cable: Cable; activity?: Activity }) {
         {cable.notes && <Row label="Observações" value={cable.notes} />}
         <Row label="Registrado" value={`${cable.createdBy} · ${formatDateTime(cable.createdAt)}`} />
       </div>
+      <section className="field" aria-label="Rota do cabo">
+        <span className="label">Rota: {route.cables.length} {route.cables.length === 1 ? 'cabo' : 'cabos'} · {formatMeters(route.meters)}</span>
+        <p className="hint">{route.cables.length > 1 ? 'Os cabos ligados a este estão acesos no mapa.' : 'Este cabo não está ligado a outro.'}</p>
+        <RouteSummaryView
+          summary={route}
+          current={cable.id}
+          onCable={(id) => panelMapStore.focus({ kind: 'cabo', id })}
+          onCto={(id) => panelMapStore.focus({ kind: 'elemento', id })}
+        />
+      </section>
       <button className="btn btn-block" onClick={() => navigate('cabo', { id: cable.id })}>Abrir ficha completa</button>
     </>
   );
@@ -95,8 +110,8 @@ export default function MapDetail({ selection, data, onClose, onFocus }: { selec
         <button className="btn btn-small" onClick={onClose} aria-label="Fechar ficha">Fechar</button>
       </div>
       {!found && <div className="alert" role="alert">Este item não existe mais (foi excluído ou ainda não chegou).</div>}
-      {el && <ElementCard key={el.id} el={el} activity={byId.get(el.activityId)} />}
-      {cable && <CableCard key={cable.id} cable={cable} activity={byId.get(cable.activityId)} />}
+      {el && <ElementCard key={el.id} el={el} activity={byId.get(el.activityId)} cables={data.cables} />}
+      {cable && <CableCard key={cable.id} cable={cable} activity={byId.get(cable.activityId)} data={data} />}
       {activity && <ActivityInfo key={activity.id} activity={activity} elements={data.elements} cables={data.cables} onDeleted={onClose} />}
     </aside>
   );

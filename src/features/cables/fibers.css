@@ -30,3 +30,18 @@
 .feed-card { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 3px solid #444; border-radius: 14px; background: #111; }
 .feed-card-text { display: flex; flex-direction: column; gap: 2px; font-size: 18px; }
 .feed-card-text small { font-size: 14px; color: #bbb; }
+
+/* rota acesa: folha no mapa do tecnico e ficha do painel */
+.route-view { display: flex; flex-direction: column; gap: 6px; }
+.route-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.route-row { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; padding: 6px 12px; text-align: left; border: 3px solid #444; border-radius: 12px; background: #111; color: #fff; font: inherit; }
+button.route-row { touch-action: manipulation; cursor: pointer; border-color: #fff; background: #000; }
+.route-text { display: flex; flex-direction: column; gap: 1px; font-size: 17px; min-width: 0; }
+.route-text small { font-size: 14px; color: #bbb; overflow-wrap: anywhere; }
+.route-nofiber { flex: none; width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; border: 3px dashed #888; border-radius: 50%; color: #bbb; font-weight: 800; font-size: 14px; }
+.route-sheet { height: calc(300px + env(safe-area-inset-bottom)); box-sizing: border-box; }
+.route-scroll { flex: 1; min-height: 0; overflow-y: auto; }
+.map-screen.route-open .map-btn-group,
+.map-screen.route-open .map-controls,
+.map-screen.route-open .add-btn { display: none; }
+.map-screen.route-open .leaflet-bottom { margin-bottom: calc(300px + env(safe-area-inset-bottom)); }

@@ -11,7 +11,9 @@ import CableEditLayer from '../cables/CableEditLayer';
 import CableEditPanel from '../cables/CableEditPanel';
 import CableGps from '../cables/CableGps';
 import CablePanel from '../cables/CablePanel';
-import CablesLayer from '../cables/CablesLayer';
+import CablesLayer, { RouteMapEffects } from '../cables/CablesLayer';
+import RouteSheet from '../cables/RouteSheet';
+import { useSelectedRoute } from '../cables/routeStore';
 import { cableStore } from '../cables/cableRepo';
 import { LegendSheet } from '../cables/Legend';
 import MapCommandHost from './MapCommandHost';
@@ -144,6 +146,7 @@ export default function MapScreen() {
   const refVisible = refLayers?.some((l) => l.visible) ?? false;
   const [legendOpen, setLegendOpen] = useState(false);
   const trackStatus = useTrack((t) => t.status);
+  const routeOpen = useSelectedRoute() !== null && phase === 'idle';
 
   useEffect(() => {
     void (async () => {
@@ -193,7 +196,7 @@ export default function MapScreen() {
   const nextLayerLabel = BASE_LAYERS[effectiveLayer === 'ruas' ? 'satelite' : 'ruas'].label;
 
   return (
-    <div className={`map-screen phase-${phase}${legendOpen ? ' legend-open' : ''}`}>
+    <div className={`map-screen phase-${phase}${legendOpen ? ' legend-open' : ''}${routeOpen ? ' route-open' : ''}`}>
       <MapContainer
         center={[initial.view.lat, initial.view.lng]}
         zoom={initial.view.zoom}
@@ -215,6 +218,7 @@ export default function MapScreen() {
         <TrackLayer />
         <RemoteTrackLayer />
         <CablesLayer />
+        <RouteMapEffects />
         <ElementsLayer />
         <CableDrawLayer />
         <CableEditLayer />
@@ -284,6 +288,7 @@ export default function MapScreen() {
       <CableEditPanel />
       <CableGps />
       {legendOpen && <LegendSheet onClose={() => setLegendOpen(false)} />}
+      <RouteSheet />
       <GpsCaptureHost />
     </div>
   );

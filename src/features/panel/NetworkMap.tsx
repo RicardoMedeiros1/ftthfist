@@ -14,6 +14,7 @@ import type { Bounds } from '../map/mapCommands';
 import type { MapData, MapView } from './mapFilters';
 import { panelMapStore, usePanelMap, type Selection } from './panelMapStore';
 import { guardCanvasRedraw } from './leafletGuard';
+import { routeOf } from '../cables/routes';
 import { MARKER_LIMIT, boxOf, cablesInBox, padBox, pointInBox } from './viewport';
 
 guardCanvasRedraw();
@@ -104,14 +105,20 @@ function Focus({ data }: { data: MapData }) {
     panelMapStore.markFocusApplied(focus.seq);
     let b: Bounds | null = null;
     if (focus.kind === 'elemento') b = boxOf(data.elements.filter((e) => e.id === focus.id));
-    else if (focus.kind === 'cabo') b = boxOf(data.cables.filter((c) => c.id === focus.id).flatMap((c) => c.vertices));
+    else if (focus.kind === 'cabo') {
+      // a rota inteira do cabo (os cabos ligados a ele também acendem), não só o cabo
+      const ids = new Set(routeOf(focus.id, data.cables).cableIds);
+      b = boxOf(data.cables.filter((c) => ids.has(c.id)).flatMap((c) => c.vertices));
+    }
     else b = boxOf([...data.elements.filter((e) => e.activityId === focus.id), ...data.cables.filter((c) => c.activityId === focus.id).flatMap((c) => c.vertices)]);
     if (b) fit(map, b);
   }, [focus, data, map]);
   return null;
 }
 
-const Layers = memo(function Layers({ elements, cables, dense, selected, onSelect }: { elements: NetworkElement[]; cables: Cable[]; dense: boolean; selected: Selection | null; onSelect: (s: Selection) => void }) {
+const ROUTE_COLOR = '#ffd400';
+
+const Layers = memo(function Layers({ elements, cables, dense, selected, lit, onSelect }: { elements: NetworkElement[]; cables: Cable[]; dense: boolean; selected: Selection | null; lit: ReadonlySet<string>; onSelect: (s: Selection) => void }) {
   const round = { lineCap: 'round', lineJoin: 'round' } as const;
   const selEl = selected?.kind === 'elemento' ? elements.find((e) => e.id === selected.id) : undefined;
   return (
@@ -120,11 +127,14 @@ const Layers = memo(function Layers({ elements, cables, dense, selected, onSelec
         const st = cableStyle(c.fiberCount);
         const pts = c.vertices.map((v) => [v.lat, v.lng] as [number, number]);
         const sel = selected?.kind === 'cabo' && selected.id === c.id;
+        const on = lit.has(c.id); // faz parte da rota do cabo escolhido
+        const dim = lit.size > 0 && !on;
         return (
           <Fragment key={c.id}>
+            {on && !sel && <Polyline positions={pts} pathOptions={{ color: ROUTE_COLOR, weight: st.weight + CASING_EXTRA + 8, opacity: 0.9, interactive: false, ...round }} />}
             {sel && <Polyline positions={pts} pathOptions={{ color: SELECT_COLOR, weight: st.weight + CASING_EXTRA + 8, interactive: false, ...round }} />}
-            <Polyline positions={pts} pathOptions={{ color: CASING_COLOR, weight: st.weight + CASING_EXTRA, interactive: false, ...round }} />
-            <Polyline positions={pts} pathOptions={{ color: st.color, weight: st.weight, interactive: false, ...round }} />
+            <Polyline positions={pts} pathOptions={{ color: CASING_COLOR, weight: st.weight + CASING_EXTRA, opacity: dim ? 0.3 : 1, interactive: false, ...round }} />
+            <Polyline positions={pts} pathOptions={{ color: st.color, weight: st.weight, opacity: dim ? 0.3 : 1, interactive: false, ...round }} />
             <Polyline positions={pts} pathOptions={{ color: '#000', weight: 18, opacity: 0 }} eventHandlers={{ click: () => onSelect({ kind: 'cabo', id: c.id }) }} />
           </Fragment>
         );
@@ -157,6 +167,8 @@ export default function NetworkMap({ data, view, fitKey, onSelect }: { data: Map
   const [box, setBox] = useState<Bounds | null>(null);
   const saved = useRef(panelMapStore.getState().view);
   const layer = BASE_LAYERS[base];
+  // a rota do cabo escolhido: os cabos ligados a ele acendem
+  const lit = useMemo(() => (selection?.kind === 'cabo' ? new Set(routeOf(selection.id, data.cables).cableIds) : new Set<string>()), [selection, data.cables]);
   const other = base === 'ruas' ? BASE_LAYERS.satelite : BASE_LAYERS.ruas;
 
   const { elements, cables, dense, hidden } = useMemo(() => {
@@ -166,6 +178,13 @@ export default function NetworkMap({ data, view, fitKey, onSelect }: { data: Map
     const shown = dense ? inside.slice(0, DOT_LIMIT) : inside;
     return { elements: shown, cables: padded ? cablesInBox(view.cables, padded) : view.cables, dense, hidden: inside.length - shown.length };
   }, [box, view]);
+
+  // a rota acesa aparece inteira, mesmo que a busca ou os filtros escondessem alguns dos cabos dela
+  const shownCables = useMemo(() => {
+    if (lit.size === 0) return cables;
+    const have = new Set(cables.map((c) => c.id));
+    return [...cables, ...data.cables.filter((c) => lit.has(c.id) && !have.has(c.id) && !c.deleted)];
+  }, [cables, lit, data.cables]);
 
   return (
     <div className="panel-map-wrap">
@@ -184,7 +203,7 @@ export default function NetworkMap({ data, view, fitKey, onSelect }: { data: Map
         <RemoteTrackLayer />
         {pin && <Marker position={[pin.lat, pin.lng]} icon={projectPinIcon} title={`Projeto: ${pin.title}`} interactive={false} zIndexOffset={1000} />}
         <PlanShapes plans={plans} interactive topInset={110} />
-        <Layers elements={elements} cables={cables} dense={dense} selected={selection} onSelect={onSelect} />
+        <Layers elements={elements} cables={shownCables} dense={dense} selected={selection} lit={lit} onSelect={onSelect} />
       </MapContainer>
       <RemoteTrackBar />
       {(pin || planned) && (

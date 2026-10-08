@@ -52,6 +52,8 @@ export function buildGeoJson(d: ExportData): string {
         id: c.id,
         cableType: c.cableType,
         fiberCount: c.fiberCount,
+        colorStandard: c.colorStandard ?? 'abnt',
+        links: c.links ?? [],
         lengthMeters: c.lengthMeters,
         reserveMeters: c.reserveMeters,
         totalMeters: c.totalMeters,

@@ -20,6 +20,7 @@ import { CableRuleError, cableStore } from './cableRepo';
 import { ColorStandardChips } from './colorStandard';
 import CableConnections from './CableConnections';
 import { usedFibers } from './feed';
+import { routeStore } from './routeStore';
 import FiberList from './FiberList';
 import { DEFAULT_COLOR_STANDARD, STANDARD_LABEL, tubeCount, type ColorStandard } from './fibers';
 import { useCableTypes } from './cableTypes';
@@ -195,6 +196,8 @@ export default function CableDetailScreen() {
         {fed.size > 0 && <p className="hint">{fed.size} {fed.size === 1 ? 'fibra alimenta' : 'fibras alimentam'} CTO. As fibras em uso aparecem marcadas.</p>}
         <FiberList fiberCount={cable.fiberCount} standard={cable.colorStandard ?? DEFAULT_COLOR_STANDARD} notes={fed} />
       </section>
+
+      <button className="btn btn-block" onClick={() => { routeStore.select(cable.id); navigate('map'); }}>Ver a rota no mapa</button>
 
       <CableConnections cableId={cable.id} />
 

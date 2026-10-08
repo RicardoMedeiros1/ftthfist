@@ -5,6 +5,9 @@ import { KIND_LABEL } from '../activities/labels';
 import { cableLabel } from '../cables/cableChoices';
 import { LEGEND } from '../cables/style';
 import { describeAttrs } from '../elements/attrsView';
+import { feedText, readFeed } from '../cables/feed';
+import { DEFAULT_COLOR_STANDARD, STANDARD_LABEL } from '../cables/fibers';
+import { routeOf } from '../cables/routes';
 import { ELEMENT_META } from '../elements/meta';
 import { trackDistanceMeters, groupSegments } from '../tracking/trackStats';
 import { trackDurationMs, type ExportData } from './exportData';
@@ -96,6 +99,7 @@ function elementPlacemark(e: NetworkElement, d: ExportData, opts: KmlOptions): s
     ['Atividade', activityText(d.activities.get(e.activityId))],
     ['Posição', `${e.lat.toFixed(6)}, ${e.lng.toFixed(6)} (${where})`],
     ...describeAttrs(e).map((r): [string, string] => [r.label, r.value]),
+    ['Fibra de entrada', e.type === 'cto' ? (feedText(e.attrs, d.cables) ?? undefined) : undefined],
     ['Cabo', cable ? cableLabel(cable) : undefined],
     ['Observações', e.notes],
     ['Registrado', `${e.createdBy} · ${when(e.createdAt)}`],
@@ -115,13 +119,18 @@ function elementPlacemark(e: NetworkElement, d: ExportData, opts: KmlOptions): s
     ['criado_em', new Date(e.createdAt).toISOString()],
     ['precisao_m', e.accuracy],
     ['fonte_posicao', e.positionSource],
+    ['cabo_entrada', e.type === 'cto' ? readFeed(e.attrs)?.cableId : undefined],
+    ['fibra_entrada', e.type === 'cto' ? readFeed(e.attrs)?.fiber : undefined],
   ])}<Point><coordinates>${coordinate(e.lat, e.lng)}</coordinates></Point></Placemark>`;
 }
 
 function cablePlacemark(c: Cable, d: ExportData): string {
+  const route = routeOf(c.id, d.cables).cableIds;
   const rows: [string, string | undefined][] = [
     ['Tipo', c.cableType],
     ['Fibras', String(c.fiberCount)],
+    ['Cores das fibras', STANDARD_LABEL[c.colorStandard ?? DEFAULT_COLOR_STANDARD]],
+    ['Rota', route.length > 1 ? `${route.length} cabos ligados` : undefined],
     ['Traçado', formatMeters(c.lengthMeters)],
     ['Reservas', formatMeters(c.reserveMeters)],
     ['Total', formatMeters(c.totalMeters)],
@@ -134,6 +143,8 @@ function cablePlacemark(c: Cable, d: ExportData): string {
     ['id', c.id],
     ['tipo_cabo', c.cableType],
     ['fibras', c.fiberCount],
+    ['padrao_cores', c.colorStandard ?? DEFAULT_COLOR_STANDARD],
+    ['cabos_na_rota', route.length],
     ['tracado_m', c.lengthMeters],
     ['reservas_m', c.reserveMeters],
     ['total_m', c.totalMeters],

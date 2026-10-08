@@ -48,7 +48,7 @@ Todos os registros têm: `id` (UUID gerado no aparelho), `createdAt`, `updatedAt
 - `code` (identificação/plaqueta), `notes`, `activityId`
 - `attrs` por tipo:
   - poste: `owner` (`'concessionaria' | 'proprio' | 'outro'`), `ownerCode`
-  - cto: `capacity` (8, 16…), `splitter` (`'1:8' | '1:16'`…), `oltName?`, `ponPort?` (usados na Fase 3)
+  - cto: `capacity` (8, 16…), `splitter` (`'1:8' | '1:16'`…), `oltName?`, `ponPort?` (usados na Fase 3), `feedCableId?` + `feedFiber?` (cabo e fibra, a partir de 1, que alimentam a CTO; os dois ou nenhum)
   - ceo: `trays`, `splices`
   - reserva: `meters`, `cableId`
   - ocorrencia: `problem` (`'rompimento' | 'atenuacao' | 'poste_caido' | 'caixa_danificada' | 'outro'`), `actionTaken`
@@ -59,6 +59,8 @@ Todos os registros têm: `id` (UUID gerado no aparelho), `createdAt`, `updatedAt
 - `vertices`: lista ordenada de `{ elementId?, lat, lng }`; normalmente cada vértice é um poste, CTO ou CEO
 - `lengthMeters` (calculado do traçado), `reserveMeters` (soma das reservas ligadas), `totalMeters`
 - `activityId`, `notes`
+- `colorStandard?`: `'abnt' | 'tia598'` (ausente = ABNT): cores das fibras e dos tubos (12 fibras por tubo acima de 12 fibras). Guia em `docs/fibras.md`.
+- `links?`: `[{ elementId, cableId }]` — "neste elemento este cabo continua no outro cabo" (vale nos dois sentidos; guardada no cabo de quem a fez, até 200). A rota de um cabo = todos os cabos ligados a ele.
 
 ### Photo
 - `blob` (local, JPEG comprimido para ~1600 px no maior lado, qualidade ~0.7), `remoteUrl` (Fase 2)
@@ -83,6 +85,7 @@ collector/             (Fase 3)
 - Papéis (`profiles.role`): `tecnico` (campo; só altera o que é dele), `escritorio` (só leitura, abre o painel) e `admin` (altera e exclui tudo, aprova pessoas). Só perfil **ativo** vale; o servidor (RLS) é quem garante, o app só esconde o que não serviria.
 - Painel web (escritório/NOC): mesma aplicação, rota `#/painel` (`src/features/panel/`), só leitura, trabalha com o que o navegador já sincronizou. Guia em `docs/painel-web.md`.
 - Projetos designados: o admin cria e entrega a um técnico (`#/projetos`, `src/features/projects/`); o técnico vê "Você tem N projetos para fazer" ao abrir o app, inicia (a atividade nasce ligada) e, ao concluir, responde se o projeto terminou; o escritório os acompanha na seção Projetos do painel. O servidor nunca recusa trabalho de campo por mudança no projeto. O admin também **desenha** o traçado e os pontos do projeto (`#/projeto/<id>/desenho`, no computador ou celular, com importação de KML/KMZ); o técnico vê como guia na camada "Projetado" do mapa (funciona offline) e o escritório vê no mapa do painel. Guia em `docs/projetos.md`.
+- Fibras e rota: o técnico liga cabos no elemento onde se encontram (CEO/poste/CTO) e diz a fibra de cada CTO; tocar num cabo acende a rota toda (app e painel). Emenda por fibra (qual fibra do cabo A com qual do B) ainda não existe. Guia em `docs/fibras.md`.
 - Excluir atividade (dono e admin) é lógico e em cascata (elementos, cabos, fotos, trilha). Admin edita registros de outros pelo envio normal; o servidor registra quem alterou (`admin_edits`).
 - Lista do que testar no celular/computador: `docs/guia-de-testes.md`.
 

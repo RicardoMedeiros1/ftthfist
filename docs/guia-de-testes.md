@@ -5,9 +5,10 @@ chaves nem senhas). O deploy é conferido pelo número da versão em *Configura�
 
 ## 0. Antes de tudo (uma vez)
 
-- [ ] No Supabase, as **14 migrations** foram aplicadas em ordem e `supabase/conferir-passo-1.sql` (16 linhas),
+- [ ] No Supabase, as **15 migrations** foram aplicadas em ordem e `supabase/conferir-passo-1.sql` (16 linhas),
       `supabase/conferir-admin.sql` (10 linhas), `supabase/conferir-projetos.sql` (6 linhas) e `supabase/conferir-desenho.sql`
-      (3 linhas, migration 14 do desenho) dizem `OK`. (`supabase/README.md`)
+      (3 linhas, migration 14 do desenho) e `supabase/conferir-fibras.sql` (3 linhas, migration 15 das fibras) dizem `OK`.
+      (`supabase/README.md`)
 - [ ] Existe pelo menos **um administrador ativo** (README, passo 5). Recomendado: aumentar a validade do token (JWT expiry).
 - [ ] No GitHub, as **Variables** `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` estão preenchidas (chave **publicável**) e o deploy
       do Pages passou.
@@ -54,6 +55,25 @@ chaves nem senhas). O deploy é conferido pelo número da versão em *Configura�
 - [ ] Backup: gerar e salvar o arquivo; restaurar em outro aparelho.
 - [ ] Exportar KMZ/GeoJSON da atividade e abrir no Google Earth/QGIS. "Só os meus" e "rede inteira" funcionam.
 - [ ] Sair da conta **não** apaga nada do aparelho.
+
+**Fibras, ligação de cabos e rota (guia em `docs/fibras.md`)**
+- [ ] *Configurações → Cores das fibras*: ABNT vem marcado; trocar para Internacional e reabrir o app mantém. Ao **lançar um cabo** vem
+      marcado o padrão das Configurações e dá para trocar só naquele cabo.
+- [ ] Ficha do cabo: **"Fibras (24) · cores ABNT · 2 tubos"**, tubos que abrem/fecham, cada fibra com bolinha e nome da cor (fibra 1 =
+      Verde; fibra 13 = Verde do tubo 2 Amarelo). *Editar* troca o padrão (Internacional: fibra 1 = Azul).
+- [ ] **Ligar cabos:** na ficha de um CEO (ou poste/CTO) onde passam 2+ cabos, "Cabos que passam aqui": marque os que continuam um no outro e
+      *Salvar ligações* ("Rota: N cabos ligados"). Marcar só 1 avisa; desmarcar desliga. Na ficha de um dos cabos aparece "Ligado a" e
+      "Rota toda".
+- [ ] **Fibra da CTO:** na CTO, *Editar* → "Fibra de entrada": escolher o cabo e a fibra (em cabo de 48 fibras, o tubo colorido primeiro).
+      A ficha mostra "Fibra 19 · Marrom · Tubo 2 Amarelo". Escolher uma fibra que outra CTO já usa avisa. Na ficha do cabo a fibra aparece
+      marcada com a CTO.
+- [ ] **Rota acesa (celular, ao ar livre):** tocar em qualquer parte de um cabo acende a rota toda (halo amarelo, o resto esmaece) e abre
+      a folha "Rota: N cabos · metros · N CTOs" com a fibra de cada CTO. Dá para abrir um cabo ou uma CTO da lista. *Fechar* ou tocar no
+      vazio apaga. Legível no sol? Os botões e linhas têm tamanho bom para o dedo?
+- [ ] Sem internet tudo isso funciona (é do aparelho). Depois de sincronizar, **outro celular** e o **painel** veem as ligações, as
+      cores e as fibras das CTOs.
+- [ ] **Painel (escritório):** clicar num cabo no mapa (ou achar na busca) acende a rota; a ficha mostra "Rota" e as CTOs com a fibra; "Mostrar
+      no mapa" enquadra a rota inteira; a ficha de uma CTO mostra "Fibra de entrada". *Exportar* (KML) traz o padrão de cores e a fibra da CTO.
 
 **Dos colegas**
 - [ ] Ver atividades e elementos dos outros técnicos (marcados como de outra pessoa); **não** conseguir editá-los.

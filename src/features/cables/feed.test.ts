@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Cable, NetworkElement } from '../../db/types';
-import { FEED_NEAR_METERS, ctoName, describeFeed, feedChoices, readFeed, usedFibers } from './feed';
+import { FEED_NEAR_METERS, ctoName, describeFeed, feedChoices, feedText, readFeed, usedFibers } from './feed';
 
 const C = (n: number) => `00000000-0000-4000-8000-0000000000c${n}`;
 const E = (n: number) => `00000000-0000-4000-8000-0000000000e${n}`;
@@ -92,5 +92,16 @@ describe('describeFeed', () => {
     expect(describeFeed({ cableId: C(2), fiber: 3 }, [c])).toEqual({ cable: null, fiber: null, text: 'Fibra 3 (cabo não encontrado)' });
     expect(describeFeed({ cableId: C(1), fiber: 3 }, [{ ...c, deleted: true }]).cable).toBeNull();
     expect(describeFeed({ cableId: C(1), fiber: 9 }, [c])).toMatchObject({ fiber: null, text: 'Fibra 9 (este cabo só tem 6 fibras)' });
+  });
+});
+
+describe('feedText', () => {
+  it('numa linha: fibra, cor, tubo e o cabo', () => {
+    const c = cable(1, [], { fiberCount: 48 });
+    expect(feedText({ feedCableId: C(1), feedFiber: 19 }, [c])).toBe('Fibra 19 · Marrom · Tubo 2 Amarelo (AS-80 · 48 fibras)');
+  });
+  it('sem fibra de entrada = null; cabo que sumiu = só o texto do motivo', () => {
+    expect(feedText({}, [])).toBeNull();
+    expect(feedText({ feedCableId: C(1), feedFiber: 3 }, [])).toBe('Fibra 3 (cabo não encontrado)');
   });
 });

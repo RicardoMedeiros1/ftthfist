@@ -260,3 +260,71 @@ describe('buildKmz', () => {
     expect(Object.keys(zip.files).filter((n) => n.startsWith('icons/') && !n.endsWith('/'))).toEqual(['icons/poste.png']);
   });
 });
+
+describe('fibras e rota na exportação', () => {
+  async function withFibers() {
+    const { a, cto, poste, cable } = await seed();
+    // a CTO pegou a fibra 19 do cabo (48 fibras, padrão internacional) e um segundo cabo está ligado a ele no poste
+    await db.elements.update(cto.id, { attrs: { capacity: 16, feedCableId: cable.id, feedFiber: 19 } });
+    await db.cables.update(cable.id, { colorStandard: 'tia598' });
+    const other = base({
+      cableType: 'drop', fiberCount: 2, vertices: [{ elementId: poste.id, lat: poste.lat, lng: poste.lng }, { lat: -23.56, lng: -46.64 }],
+      lengthMeters: 10, reserveMeters: 0, totalMeters: 10, activityId: a.id, notes: '', links: [{ elementId: poste.id, cableId: cable.id }],
+    }) as Cable;
+    await db.cables.add(other);
+    return { cto, cable, other, poste };
+  }
+  const placemark = (doc: ReturnType<typeof parse>, name: string) => Array.from(doc.getElementsByTagName('Placemark')).find((p) => p.getElementsByTagName('name')[0]?.textContent === name);
+
+  it('a CTO leva a fibra de entrada (cor, tubo e cabo) na descrição e nos dados', async () => {
+    const { cable } = await withFibers();
+    const xml = buildKml(await collect(), opts);
+    const pm = placemark(parse(xml), 'C-1')!;
+    const desc = pm.getElementsByTagName('description')[0]!.textContent!;
+    expect(desc).toContain('Fibra de entrada');
+    expect(desc).toContain('Fibra 19 · Vermelho · Tubo 2 Laranja (AS-80 · 48 fibras)');
+    const data = Object.fromEntries(Array.from(pm.getElementsByTagName('Data')).map((x) => [x.getAttribute('name'), x.getElementsByTagName('value')[0]?.textContent]));
+    expect(data.cabo_entrada).toBe(cable.id);
+    expect(data.fibra_entrada).toBe('19');
+  });
+  it('CTO sem fibra e outros elementos não ganham a linha', async () => {
+    await seed();
+    const xml = buildKml(await collect(), opts);
+    expect(xml).not.toContain('Fibra de entrada');
+    expect(xml).not.toContain('fibra_entrada');
+  });
+  it('o cabo diz o padrão de cores e quantos cabos tem a rota', async () => {
+    const { cable, other } = await withFibers();
+    const doc = parse(buildKml(await collect(), opts));
+    const pm = placemark(doc, 'AS-80 · 48 fibras · 131,5 m')!;
+    const desc = pm.getElementsByTagName('description')[0]!.textContent!;
+    expect(desc).toContain('Internacional (TIA-598)');
+    expect(desc).toContain('2 cabos ligados');
+    const data = Object.fromEntries(Array.from(pm.getElementsByTagName('Data')).map((x) => [x.getAttribute('name'), x.getElementsByTagName('value')[0]?.textContent]));
+    expect(data.padrao_cores).toBe('tia598');
+    expect(data.cabos_na_rota).toBe('2');
+    const pm2 = placemark(doc, 'drop · 2 fibras · 10,0 m')!;
+    expect(pm2.getElementsByTagName('description')[0]!.textContent).toContain('ABNT');
+    expect(cable.id).not.toBe(other.id);
+  });
+  it('cabo sem ligação não fala em rota; o padrão sem nada gravado é ABNT', async () => {
+    await seed();
+    const doc = parse(buildKml(await collect(), opts));
+    const desc = placemark(doc, 'AS-80 · 48 fibras · 131,5 m')!.getElementsByTagName('description')[0]!.textContent!;
+    expect(desc).not.toContain('cabos ligados');
+    expect(desc).toContain('ABNT');
+  });
+  it('o GeoJSON leva o padrão e as ligações do cabo e a fibra da CTO nos atributos', async () => {
+    const { cto, cable, poste } = await withFibers();
+    const gj = JSON.parse(buildGeoJson(await collect())) as { features: { properties: Record<string, unknown> }[] };
+    const cables = gj.features.filter((f) => f.properties.kind === 'cable');
+    const main = cables.find((f) => f.properties.id === cable.id)!;
+    expect(main.properties.colorStandard).toBe('tia598');
+    expect(main.properties.links).toEqual([]);
+    const drop = cables.find((f) => f.properties.fiberCount === 2)!;
+    expect(drop.properties.colorStandard).toBe('abnt');
+    expect(drop.properties.links).toEqual([{ elementId: poste.id, cableId: cable.id }]);
+    const c = gj.features.find((f) => f.properties.id === cto.id)!;
+    expect(c.properties.attrs).toMatchObject({ feedCableId: cable.id, feedFiber: 19 });
+  });
+});
