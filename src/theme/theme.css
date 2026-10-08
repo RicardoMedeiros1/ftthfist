@@ -1,0 +1,248 @@
+/*
+ * Temas da interface: duas paletas (Polegar e Fibra) sobre o mesmo desenho. O `<html>` leva `data-theme` (ver theme.ts).
+ * As cores moram em variáveis; abaixo, o acabamento dos componentes comuns usa só elas. Este arquivo vem por último e
+ * usa `:root[data-theme]` para ter prioridade sobre o CSS de cada tela. O mapa é claro nos dois temas.
+ */
+
+/* ---- Polegar: grafite e verde-limão (padrão; contraste mais alto, bom ao sol) ---- */
+:root,
+:root[data-theme='polegar'] {
+  --bg: #111418;
+  --surface: #1b2026;
+  --surface-2: #242b33;
+  --border: #38414d;
+  --fg: #f4f6f8;
+  --muted: #b6bfc9;
+  --accent: #b6f23c;
+  --on-accent: #111418;
+  --danger: #ff6b6b;
+  --ok: #5be28a;
+  --warn: #ffb020;
+  --ramal: #ff9a4d;
+  --shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+}
+
+/* ---- Fibra: azul-petróleo e ciano (mais suave; ótimo à noite e no escritório) ---- */
+:root[data-theme='fibra'] {
+  --bg: #0b1f2a;
+  --surface: #12313f;
+  --surface-2: #17394a;
+  --border: #25596f;
+  --fg: #e8f7fb;
+  --muted: #a6cbd8;
+  --accent: #22d3ee;
+  --on-accent: #04222c;
+  --danger: #ff7a7a;
+  --ok: #5be28a;
+  --warn: #ffb020;
+  --ramal: #ff9a4d;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* ---------- acabamento comum (os dois temas) ---------- */
+:root[data-theme] body { background: var(--bg); color: var(--fg); }
+
+/* telas inteiras */
+:root[data-theme] .screen-header { background: var(--surface); border-bottom: 1px solid var(--border); }
+
+/* botões */
+:root[data-theme] .btn {
+  border: 2px solid var(--border); border-radius: 18px;
+  background: var(--surface-2); color: var(--fg);
+}
+:root[data-theme] .btn-primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+:root[data-theme] .btn-danger { background: var(--danger); color: var(--on-accent); border-color: var(--danger); }
+:root[data-theme] .btn-small { border-radius: 16px; }
+:root[data-theme] .cable-launch { background: var(--surface-2); border-color: var(--accent); color: var(--accent); }
+
+/* campos */
+:root[data-theme] .field > label,
+:root[data-theme] .field > .label { color: var(--muted); }
+:root[data-theme] .field input[type='text'],
+:root[data-theme] .field input[type='email'],
+:root[data-theme] .field input[type='password'],
+:root[data-theme] .field textarea,
+:root[data-theme] .field select,
+:root[data-theme] .filters-bar input[type='search'] {
+  border: 2px solid var(--border); border-radius: 14px;
+  background: var(--surface-2); color: var(--fg);
+}
+:root[data-theme] .hint,
+:root[data-theme] .card-meta,
+:root[data-theme] .info-label,
+:root[data-theme] .track-label,
+:root[data-theme] .account-label,
+:root[data-theme] .total-tile span,
+:root[data-theme] .row-btn small,
+:root[data-theme] .vertex-list small { color: var(--muted); }
+
+/* escolhas (chips, segmentos) */
+:root[data-theme] .chips button,
+:root[data-theme] .seg button,
+:root[data-theme] .fiber-btn {
+  border: 2px solid var(--border); border-radius: 16px;
+  background: var(--surface-2); color: var(--fg);
+}
+:root[data-theme] .chips button[aria-pressed='true'],
+:root[data-theme] .seg button[aria-pressed='true'],
+:root[data-theme] .fiber-btn[aria-pressed='true'] {
+  background: var(--accent); color: var(--on-accent); border-color: var(--accent);
+}
+
+/* cartões e listas */
+:root[data-theme] .card {
+  border: 1px solid var(--border); border-radius: 20px; background: var(--surface);
+}
+:root[data-theme] .card-open,
+:root[data-theme] .person[data-group='pendente'] { border-color: var(--accent); }
+:root[data-theme] .info-list,
+:root[data-theme] .vertex-list { border: 1px solid var(--border); border-radius: 18px; }
+:root[data-theme] .info-row,
+:root[data-theme] .vertex-list li { background: var(--surface); }
+:root[data-theme] .info-row + .info-row,
+:root[data-theme] .vertex-list li + li { border-top: 1px solid var(--border); }
+:root[data-theme] .track-stats > div,
+:root[data-theme] .total-tile,
+:root[data-theme] .material-row,
+:root[data-theme] .cto-spot {
+  border: 1px solid var(--border); border-radius: 16px; background: var(--surface);
+}
+:root[data-theme] .photo-thumb { border: 2px solid var(--border); border-radius: 14px; background: var(--surface); }
+:root[data-theme] .photo-viewer { background: var(--bg); }
+
+/* avisos */
+:root[data-theme] .alert { background: color-mix(in srgb, var(--danger) 14%, var(--surface)); border: 2px solid var(--danger); border-radius: 14px; }
+:root[data-theme] .ok-note,
+:root[data-theme] .saved-notice { background: color-mix(in srgb, var(--ok) 14%, var(--surface)); border: 2px solid var(--ok); border-radius: 14px; }
+:root[data-theme] .update-toast,
+:root[data-theme] .backup-toast { background: var(--surface); border: 2px solid var(--accent); border-radius: 18px; box-shadow: var(--shadow); color: var(--fg); }
+:root[data-theme] .tone-warn { color: var(--warn); }
+:root[data-theme] .tone-error { color: var(--danger); }
+:root[data-theme] .progress { border-color: var(--border); }
+
+/* diálogos e painéis de baixo */
+:root[data-theme] .confirm { border: 1px solid var(--border); border-radius: 26px; background: var(--surface); color: var(--fg); box-shadow: var(--shadow); }
+:root[data-theme] .confirm p { color: var(--muted); }
+:root[data-theme] .sheet,
+:root[data-theme] .placement-panel {
+  border-top: 1px solid var(--border); border-radius: 28px 28px 0 0;
+  background: var(--surface); color: var(--fg); box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.35);
+}
+:root[data-theme] .type-tile { border: 2px solid var(--border); border-radius: 18px; background: var(--surface-2); color: var(--fg); }
+:root[data-theme] .type-tile:active { background: var(--surface); }
+:root[data-theme] .sticky-actions { background: linear-gradient(transparent, var(--bg) 25%); }
+
+/* mapa: botões escuros e redondos por cima do mapa claro */
+:root[data-theme] .map-btn {
+  border: 0; border-radius: 28px; background: var(--bg); color: var(--fg);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+:root[data-theme] .map-btn:active { background: var(--accent); color: var(--on-accent); }
+:root[data-theme] .map-btn-wide { padding: 0 20px; }
+:root[data-theme] .map-btn.locate-following { background: var(--accent); color: var(--on-accent); }
+:root[data-theme] .map-btn.locate-free { background: var(--bg); color: var(--accent); }
+:root[data-theme] .activity-main {
+  border: 0; border-radius: 28px; background: var(--bg); color: var(--fg);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+:root[data-theme] .activity-main-open { background: var(--bg); }
+:root[data-theme] .activity-main-open .activity-sub { color: var(--accent); }
+:root[data-theme] .activity-sub { color: var(--muted); }
+:root[data-theme] .net-pill { background: color-mix(in srgb, var(--bg) 82%, transparent); color: var(--fg); }
+:root[data-theme] .net-offline { background: var(--accent); color: var(--on-accent); }
+:root[data-theme] .net-offline .net-dot { background: var(--on-accent); }
+:root[data-theme] .gps-banner { background: color-mix(in srgb, var(--bg) 90%, transparent); color: var(--fg); border-radius: 17px; }
+:root[data-theme] .gps-banner.gps-warn { background: var(--warn); color: var(--on-accent); }
+:root[data-theme] .remote-track-bar { border: 0; border-radius: 22px; background: var(--bg); color: var(--fg); }
+:root[data-theme] .add-btn { border-color: var(--bg); background: var(--accent); color: var(--on-accent); }
+
+/* fibras, ligações e rota (as cores das fibras em si não mudam) */
+:root[data-theme] .fiber-tubes details { border: 1px solid var(--border); border-radius: 18px; background: var(--surface); }
+:root[data-theme] .fiber-note { background: var(--accent); color: var(--on-accent); }
+:root[data-theme] .link-row,
+:root[data-theme] button.route-row {
+  border: 2px solid var(--border); border-radius: 16px; background: var(--surface-2); color: var(--fg);
+}
+:root[data-theme] .link-row[aria-pressed='true'] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--surface)); }
+:root[data-theme] .link-box { border: 2px solid var(--muted); }
+:root[data-theme] .link-row[aria-pressed='true'] .link-box { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+:root[data-theme] .link-text small,
+:root[data-theme] .feed-card-text small,
+:root[data-theme] .route-text small { color: var(--muted); }
+:root[data-theme] .feed-card,
+:root[data-theme] .route-row { border: 2px solid var(--border); border-radius: 16px; background: var(--surface-2); color: var(--fg); }
+:root[data-theme] .fiber-btn-text small { color: var(--danger); }
+:root[data-theme] .fiber-btn[aria-pressed='true'] .fiber-btn-text small { color: var(--on-accent); }
+:root[data-theme] .route-nofiber { border-color: var(--muted); color: var(--muted); }
+
+/* painel web (escritório) */
+:root[data-theme] .panel-nav { background: var(--surface); border-bottom: 1px solid var(--border); }
+@media (min-width: 900px) { :root[data-theme] .panel-nav { border-bottom: 0; border-right: 1px solid var(--border); } }
+:root[data-theme] .panel-link { color: var(--fg); border-radius: 16px; }
+:root[data-theme] .panel-link:hover:not(:disabled) { background: var(--surface-2); }
+:root[data-theme] .panel-link[aria-current='page'] { background: var(--accent); color: var(--on-accent); }
+:root[data-theme] .panel-link:disabled { color: var(--muted); }
+:root[data-theme] .panel-exit { border-color: var(--border); }
+:root[data-theme] .panel-filters,
+:root[data-theme] .panel-filterbar,
+:root[data-theme] .panel-detail,
+:root[data-theme] .panel-detail-bar { background: var(--surface); border-color: var(--border); }
+:root[data-theme] .panel-filters select,
+:root[data-theme] .panel-filters input[type='date'],
+:root[data-theme] .panel-filters input[type='text'],
+:root[data-theme] .panel-filterbar select,
+:root[data-theme] .panel-filterbar input[type='date'],
+:root[data-theme] .panel-filterbar input[type='text'] {
+  border: 2px solid var(--border); border-radius: 14px; background: var(--surface-2); color: var(--fg);
+}
+:root[data-theme] .panel-dates label { color: var(--muted); }
+:root[data-theme] .panel-hits .btn small,
+:root[data-theme] .panel-row-btn small { color: var(--muted); }
+:root[data-theme] .panel-table th,
+:root[data-theme] .panel-table td { border-bottom-color: var(--border); }
+:root[data-theme] .panel-table th,
+:root[data-theme] .panel-table tfoot td,
+:root[data-theme] .panel-table thead th:first-child { background: var(--surface); }
+:root[data-theme] .panel-table th:first-child,
+:root[data-theme] .panel-table td:first-child { background: var(--bg); }
+:root[data-theme] .panel-table tfoot td { border-top-color: var(--border); }
+:root[data-theme] .panel-table tbody tr:hover,
+:root[data-theme] .panel-table tbody tr:hover td:first-child { background: var(--surface-2); }
+:root[data-theme] .panel-table tr[aria-selected='true'],
+:root[data-theme] .panel-table tr[aria-selected='true'] td:first-child { background: color-mix(in srgb, var(--accent) 16%, var(--surface)); }
+:root[data-theme] .panel-th-btn,
+:root[data-theme] .panel-row-btn { color: var(--fg); }
+@media (max-width: 899px) {
+  :root[data-theme] .panel-table tr { border: 1px solid var(--border); border-radius: 18px; background: var(--surface); }
+  :root[data-theme] .panel-table td::before { color: var(--muted); }
+  :root[data-theme] .panel-table-layout .panel-table td:first-child { background: transparent; }
+}
+:root[data-theme] .panel-map-base,
+:root[data-theme] .panel-map-note,
+:root[data-theme] .panel-map-pin { border-radius: 16px; }
+
+/* marcas e etiquetas */
+:root[data-theme] .cabo-badge { background: var(--ramal); color: var(--on-accent); }
+:root[data-theme] .badge-state-pendente,
+:root[data-theme] .badge-state-verificando,
+:root[data-theme] .sync-badge-andamento,
+:root[data-theme] .sync-badge-espera,
+:root[data-theme] .badge-implantacao { background: var(--accent); color: var(--on-accent); }
+
+/* ---------- escolha do tema (Configurações) ---------- */
+.theme-options { display: grid; gap: 10px; }
+.theme-option {
+  display: flex; align-items: center; gap: 14px; width: 100%; min-height: 76px; padding: 10px 14px;
+  border: 2px solid var(--border); border-radius: 18px; background: var(--surface-2); color: var(--fg);
+  text-align: left; font: inherit; touch-action: manipulation;
+}
+.theme-option[aria-pressed='true'] { border-color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); }
+.theme-swatch {
+  flex: none; display: flex; flex-direction: column; justify-content: flex-end; gap: 4px;
+  width: 56px; height: 56px; padding: 8px; border-radius: 14px; border: 1px solid var(--border);
+}
+.theme-swatch > span { display: block; height: 10px; border-radius: 5px; }
+.theme-swatch > span:last-child { width: 60%; }
+.theme-option-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.theme-option-text strong { font-size: 19px; }
+.theme-option-text small { font-size: 15px; color: var(--muted); }

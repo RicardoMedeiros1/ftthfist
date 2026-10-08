@@ -11,6 +11,7 @@ import { useAccount } from '../account/accountStore';
 import { isSupabaseConfigured } from '../account/supabaseClient';
 import CableTypesEditor from '../cables/CableTypesEditor';
 import { ColorStandardSetting } from '../cables/colorStandard';
+import ThemeSetting from '../../theme/ThemeSetting';
 import { useTechnician } from './useTechnician';
 
 export default function SettingsScreen() {
@@ -57,6 +58,7 @@ export default function SettingsScreen() {
         </button>
         {justSaved && <div className="ok-note" role="status">Salvo.</div>}
       </form>
+      <ThemeSetting />
       <AccountCard />
       <PanelCard />
       <AdminCard />
