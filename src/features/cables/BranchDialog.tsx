@@ -47,9 +47,9 @@ export default function BranchDialog({
   const where = element ? `${ELEMENT_META[element.type].label}${element.code ? ` ${element.code}` : ''}` : 'o ponto atual';
   return (
     <div className="confirm-backdrop">
-      <div className="confirm field branch-dialog" role="dialog" aria-modal="true" aria-labelledby="branch-title">
+      <div className="confirm field scrolling" role="dialog" aria-modal="true" aria-labelledby="branch-title">
         <h2 id="branch-title">Derivar um ramal</h2>
-        <div className="branch-body">
+        <div className="confirm-body">
           <p>
             Saindo de <strong>{where}</strong>
           </p>

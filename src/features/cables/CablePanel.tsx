@@ -8,6 +8,7 @@ import { ELEMENT_META } from '../elements/meta';
 import {
   BRANCH_FROM_MESSAGE,
   MARK_TYPES,
+  type CtoPick,
   addReserveHere,
   branchHere,
   canBranchHere,
@@ -94,7 +95,6 @@ export default function CablePanel() {
   }
 
   const current = activeCable(draft);
-  const trunk = draft.cables[0]!;
   const branching = inBranch(draft);
   const several = draft.cables.length > 1;
   const length = draftLengthMeters(draft);
@@ -131,11 +131,11 @@ export default function CablePanel() {
     setMessage(r.ok ? null : r.message);
   }
 
-  async function save(notes: string) {
+  async function save(notes: string, ctos: CtoPick[]) {
     setBusy(true);
     setSummaryError(null);
     try {
-      await finishCable(notes);
+      await finishCable(notes, ctos);
       setSummaryOpen(false);
     } catch (e) {
       setSummaryError(errMsg(e, 'Não foi possível salvar o cabo. Tente de novo.'));
@@ -262,17 +262,12 @@ export default function CablePanel() {
       )}
       {summaryOpen && (
         <CableSummaryDialog
-          cableType={trunk.cableType}
-          fiberCount={trunk.fiberCount}
-          {...(() => {
-            const s = summaryOf(draft);
-            return { length: s.length, reserves: s.reserves, total: s.total };
-          })()}
-          points={points}
+          draft={draft}
+          summary={summaryOf(draft)}
           error={summaryError}
           busy={busy}
           onBack={() => setSummaryOpen(false)}
-          onSave={(n) => void save(n)}
+          onSave={(n, ctos) => void save(n, ctos)}
         />
       )}
       {confirmCancel && (

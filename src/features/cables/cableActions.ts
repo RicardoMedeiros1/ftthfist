@@ -4,7 +4,7 @@ import { distanceMeters, formatMeters, nearestWithin, round2 } from '../../lib/g
 import { classifyAccuracy } from '../../lib/geo';
 import { canEdit } from '../../lib/ownership';
 import { draftStore } from '../elements/draftStore';
-import { elementStore } from '../elements/elementRepo';
+import { elementStore, type ElementPatch } from '../elements/elementRepo';
 import type { Map as LeafletMap, LatLng } from 'leaflet';
 import { unlinkReserves } from './cableLinks';
 import { cableStore } from './cableRepo';
@@ -180,18 +180,19 @@ export function summaryOf(d: CableDraft) {
   return { items, length, reserves, total: round2(length + reserves) };
 }
 
-/** Fibra de entrada de uma CTO, escolhida no resumo: o cabo (do lançamento) e a fibra dele. */
-export interface CtoFeedPick {
+/** O que o técnico disse de uma CTO no resumo: o cabo do lançamento que a alimenta e a fibra dele, e o código dela. Tudo opcional. */
+export interface CtoPick {
   elementId: string;
-  cableId: string;
-  fiber: number;
+  cableId?: string;
+  fiber?: number;
+  code?: string;
 }
 
 /**
  * Salva tudo o que foi lançado (o tronco e os ramais) de uma vez, já ligado: cada ramal é ligado ao cabo de onde saiu, no
- * elemento da derivação. `feeds` grava, nas CTOs onde um cabo termina, a fibra que elas pegaram. Tudo ou nada.
+ * elemento da derivação. `ctos` grava a fibra que cada CTO pegou e o código dela, quando o técnico disse. Tudo ou nada.
  */
-export async function finishCable(notes: string, feeds: readonly CtoFeedPick[] = []): Promise<string> {
+export async function finishCable(notes: string, ctos: readonly CtoPick[] = []): Promise<string> {
   const d = cableDraftStore.getState();
   if (!d) throw new Error('Nenhum cabo em lançamento.');
   const toSave = cablesToSave(d);
@@ -213,12 +214,17 @@ export async function finishCable(notes: string, feeds: readonly CtoFeedPick[] =
   const who = await technician();
   const cables = await db.transaction('rw', db.activities, db.elements, db.cables, async () => {
     const saved = await cableStore.createMany(inputs, who);
-    for (const f of feeds) {
-      const cable = saved.find((c) => c.id === f.cableId);
-      const el = await db.elements.get(f.elementId);
-      if (!cable || !el || el.deleted || el.type !== 'cto' || !canEdit(el)) continue;
-      if (!Number.isInteger(f.fiber) || f.fiber < 1 || f.fiber > cable.fiberCount) continue;
-      await elementStore.update(el.id, { attrs: { ...(el.attrs as object), feedCableId: cable.id, feedFiber: f.fiber } });
+    for (const pick of ctos) {
+      const el = await db.elements.get(pick.elementId);
+      if (!el || el.deleted || el.type !== 'cto' || !canEdit(el)) continue;
+      const cable = saved.find((c) => c.id === pick.cableId);
+      const patch: ElementPatch = {};
+      if (cable && pick.fiber !== undefined && Number.isInteger(pick.fiber) && pick.fiber >= 1 && pick.fiber <= cable.fiberCount) {
+        patch.attrs = { ...(el.attrs as object), feedCableId: cable.id, feedFiber: pick.fiber };
+      }
+      const code = pick.code?.trim() ?? '';
+      if (code && code !== el.code) patch.code = code;
+      if (patch.attrs !== undefined || patch.code !== undefined) await elementStore.update(el.id, patch);
     }
     return saved;
   });

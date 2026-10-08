@@ -112,6 +112,18 @@ describe('finalizar o lançamento em árvore', () => {
     expect(a1.syncStatus).toBe('pending');
   });
 
+  it('grava o código da CTO (com ou sem fibra) e ignora código vazio', async () => {
+    const { b1, cto1, cto2 } = await network();
+    await finishCable('', [
+      { elementId: cto1.elementId, code: '  CTO-12  ', cableId: b1, fiber: 1 },
+      { elementId: cto2.elementId, code: '   ' },
+    ]);
+    const a1 = (await db.elements.get(cto1.elementId))!;
+    const a2 = (await db.elements.get(cto2.elementId))!;
+    expect([a1.code, a1.attrs]).toEqual(['CTO-12', { capacity: 8, feedCableId: b1, feedFiber: 1 }]);
+    expect([a2.code, a2.attrs]).toEqual(['', {}]);
+  });
+
   it('fibra que não vale é ignorada: acima do cabo, zero, cabo de fora, elemento que não é CTO, elemento inexistente', async () => {
     const { trunkId, b1, ceo1, cto1, cto2 } = await network();
     await finishCable('', [
