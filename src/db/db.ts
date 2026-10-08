@@ -86,6 +86,10 @@ export const SETTING_KEYS = {
   // conta (Fase 2): quem esta logado neste aparelho e o ultimo perfil conhecido (para funcionar sem internet)
   account: 'account',
   accountProfile: 'accountProfile',
+  // este aparelho ja teve uma conta (define se a tela de acesso abre em "Pedir acesso" ou em "Entrar")
+  accountSeen: 'accountSeen',
+  // erros de acesso seguidos e ate quando o aparelho esta travado (attemptLimiter)
+  authAttempts: 'authAttempts',
   // primeira conta que usou o aparelho: dona dos registros feitos antes de existir login
   deviceOwner: 'deviceOwner',
   // sincronizacao (Fase 2): ate onde ja baixamos de cada tabela, registros que o servidor recusou, ultimo resultado

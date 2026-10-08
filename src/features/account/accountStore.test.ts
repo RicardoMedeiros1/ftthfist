@@ -13,6 +13,7 @@ class FakeApi implements AuthApi {
   confirmEmail = false; // projeto com "Confirm email" ligado: o cadastro nao devolve sessao
   sessionError: AuthApiError | null = null;
   profileError: AuthApiError | null = null;
+  signInError: AuthApiError | null = null;
   private listeners = new Set<(s: AuthSession | null) => void>();
 
   addUser(email: string, password: string, profile: Partial<AccountProfile> = {}) {
@@ -35,6 +36,7 @@ class FakeApi implements AuthApi {
   }
   async signIn(email: string, password: string) {
     this.calls.push('signIn');
+    if (this.signInError) throw this.signInError;
     const u = this.users.get(email);
     if (!u || u.password !== password) throw new AuthApiError('invalid_credentials', 'Invalid login credentials', 400);
     this.session = { userId: u.id, email };
@@ -510,5 +512,176 @@ describe('quem esta agindo (dono dos novos registros)', () => {
     const { calls, onIdentity } = spy();
     await make({ configured: false, onIdentity }).init();
     expect(calls).toEqual([]);
+  });
+});
+
+describe('limite de tentativas de acesso neste aparelho', () => {
+  let clock = 1_000;
+  const MIN = 60_000;
+  const limited = () => make({ now: () => clock });
+  const wrong = (s: ReturnType<typeof make>) => s.signIn('ana@x.com', 'errada123');
+  const signInCalls = () => api.calls.filter((c) => c === 'signIn').length;
+
+  beforeEach(() => {
+    clock = 1_000;
+    api.addUser('ana@x.com', 'senha1234', { active: true, reviewed: true });
+  });
+
+  it('5 senhas erradas seguidas travam o aparelho por 5 minutos, e a 5ª já diz quanto esperar', async () => {
+    const s = limited();
+    await s.init();
+    for (let i = 0; i < 4; i++) {
+      await wrong(s);
+      expect(s.getState().lockedUntil).toBeNull();
+      expect(s.getState().error).toBe('E-mail ou senha incorretos.');
+    }
+    await wrong(s);
+    expect(s.getState().lockedUntil).toBe(clock + 5 * MIN);
+    expect(s.getState().error).toBe('E-mail ou senha incorretos. Muitas tentativas: tente de novo em 5:00.');
+    expect(signInCalls()).toBe(5);
+  });
+
+  it('travado: nem chama o servidor, mesmo com a senha certa, e a espera diminui com o tempo', async () => {
+    const s = limited();
+    await s.init();
+    for (let i = 0; i < 5; i++) await wrong(s);
+    expect(await s.signIn('ana@x.com', 'senha1234')).toBe(false);
+    expect(s.getState().error).toBe('Muitas tentativas. Tente de novo em 5:00.');
+    clock += 90_000;
+    await s.signIn('ana@x.com', 'senha1234');
+    expect(s.getState().error).toBe('Muitas tentativas. Tente de novo em 3:30.');
+    expect(signInCalls()).toBe(5); // nenhuma chamada a mais
+    expect(s.getState().status).toBe('deslogado');
+  });
+
+  it('passada a espera dá para tentar de novo; acertar zera tudo', async () => {
+    const s = limited();
+    await s.init();
+    for (let i = 0; i < 5; i++) await wrong(s);
+    clock += 5 * MIN + 1;
+    expect(await s.signIn('ana@x.com', 'senha1234')).toBe(true);
+    expect(s.getState()).toMatchObject({ status: 'ativo', lockedUntil: null });
+    const saved = (await db.settings.get(SETTING_KEYS.authAttempts))?.value as { fails: number; strikes: number; lockedUntil: number };
+    expect(saved).toMatchObject({ fails: 0, strikes: 0, lockedUntil: 0 });
+  });
+
+  it('a trava vale depois de recarregar o app (fica salva no aparelho)', async () => {
+    const first = limited();
+    await first.init();
+    for (let i = 0; i < 5; i++) await wrong(first);
+    const second = limited(); // "recarregou a página"
+    await second.init();
+    expect(second.getState().lockedUntil).toBe(clock + 5 * MIN);
+    expect(await second.signIn('ana@x.com', 'senha1234')).toBe(false);
+    expect(second.getState().error).toContain('Tente de novo em 5:00');
+  });
+
+  it('a segunda trava é mais longa (15 minutos)', async () => {
+    const s = limited();
+    await s.init();
+    for (let i = 0; i < 5; i++) await wrong(s);
+    clock += 5 * MIN + 1;
+    for (let i = 0; i < 5; i++) await wrong(s);
+    expect(s.getState().lockedUntil).toBe(clock + 15 * MIN);
+  });
+
+  it('falta de rede, e-mail inválido e campo vazio NÃO contam como tentativa', async () => {
+    const s = limited();
+    await s.init();
+    api.signInError = new AuthApiError('network', 'Failed to fetch');
+    for (let i = 0; i < 6; i++) await wrong(s);
+    for (let i = 0; i < 6; i++) await s.signIn('sem-arroba', 'x');
+    for (let i = 0; i < 6; i++) await s.signIn('ana@x.com', '');
+    expect(s.getState().lockedUntil).toBeNull();
+    api.signInError = null;
+    expect(await s.signIn('ana@x.com', 'senha1234')).toBe(true);
+  });
+
+  it('o servidor mandou esperar (429): espera 2 minutos sem contar como erro', async () => {
+    const s = limited();
+    await s.init();
+    api.signInError = new AuthApiError('over_request_rate_limit', 'rate', 429);
+    await wrong(s);
+    expect(s.getState().lockedUntil).toBe(clock + 2 * MIN);
+    expect(s.getState().error).toBe('Muitas tentativas. Tente de novo em 2:00.');
+    const saved = (await db.settings.get(SETTING_KEYS.authAttempts))?.value as { fails: number; strikes: number };
+    expect(saved).toMatchObject({ fails: 0, strikes: 0 });
+  });
+
+  it('pedir acesso também conta (e-mail já cadastrado), mas senha fraca não', async () => {
+    const s = limited();
+    await s.init();
+    for (let i = 0; i < 6; i++) await s.requestAccess('Ana Souza', 'nova@x.com', 'a1b2c3d4'.slice(0, 8)); // 1º cria; os outros dão "já cadastrado"
+    expect(s.getState().lockedUntil).not.toBeNull();
+    const t = limited();
+    clock += 10 * MIN;
+    await t.init();
+    api.signUp = async () => {
+      throw new AuthApiError('weak_password', 'Password should be at least 8 characters', 422);
+    };
+    for (let i = 0; i < 8; i++) await t.requestAccess('Bia Souza', 'bia@x.com', '12345678');
+    const saved = (await db.settings.get(SETTING_KEYS.authAttempts))?.value as { fails: number };
+    expect(saved.fails).toBe(0);
+  });
+});
+
+describe('primeiro acesso do aparelho', () => {
+  it('aparelho novo: primeiro acesso; depois de ter uma conta deixa de ser, mesmo saindo e reabrindo', async () => {
+    api.addUser('ana@x.com', 'senha1234', { active: true, reviewed: true });
+    const s = make();
+    await s.init();
+    expect(s.getState()).toMatchObject({ status: 'deslogado', firstAccess: true });
+    await s.signIn('ana@x.com', 'senha1234');
+    expect(s.getState().firstAccess).toBe(false);
+    await s.signOut();
+    const again = make(); // reabriu o app, ninguem logado
+    await again.init();
+    expect(again.getState()).toMatchObject({ status: 'deslogado', firstAccess: false });
+  });
+
+  it('pedir acesso sem confirmar e-mail ainda é primeiro acesso (nenhuma conta entrou)', async () => {
+    api.confirmEmail = true;
+    const s = make();
+    await s.init();
+    await s.requestAccess('Ana Souza', 'ana@x.com', 'senha1234');
+    expect(s.getState()).toMatchObject({ status: 'deslogado', firstAccess: true });
+  });
+
+  it('quem já estava logado antes desta versão não é "primeiro acesso"', async () => {
+    const id = api.addUser('ana@x.com', 'senha1234', { active: true, reviewed: true });
+    api.session = { userId: id, email: 'ana@x.com' };
+    await db.settings.put({ key: SETTING_KEYS.account, value: { userId: id, email: 'ana@x.com' } });
+    const s = make();
+    await s.init();
+    expect(s.getState().firstAccess).toBe(false);
+  });
+});
+
+describe('conferir a aprovação em silêncio', () => {
+  it('pendente → ativo sem mostrar erro nem ocupar o botão; sem internet não faz nada', async () => {
+    const id = api.addUser('ana@x.com', 'senha1234');
+    const s = make();
+    await s.init();
+    await s.signIn('ana@x.com', 'senha1234');
+    expect(s.getState().status).toBe('pendente');
+    online = false;
+    expect(await s.recheck()).toBe(false);
+    expect(s.getState()).toMatchObject({ status: 'pendente', error: null, busy: false });
+    online = true;
+    api.profiles.set(id, { ...api.profiles.get(id)!, active: true, reviewed: true });
+    expect(await s.recheck()).toBe(true);
+    expect(s.getState()).toMatchObject({ status: 'ativo', error: null });
+    expect(s.getState().notice).toBe('Seu acesso foi aprovado! Bom trabalho.');
+  });
+
+  it('erro do servidor na conferência silenciosa não vira mensagem na tela', async () => {
+    api.addUser('ana@x.com', 'senha1234');
+    const s = make();
+    await s.init();
+    await s.signIn('ana@x.com', 'senha1234');
+    api.profileError = new AuthApiError('desconhecido', 'x', 500);
+    expect(await s.recheck()).toBe(false);
+    expect(s.getState().error).toBeNull();
+    expect(s.getState().status).toBe('pendente');
   });
 });

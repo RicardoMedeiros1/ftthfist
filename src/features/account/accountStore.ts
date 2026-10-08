@@ -1,5 +1,19 @@
 import { useSyncExternalStore } from 'react';
 import { SETTING_KEYS, getSetting, setSetting } from '../../db/db';
+import {
+  EMPTY_LIMITER,
+  SERVER_LIMIT_WAIT_MS,
+  countsAsAttempt,
+  formatWait,
+  isLocked,
+  isServerLimit,
+  lockFor,
+  normalizeLimiter,
+  recordFailure,
+  recordSuccess,
+  remainingMs,
+  type LimiterState,
+} from './attemptLimiter';
 import { AuthApiError, translateAuthError, type AccountProfile, type AuthApi, type AuthSession } from './authApi';
 import { setActingRole } from '../../lib/ownership';
 import { applyIdentity } from './deviceOwner';
@@ -26,6 +40,10 @@ export interface AccountState {
   notice: string | null;
   /** Quando o perfil foi confirmado no servidor pela ultima vez (ms). */
   checkedAt: number | null;
+  /** Este aparelho nunca teve uma conta: a tela de acesso abre em "Pedir acesso". */
+  firstAccess: boolean;
+  /** Ate quando entrar/pedir acesso esta travado neste aparelho (muitos erros seguidos); null = livre. */
+  lockedUntil: number | null;
 }
 
 interface StoredIdentity {
@@ -70,6 +88,8 @@ export function createAccountStore(deps: AccountDeps) {
     error: null,
     notice: null,
     checkedAt: null,
+    firstAccess: true,
+    lockedUntil: null,
   };
   const listeners = new Set<() => void>();
   let identity: StoredIdentity | null = null;
@@ -86,10 +106,40 @@ export function createAccountStore(deps: AccountDeps) {
   const showIdentity = (profile: AccountProfile | null) =>
     set({ status: statusOf(identity, profile), email: identity?.email ?? null, profile });
 
+  // ---- limite de tentativas de acesso neste aparelho (ver attemptLimiter) ----
+  let limiter: LimiterState = EMPTY_LIMITER;
+  let limiterLoaded: Promise<void> | null = null;
+  const lockedUntilOf = (l: LimiterState) => (isLocked(l, deps.now()) ? l.lockedUntil : null);
+  const loadLimiter = () =>
+    (limiterLoaded ??= deps.get<unknown>(SETTING_KEYS.authAttempts, null).then((raw) => {
+      limiter = normalizeLimiter(raw);
+      set({ lockedUntil: lockedUntilOf(limiter) });
+    }));
+  async function saveLimiter(next: LimiterState) {
+    if (next === limiter) return;
+    limiter = next;
+    set({ lockedUntil: lockedUntilOf(next) });
+    await deps.set(SETTING_KEYS.authAttempts, next);
+  }
+  /** Antes de tentar entrar/pedir acesso: devolve a mensagem de espera se o aparelho esta travado. */
+  async function lockMessage(): Promise<string | null> {
+    await loadLimiter();
+    const wait = remainingMs(limiter, deps.now());
+    return wait > 0 ? `Muitas tentativas. Tente de novo em ${formatWait(wait)}.` : null;
+  }
+  /** O servidor recusou a tentativa: conta o erro (ou espera, se ele mandou esperar). */
+  async function registerFailure(err: unknown) {
+    if (!(err instanceof AuthApiError) || !countsAsAttempt(err.code)) return;
+    const now = deps.now();
+    await saveLimiter(isServerLimit(err.code, err.status) ? lockFor(limiter, now, SERVER_LIMIT_WAIT_MS) : recordFailure(limiter, now));
+  }
+
   async function saveIdentity(s: AuthSession) {
     const changedUser = identity !== null && identity.userId !== s.userId;
     identity = { userId: s.userId, email: s.email };
     await deps.set(SETTING_KEYS.account, identity);
+    await deps.set(SETTING_KEYS.accountSeen, true);
+    if (state.firstAccess) set({ firstAccess: false });
     await deps.onIdentity?.(s.userId);
     if (changedUser) await deps.set(SETTING_KEYS.accountProfile, null); // outra pessoa entrou: o perfil antigo nao vale
     showIdentity(changedUser ? null : state.profile?.id === s.userId ? state.profile : null);
@@ -167,6 +217,14 @@ export function createAccountStore(deps: AccountDeps) {
     }
   }
 
+  /** Se esta tentativa acabou de travar o aparelho, a mensagem diz por quanto tempo. */
+  const withWait = (message: string) => {
+    const wait = remainingMs(limiter, deps.now());
+    if (wait <= 0) return message;
+    // (a mensagem do servidor ja diz "Muitas tentativas": nao repete)
+    return message.startsWith('Muitas tentativas') ? `Muitas tentativas. Tente de novo em ${formatWait(wait)}.` : `${message} Muitas tentativas: tente de novo em ${formatWait(wait)}.`;
+  };
+
   const fail = (message: string) => {
     set({ error: message });
     return false;
@@ -184,7 +242,10 @@ export function createAccountStore(deps: AccountDeps) {
     init(): Promise<void> {
       initPromise ??= (async () => {
         if (!deps.configured) return;
+        void loadLimiter();
         const cachedIdentity = await deps.get<StoredIdentity | null>(SETTING_KEYS.account, null);
+        const seen = cachedIdentity !== null || (await deps.get<boolean>(SETTING_KEYS.accountSeen, false));
+        set({ firstAccess: !seen });
         let cachedProfile = await deps.get<AccountProfile | null>(SETTING_KEYS.accountProfile, null);
         if (cachedIdentity && cachedProfile?.id !== cachedIdentity.userId) cachedProfile = null;
         await deps.onIdentity?.(cachedIdentity?.userId ?? null); // antes de qualquer registro novo
@@ -222,14 +283,18 @@ export function createAccountStore(deps: AccountDeps) {
       if (!password) return Promise.resolve(fail('Digite a senha.'));
       if (!deps.isOnline()) return Promise.resolve(fail('Sem internet. Entrar precisa de conexão.'));
       return guarded(async () => {
+        const locked = await lockMessage();
+        if (locked) return fail(locked);
         try {
           const api = await deps.loadApi();
           if (!api) return fail('Este aplicativo não está ligado a um servidor.');
           await saveIdentity(await api.signIn(e, password));
+          await saveLimiter(recordSuccess());
           await loadProfile(true);
           return true;
         } catch (err) {
-          return fail(translateAuthError(err));
+          await registerFailure(err);
+          return fail(withWait(translateAuthError(err)));
         }
       });
     },
@@ -243,10 +308,13 @@ export function createAccountStore(deps: AccountDeps) {
       if (password.length < MIN_PASSWORD) return Promise.resolve(fail(`A senha precisa ter pelo menos ${MIN_PASSWORD} caracteres.`));
       if (!deps.isOnline()) return Promise.resolve(fail('Sem internet. Pedir acesso precisa de conexão.'));
       return guarded(async () => {
+        const locked = await lockMessage();
+        if (locked) return fail(locked);
         try {
           const api = await deps.loadApi();
           if (!api) return fail('Este aplicativo não está ligado a um servidor.');
           const session = await api.signUp(e, password, n);
+          await saveLimiter(recordSuccess());
           if (!session) {
             set({ notice: 'Pedido enviado. Confirme seu e-mail (se o administrador exigir) e depois use "Entrar".' });
             return true;
@@ -256,7 +324,8 @@ export function createAccountStore(deps: AccountDeps) {
           set({ notice: 'Pedido enviado! Agora é só aguardar o administrador aprovar.' });
           return true;
         } catch (err) {
-          return fail(translateAuthError(err));
+          await registerFailure(err);
+          return fail(withWait(translateAuthError(err)));
         }
       });
     },
@@ -277,6 +346,9 @@ export function createAccountStore(deps: AccountDeps) {
 
     /** "Verificar agora": consulta o servidor para ver se o acesso mudou. */
     refreshProfile: () => guarded(() => loadProfile(true)),
+
+    /** Mesma consulta, em silêncio (sem mostrar erro nem ocupar o botão): a tela "Aguardando aprovação" repete de tempos em tempos. */
+    recheck: (): Promise<boolean> => (state.busy ? Promise.resolve(false) : loadProfile(false)),
 
     changePassword(password: string, confirm: string): Promise<boolean> {
       if (!identity) return Promise.resolve(fail('Entre na conta para trocar a senha.'));

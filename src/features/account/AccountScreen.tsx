@@ -4,97 +4,12 @@ import ScreenShell from '../../components/ScreenShell';
 import { formatAgo } from '../../lib/format';
 import { goBack } from '../../lib/route';
 import { useOnlineStatus } from '../../lib/useOnlineStatus';
+import { Feedback, PasswordField } from './AccessForms';
 import { MIN_PASSWORD, accountStore, useAccount } from './accountStore';
 import type { Role } from './authApi';
 import './account.css';
 
 export const ROLE_LABEL: Record<Role, string> = { tecnico: 'Técnico', escritorio: 'Escritório', admin: 'Administrador' };
-
-function PasswordField({ id, label, value, onChange, autoComplete, hint }: { id: string; label: string; value: string; onChange: (v: string) => void; autoComplete: string; hint?: string }) {
-  const [show, setShow] = useState(false);
-  return (
-    <div className="field">
-      <label htmlFor={id}>{label}</label>
-      <div className="pass-row">
-        <input id={id} type={show ? 'text' : 'password'} value={value} autoComplete={autoComplete} autoCapitalize="none" autoCorrect="off" spellCheck={false} onChange={(e) => onChange(e.target.value)} />
-        <button type="button" className="btn btn-small" aria-pressed={show} aria-label={show ? 'Ocultar a senha' : 'Mostrar a senha'} onClick={() => setShow(!show)}>
-          {show ? 'Ocultar' : 'Mostrar'}
-        </button>
-      </div>
-      {hint && <p className="hint">{hint}</p>}
-    </div>
-  );
-}
-
-function EmailField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  return (
-    <div className="field">
-      <label htmlFor="acc-email">E-mail</label>
-      <input id="acc-email" type="email" inputMode="email" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={value} onChange={(e) => onChange(e.target.value)} />
-    </div>
-  );
-}
-
-function SignedOutForms({ online }: { online: boolean }) {
-  const [mode, setMode] = useState<'entrar' | 'pedir'>('entrar');
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const busy = useAccount((s) => s.busy);
-
-  function switchMode(m: 'entrar' | 'pedir') {
-    setMode(m);
-    accountStore.dismissNotice();
-  }
-  async function submit(e: FormEvent) {
-    e.preventDefault();
-    const ok = mode === 'entrar' ? await accountStore.signIn(email, password) : await accountStore.requestAccess(name, email, password);
-    if (ok) setPassword('');
-  }
-
-  return (
-    <>
-      <div className="seg" role="group" aria-label="O que você quer fazer">
-        <button type="button" aria-pressed={mode === 'entrar'} onClick={() => switchMode('entrar')}>Entrar</button>
-        <button type="button" aria-pressed={mode === 'pedir'} onClick={() => switchMode('pedir')}>Pedir acesso</button>
-      </div>
-      <form onSubmit={(e) => void submit(e)} className="screen-body" style={{ padding: 0 }} noValidate>
-        {mode === 'pedir' && (
-          <div className="field">
-            <label htmlFor="acc-name">Nome completo</label>
-            <input id="acc-name" type="text" autoComplete="name" value={name} maxLength={100} onChange={(e) => setName(e.target.value)} />
-            <p className="hint">É o nome que vai aparecer em tudo o que você registrar.</p>
-          </div>
-        )}
-        <EmailField value={email} onChange={setEmail} />
-        <PasswordField
-          id="acc-password"
-          label="Senha"
-          value={password}
-          onChange={setPassword}
-          autoComplete={mode === 'entrar' ? 'current-password' : 'new-password'}
-          hint={mode === 'pedir' ? `Pelo menos ${MIN_PASSWORD} caracteres.` : undefined}
-        />
-        <Feedback />
-        <button className="btn btn-primary btn-block" type="submit" disabled={busy || !online}>
-          {busy ? 'Aguarde…' : mode === 'entrar' ? 'Entrar' : 'Pedir acesso'}
-        </button>
-        {mode === 'pedir' && <p className="hint">O administrador vai analisar o seu pedido. Até lá o app funciona normalmente neste aparelho, e o que você registrar fica salvo.</p>}
-      </form>
-    </>
-  );
-}
-
-function Feedback() {
-  const error = useAccount((s) => s.error);
-  const notice = useAccount((s) => s.notice);
-  return (
-    <>
-      {error && <div className="alert" role="alert">{error}</div>}
-      {notice && <div className="ok-note" role="status">{notice}</div>}
-    </>
-  );
-}
 
 function PasswordChange() {
   const [open, setOpen] = useState(false);
@@ -145,10 +60,8 @@ export default function AccountScreen() {
       {status === 'carregando' && <div role="status">Carregando…</div>}
 
       {status !== 'sem-configuracao' && status !== 'carregando' && !online && (
-        <p className="hint">Sem internet agora. Entrar, pedir acesso e trocar a senha precisam de conexão; o app continua funcionando normalmente.</p>
+        <p className="hint">Sem internet agora. Trocar a senha e verificar o acesso precisam de conexão; o app continua funcionando normalmente.</p>
       )}
-
-      {status === 'deslogado' && <SignedOutForms online={online} />}
 
       {(status === 'verificando' || status === 'pendente' || status === 'desativado' || status === 'ativo') && (
         <>
@@ -182,7 +95,7 @@ export default function AccountScreen() {
       {confirmSignOut && (
         <ConfirmDialog
           title="Sair da conta?"
-          message="Os dados deste aparelho (atividades, elementos, cabos, trilhas e fotos) continuam salvos. Para voltar a usar a conta, entre de novo."
+          message="Os dados deste aparelho (atividades, elementos, cabos, trilhas e fotos) continuam salvos. Para voltar a usar o app, entre de novo (precisa de internet)."
           confirmLabel="Sair"
           onCancel={() => setConfirmSignOut(false)}
           onConfirm={() => {

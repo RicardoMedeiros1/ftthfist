@@ -1,11 +1,13 @@
 import TabBar from './components/TabBar';
+import AccessGate from './features/account/AccessGate';
+import { accessGateFor } from './features/account/accessGate';
 import UpdatePrompt from './components/UpdatePrompt';
 import SavedNotice from './features/elements/SavedNotice';
 import BackupReminder from './features/export/BackupReminder';
 import BackupScreen from './features/export/BackupScreen';
 import ExportScreen from './features/export/ExportScreen';
 import AccountScreen from './features/account/AccountScreen';
-import { accountStore } from './features/account/accountStore';
+import { accountStore, useAccount } from './features/account/accountStore';
 import SyncScreen from './features/sync/SyncScreen';
 import AlteracoesScreen from './features/admin/AlteracoesScreen';
 import PessoasScreen from './features/admin/PessoasScreen';
@@ -39,6 +41,7 @@ import { useRoute } from './lib/route';
 
 export default function App() {
   const route = useRoute();
+  const gate = useAccount((s) => accessGateFor(s.status));
 
   // Pede ao navegador para não apagar os dados do app (a tela de backup mostra o resultado).
   useEffect(() => {
@@ -62,6 +65,18 @@ export default function App() {
     const phase = draftStore.getState().phase;
     if (route !== 'map' && (phase === 'mover' || phase === 'cabo-editar')) draftStore.cancel();
   }, [route]);
+
+  // Sem o acesso aprovado nada do app aparece (nem o mapa): só a tela de pedir acesso / entrar / aguardar.
+  if (gate !== 'open') {
+    return (
+      <>
+        <AccessGate gate={gate} />
+        <div className="toast-host">
+          <UpdatePrompt />
+        </div>
+      </>
+    );
+  }
   return (
     <>
       {/* O mapa fica sempre montado: abrir uma tela não interrompe o GPS nem o modo seguir. */}

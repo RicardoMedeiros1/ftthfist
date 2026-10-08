@@ -7,3 +7,12 @@
 .badge-state-ativo { background: #34c759; }
 .badge-state-pendente, .badge-state-verificando { background: var(--accent); }
 .badge-state-desativado { background: #ff9f0a; }
+
+/* Tela de acesso: na frente de tudo (o mapa nem é montado) até o acesso ser aprovado */
+.gate { position: fixed; inset: 0; z-index: 3500; overflow-y: auto; background: var(--bg); color: var(--fg); padding-bottom: env(safe-area-inset-bottom); }
+.gate-inner { max-width: 440px; margin: 0 auto; box-sizing: border-box; padding: calc(28px + env(safe-area-inset-top)) 16px 28px; display: flex; flex-direction: column; gap: 14px; }
+.gate-head { display: flex; flex-direction: column; gap: 6px; }
+.gate-brand { margin: 0; font: 800 34px/1.1 system-ui, sans-serif; color: var(--accent); }
+.gate-lead { margin: 0; font-size: 18px; line-height: 1.35; }
+/* Os avisos do app (ex.: "Pronto para usar sem internet") ficam embaixo na tela de acesso, para não cobrir o formulário */
+.gate ~ .toast-host { top: auto; bottom: calc(16px + env(safe-area-inset-bottom)); }
