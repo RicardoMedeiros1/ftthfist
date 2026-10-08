@@ -124,6 +124,38 @@ describe('finalizar o lançamento em árvore', () => {
     expect([a2.code, a2.attrs]).toEqual(['', {}]);
   });
 
+  it('o que não foi dito não mexe na CTO: fibra inválida, código vazio ou igual, elemento que não é CTO', async () => {
+    const { trunkId, b1, ceo1, cto1, cto2 } = await network();
+    await db.elements.update(cto1.elementId, { code: 'ABC', updatedAt: 1 });
+    await db.elements.update(cto2.elementId, { updatedAt: 1 });
+    await db.elements.update(ceo1.elementId, { updatedAt: 1 });
+    await finishCable('', [
+      { elementId: cto1.elementId, code: '   ', cableId: b1, fiber: 2.5 }, // código vazio e fibra fracionada
+      { elementId: cto2.elementId, cableId: b1, fiber: 0 },
+      { elementId: ceo1.elementId, code: 'CEO-1', cableId: trunkId, fiber: 1 }, // não é CTO
+    ]);
+    const c1 = (await db.elements.get(cto1.elementId))!;
+    expect([c1.code, c1.attrs, c1.updatedAt]).toEqual(['ABC', { capacity: 8 }, 1]);
+    expect((await db.elements.get(cto2.elementId))!.updatedAt).toBe(1);
+    const ceo = (await db.elements.get(ceo1.elementId))!;
+    expect([ceo.code, ceo.updatedAt]).toEqual(['', 1]);
+  });
+
+  it('código igual ao que a CTO já tem não a regrava', async () => {
+    const { cto1 } = await network();
+    await db.elements.update(cto1.elementId, { code: 'ABC', updatedAt: 1 });
+    await finishCable('', [{ elementId: cto1.elementId, code: ' ABC ' }]);
+    expect((await db.elements.get(cto1.elementId))!.updatedAt).toBe(1);
+  });
+
+  it('CTO excluída enquanto o lançamento corria não impede de salvar', async () => {
+    const { b1, cto1 } = await network();
+    await db.elements.update(cto1.elementId, { deleted: true });
+    await finishCable('', [{ elementId: cto1.elementId, code: 'CTO-9', cableId: b1, fiber: 1 }]);
+    expect(await saved()).toHaveLength(3);
+    expect((await db.elements.get(cto1.elementId))!.code).toBe('');
+  });
+
   it('fibra que não vale é ignorada: acima do cabo, zero, cabo de fora, elemento que não é CTO, elemento inexistente', async () => {
     const { trunkId, b1, ceo1, cto1, cto2 } = await network();
     await finishCable('', [

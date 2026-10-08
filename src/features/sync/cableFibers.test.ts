@@ -4,7 +4,7 @@ import { touch } from '../../db/db';
 import type { Cable } from '../../db/types';
 import { setActingRole, setActingUser } from '../../lib/ownership';
 import { fromRemote, toRemote } from './mapping';
-import { Device, fieldWork } from './testDevice';
+import { Device, fieldWork, pole } from './testDevice';
 import { TestServer } from './testServer';
 
 const E = '00000000-0000-4000-8000-0000000000e1';
@@ -75,6 +75,32 @@ describe('motor: padrão de cores e ligações viajam entre aparelhos', () => {
     expect(server.get('cables', cable.id)!.links).toEqual([]);
     await bruno.sync();
     expect(await bruno.db.cables.get(cable.id)).not.toHaveProperty('links');
+  });
+
+  it('rede lançada de uma vez (tronco + ramal ligado) sobe e desce inteira, com a fibra da CTO', async () => {
+    const { rede, cto } = await ana.as(async () => {
+      await ana.acts.create({ kind: 'implantacao', title: 'Rede nova' }, 'ana');
+      const at = (n: number, type: 'poste' | 'ceo' | 'cto') => ana.els.create({ ...pole(n), type }, 'ana');
+      const [p1, ceo, p2, cto] = [await at(0, 'poste'), await at(1, 'ceo'), await at(2, 'poste'), await at(3, 'cto')];
+      const v = (...e: (typeof p1)[]) => e.map((x) => ({ elementId: x.id, lat: x.lat, lng: x.lng }));
+      const trunkId = '00000000-0000-4000-8000-0000000000a1';
+      const branchId = '00000000-0000-4000-8000-0000000000a2';
+      const rede = await ana.cables.createMany(
+        [
+          { id: trunkId, cableType: 'AS-120', fiberCount: 48, vertices: v(p1, ceo, p2) },
+          { id: branchId, cableType: 'AS-80', fiberCount: 12, vertices: v(ceo, cto), links: [{ elementId: ceo.id, cableId: trunkId }] },
+        ],
+        'ana',
+      );
+      await ana.els.update(cto.id, { attrs: { feedCableId: branchId, feedFiber: 3 } });
+      return { rede, cto };
+    });
+    await ana.sync();
+    expect(server.get('cables', rede[1]!.id)).toMatchObject({ links: [{ elementId: rede[1]!.vertices[0]!.elementId, cableId: rede[0]!.id }] });
+    expect(server.get('cables', rede[0]!.id)!.links ?? []).toEqual([]);
+    await bruno.sync();
+    expect((await bruno.db.cables.get(rede[1]!.id))!.links).toEqual([{ elementId: rede[1]!.vertices[0]!.elementId, cableId: rede[0]!.id }]);
+    expect((await bruno.db.elements.get(cto.id))!.attrs).toEqual({ feedCableId: rede[1]!.id, feedFiber: 3 });
   });
 
   it('cabo comum não manda as colunas novas ao servidor', async () => {

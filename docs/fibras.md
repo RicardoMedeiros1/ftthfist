@@ -1,7 +1,42 @@
 # Fibras, ligação de cabos e rota
 
 O app guarda **qual fibra é qual (cor e tubo)**, **quais cabos continuam um no outro** e **qual fibra cada CTO pegou**. Tudo ligado:
-tocar num cabo acende a rota inteira, com as CTOs e a fibra de cada uma.
+tocar num cabo acende a rota inteira, com as CTOs e a fibra de cada uma. A rede toda (tronco e ramais) pode ser **lançada de uma vez**.
+
+## Lançar a rede toda de uma vez (tronco e ramais)
+
+Em vez de um cabo por vez, o técnico entra com o cabo (o **tronco**) e, em cada CEO ou CTO onde a rede se divide, **deriva** um ramal.
+Ao finalizar, **tudo é salvo de uma vez, já ligado** (um tronco com ramais até as CTOs, como no desenho do mapa).
+
+1. *Lançar cabo*: tipo, fibras e cores do **tronco** → *Começar a lançar*.
+2. Andar de poste em poste e tocar em **"Marcar poste aqui e ligar"**. Para marcar uma **CEO** ou **CTO**, toque em **CEO**/**CTO** (acima do
+   botão) e depois em "Marcar … aqui e ligar". A escolha vale **só para o próximo ponto**: depois ele volta para Poste.
+3. Onde a rede se divide, com esse ponto já marcado, toque em **Derivar**: escolha o tipo e as fibras do ramal (a tela já abre com o
+   **último ramal usado**; na primeira vez, com o cabo de onde ele sai). O painel passa a mostrar **Ramal**. Marque os pontos do ramal
+   até onde ele termina (normalmente uma CTO).
+4. **Terminar ramal** volta ao cabo de onde ele saiu, no ponto da derivação, e o lançamento segue por ali. Dá para derivar de novo no
+   mesmo ponto (CEO com duas saídas) e derivar de dentro de um ramal.
+5. **Desfazer** desfaz a última coisa que o técnico fez: um ponto (e o poste/CEO/CTO que ele criou), uma reserva, o "terminar ramal"
+   (volta para dentro do ramal) ou a própria derivação.
+6. **Finalizar** abre o resumo: cada cabo (**Tronco**, **Ramal 1**, **Ramal 2**…, de onde sai, pontos e metros), a soma e, para cada **CTO**
+   ainda sem fibra de entrada, **a fibra que ela pegou** (tubo e cor no padrão do cabo) e o **código** dela. Tudo da CTO é opcional (dá para
+   informar depois, em Editar). **Salvar tudo** grava todos os cabos, as ligações, a fibra e o código **de uma vez só (tudo ou nada)**.
+
+O que vale saber:
+
+- Só dá para derivar de um **ponto marcado** (poste, CEO, CTO ou elemento existente tocado no mapa), não de um ponto solto.
+- O ramal nasce no elemento da derivação e sai **ligado ao cabo de onde saiu**, nesse elemento (a ligação fica guardada no ramal): tocar
+  em qualquer cabo acende a rede toda, como em "Ligar cabos".
+- Um ramal que só tem o ponto da derivação (nenhum ponto depois) **não é salvo**; cabo com menos de 2 pontos também não.
+- As **observações** valem para o lançamento todo e ficam no tronco. A metragem de cada cabo inclui as reservas feitas nele.
+- As CTOs do resumo são as do lançamento que **ainda não têm fibra de entrada** e que são do técnico: onde um cabo **termina** e onde ele
+  **só passa**. O ponto onde um ramal começa pertence ao cabo de onde ele saiu. Uma CTO aparece uma vez, ligada ao cabo que termina nela.
+- O lançamento fica **salvo no aparelho a cada passo**: se o app recarregar ou a bateria acabar, ele volta de onde parou, **inclusive dentro de
+  um ramal**. Um lançamento de uma versão antiga retoma como um tronco só.
+- **Cancelar** descarta o tronco e os ramais. Os postes, CEOs, CTOs e reservas já marcados continuam no mapa (as reservas ficam sem cabo).
+- Lançar um cabo só, sem derivar, continua exatamente como antes.
+- CEO e CTO marcadas assim nascem só com o tipo e a posição (capacidade, splitter, bandejas e emendas ficam para *Editar*). As cores do
+  ramal seguem as do cabo de onde ele sai (dá para trocar na ficha do cabo).
 
 ## Cores das fibras (ABNT e internacional)
 
@@ -32,6 +67,8 @@ padrão gravado, vale ABNT.
 - A ficha do cabo mostra as fibras com bolinha e nome, em tubos que abrem e fecham; as que já alimentam uma CTO aparecem marcadas.
 
 ## Ligar cabos (a emenda)
+
+(Cabos lançados com **Derivar** já saem ligados; esta tela serve para ligar cabos lançados separadamente ou corrigir uma ligação.)
 
 Na ficha de um **elemento** (CEO, poste ou CTO) onde passam **2 ou mais cabos** aparece **"Cabos que passam aqui"**: o técnico marca os
 que **continuam um no outro** naquele ponto e toca em **Salvar ligações**. Cabos que só se cruzam no poste ficam sem marcar.
@@ -81,7 +118,8 @@ A **exportação** leva o padrão de cores e a rota do cabo e a fibra de entrada
 
 ## Onde está o código
 
-`src/features/cables/`: `fibers.ts` (cores e tubos), `routes.ts` (ligações e rota), `feed.ts` (fibra da CTO), `routeSummary.ts` (resumo da
+`src/features/cables/`: `cableDraft.ts` (o lançamento com tronco e ramais), `cableActions.ts` (marcar, derivar, terminar, finalizar), `BranchDialog`,
+`CablePanel`, `CableSummaryDialog`, `ctoSpots.ts` (CTOs do resumo), `cableRepo.createMany` (grava tudo de uma vez), `fibers.ts` (cores e tubos), `routes.ts` (ligações e rota), `feed.ts` (fibra da CTO), `routeSummary.ts` (resumo da
 rota), `linkData.ts`, `routeStore.ts`; telas `ElementCableLinks`, `CtoFeedFields`, `CtoFeedInfo`, `FiberList`, `FiberPicker`,
 `RouteSheet`, `RouteSummaryView`, `CablesLayer` (rota acesa). Banco: `supabase/migrations/20261006150800_cabos_fibras.sql` (colunas
 `color_standard` e `links`; pode ser colada de novo sem erro) e `supabase/conferir-fibras.sql`.

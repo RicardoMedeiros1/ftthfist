@@ -75,6 +75,27 @@ chaves nem senhas). O deploy é conferido pelo número da versão em *Configura�
 - [ ] **Painel (escritório):** clicar num cabo no mapa (ou achar na busca) acende a rota; a ficha mostra "Rota" e as CTOs com a fibra; "Mostrar
       no mapa" enquadra a rota inteira; a ficha de uma CTO mostra "Fibra de entrada". *Exportar* (KML) traz o padrão de cores e a fibra da CTO.
 
+**Lançar a rede toda de uma vez: tronco e ramais (guia em `docs/fibras.md`)**
+- [ ] *Lançar cabo* (AS-120, 48 fibras) e andar: **"Marcar poste aqui e ligar"** num poste, depois toque em **CEO** (o botão vira "Marcar CEO aqui e
+      ligar") e marque a CEO: o ícone laranja nasce no lugar e o tipo **volta para Poste** sozinho. O mesmo vale para **CTO** (ícone verde).
+- [ ] Na CEO, **Derivar**: a tela diz "Saindo de CEO", abre com o tipo e as fibras do cabo de origem (na 2ª vez, com o **último ramal usado**) e
+      os botões estão sempre à vista, sem rolar. Confirmar: o painel mostra **Ramal** e o tipo/fibras do ramal.
+- [ ] Marque 1–2 postes e uma **CTO** no ramal, toque em **Terminar ramal**: o painel volta a **Tronco**. Marque o próximo poste do tronco: a
+      linha do tronco segue **da CEO**, sem pular. (*Terminar ramal* fica apagado enquanto o ramal não tem nenhum ponto.)
+- [ ] **Desfazer** em sequência: tira o último ponto (e o poste/CEO/CTO que ele criou do mapa), depois o "terminar ramal" (volta para dentro do
+      ramal) e por fim a própria derivação. Poste que já existia no mapa **não** some.
+- [ ] Derivar de um ponto **solto** (toque no mapa fora de qualquer ícone) avisa "Derive de um poste, CEO ou CTO" e não abre nada.
+- [ ] Fechar o app (ou recarregar a página) **no meio de um ramal**: ao abrir, o lançamento volta de onde parou, ainda dentro do ramal.
+- [ ] Repita o desenho do mapa: tronco com **2 CEOs**, de cada uma um ramal até uma **CTO**. O mapa mostra tronco e ramais, cada um na
+      espessura/cor da sua quantidade de fibras. O painel cabe na tela e os botões do mapa ficam acima dele (no tronco e no ramal).
+- [ ] **Finalizar**: o resumo lista "Tronco · … / Ramal 1 · … sai de CEO / Ramal 2 · …" com os metros e a soma; abaixo, uma caixa por **CTO**
+      (código opcional e **Escolher fibra**: tubo e cor no padrão do cabo; "fim do …" ou "no meio do …"). Escolha a fibra de uma CTO e deixe a
+      outra em branco. **Salvar tudo**: aviso "3 cabos salvos".
+- [ ] Depois de salvar, toque num dos cabos: a **rota acesa** mostra os 3 cabos e as 2 CTOs, a de fibra escolhida com "Fibra 3 · Branco…" e a
+      outra com "fibra de entrada não informada". Na ficha da CTO, *Editar* mostra a fibra e o código.
+- [ ] Lançar **um cabo só**, sem derivar, continua igual a antes ("Finalizar cabo" → "Salvar cabo").
+- [ ] Sem internet tudo isso funciona; depois de sincronizar, **outro celular** e o **painel** veem os 3 cabos já ligados e as fibras das CTOs.
+
 **Dos colegas**
 - [ ] Ver atividades e elementos dos outros técnicos (marcados como de outra pessoa); **não** conseguir editá-los.
 - [ ] Receber uma correção feita pelo administrador: aparece "Alterado pelo administrador em …".

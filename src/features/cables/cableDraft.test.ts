@@ -259,6 +259,45 @@ describe('ramais (lançar a rede toda de uma vez)', () => {
   });
 });
 
+describe('pilha de cabos abertos (dados gravados fora de ordem não derrubam nada)', () => {
+  const cab = (cableId: string, parentId?: string) => ({ cableId, cableType: 'drop', fiberCount: 2, vertices: [], ...(parentId ? { parentId } : {}) });
+  const draft = (actions: unknown[]) => readDraft({ cables: [cab('t'), cab('r1', 't'), cab('r2', 't')], actions, startedAt: 1 })!;
+
+  it('"voltei" do tronco não tira o tronco da pilha', () => {
+    expect(openStack(draft([{ kind: 'return', cableId: 't' }]))).toEqual(['t']);
+  });
+  it('"voltei" de um ramal que não é o aberto agora é ignorado', () => {
+    const d = draft([{ kind: 'branch', cableId: 'r1' }, { kind: 'return', cableId: 'r2' }]);
+    expect(openStack(d)).toEqual(['t', 'r1']);
+  });
+  it('derivar, voltar e derivar de novo deixa só o último aberto', () => {
+    const d = draft([{ kind: 'branch', cableId: 'r1' }, { kind: 'return', cableId: 'r1' }, { kind: 'branch', cableId: 'r2' }]);
+    expect(openStack(d)).toEqual(['t', 'r2']);
+  });
+});
+
+describe('pontos dentro de um ramal', () => {
+  const DROP = { cableType: 'drop', fiberCount: 2 };
+  function inRamal() {
+    cableDraftStore.begin({ cableType: 'AS-80', fiberCount: 12 });
+    cableDraftStore.addVertex({ elementId: 'p1', ...A }, 'p1');
+    cableDraftStore.addVertex({ elementId: 'ceo1', ...B }, 'ceo1');
+    cableDraftStore.branch(DROP);
+  }
+  it('o mesmo ponto em sequência é ignorado no ramal (compara com o último do ramal, não com o do tronco)', () => {
+    inRamal();
+    expect(cableDraftStore.addVertex({ elementId: 'p2', ...C }, 'p2')).toBe(true);
+    expect(cableDraftStore.addVertex({ elementId: 'p2', ...C })).toBe(false);
+    expect(cableDraftStore.addVertex({ ...C })).toBe(false);
+    expect(s()!.cables[1]!.vertices).toHaveLength(2);
+  });
+  it('o ramal pode passar de novo pelo último ponto do tronco (o ramal que volta)', () => {
+    inRamal();
+    cableDraftStore.addVertex({ ...C });
+    expect(cableDraftStore.addVertex({ elementId: 'ceo1', ...B })).toBe(true);
+  });
+});
+
 describe('persistência (retomar depois de recarregar)', () => {
   it('grava a cada mudança e remove ao limpar', async () => {
     cableDraftStore.begin({ cableType: 'AS-80', fiberCount: 12 });
@@ -346,6 +385,7 @@ describe('lançamento gravado por uma versão sem ramais', () => {
     expect(readDraft({ ...legacy, actions: undefined })).toBeNull();
     expect(readDraft({ ...legacy, vertices: undefined })).toBeNull();
     expect(readDraft({ ...legacy, cableType: 3 })).toBeNull();
+    expect(readDraft({ ...legacy, cableId: 7 })).toBeNull();
     expect(readDraft({ ...legacy, fiberCount: '12' })).toBeNull();
     expect(readDraft({ cables: [], actions: [], startedAt: 1 })).toBeNull();
     expect(readDraft({ cables: [{ cableId: 'x' }], actions: [], startedAt: 1 })).toBeNull();
