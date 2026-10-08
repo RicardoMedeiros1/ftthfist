@@ -154,6 +154,7 @@
 .cto-spot input { min-height: 48px; }
 .cto-spot-fiber { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .cto-spot-fiber .feed-summary { font-size: 16px; }
+.cto-spot-fiber .btn { flex: 0 0 auto; white-space: nowrap; }
 .vertex-list { margin: 0; padding: 0; list-style: none; border: 3px solid #444; border-radius: 14px; overflow: hidden; }
 .vertex-list li { display: flex; justify-content: space-between; gap: 8px; padding: 10px 14px; background: #111; font-size: 17px; }
 .vertex-list li + li { border-top: 2px solid #333; }

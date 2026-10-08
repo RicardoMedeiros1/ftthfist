@@ -83,7 +83,9 @@ export default function CableSummaryDialog({
                 <li key={item.cable.cableId}>
                   <FiberLine fiberCount={item.cable.fiberCount} width={32} />
                   <span className="sum-cable-text">
-                    <strong>{role}</strong> · {item.cable.cableType} · {item.cable.fiberCount} fibras
+                    <span>
+                      <strong>{role}</strong> · {item.cable.cableType} · {item.cable.fiberCount} fibras
+                    </span>
                     <small>
                       {item.cable.vertices.length} pontos{from ? ` · sai de ${from}` : ''}
                     </small>
@@ -126,7 +128,7 @@ export default function CableSummaryDialog({
                       </small>
                     </div>
                     <label className="hint" htmlFor={`cto-code-${key}`}>Código da CTO</label>
-                    <input id={`cto-code-${key}`} value={p.code} maxLength={60} placeholder="Ex.: CTO-12 (opcional)" onChange={(e) => change(s, { code: e.target.value })} />
+                    <input id={`cto-code-${key}`} type="text" value={p.code} maxLength={60} placeholder="Ex.: CTO-12 (opcional)" onChange={(e) => change(s, { code: e.target.value })} />
                     <div className="cto-spot-fiber">
                       <span className="feed-summary">{info ? fiberLabel(info) : 'Fibra não informada'}</span>
                       <button type="button" className="btn btn-small" aria-expanded={open === key} onClick={() => setOpen(open === key ? null : key)}>
