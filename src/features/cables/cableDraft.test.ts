@@ -13,6 +13,7 @@ import {
   inBranch,
   openStack,
   readDraft,
+  trailLabels,
 } from './cableDraft';
 
 const s = () => cableDraftStore.getState();
@@ -390,5 +391,37 @@ describe('lançamento gravado por uma versão sem ramais', () => {
     expect(readDraft({ cables: [], actions: [], startedAt: 1 })).toBeNull();
     expect(readDraft({ cables: [{ cableId: 'x' }], actions: [], startedAt: 1 })).toBeNull();
     expect(readDraft({ cables: [{ ...legacy }, null], actions: [], startedAt: 1 })).toBeNull();
+  });
+});
+
+describe('caminho do lançamento (Tronco › Ramal)', () => {
+  const DROP = { cableType: 'drop', fiberCount: 2 };
+
+  it('só o tronco: "Tronco"', () => {
+    cableDraftStore.begin({ cableType: 'AS-80', fiberCount: 12 });
+    expect(trailLabels(s()!)).toEqual(['Tronco']);
+  });
+
+  it('ao derivar o ramal entra no caminho; ao terminar, sai', () => {
+    cableDraftStore.begin({ cableType: 'AS-80', fiberCount: 12 });
+    cableDraftStore.addVertex({ elementId: 'ceo1', ...A }, 'ceo1');
+    cableDraftStore.branch(DROP);
+    expect(trailLabels(s()!)).toEqual(['Tronco', 'Ramal 1']);
+    cableDraftStore.addVertex({ elementId: 'cto1', ...B }, 'cto1'); // o ramal só termina com pelo menos um ponto além da derivação
+    expect(cableDraftStore.endBranch()).toBe(true);
+    expect(trailLabels(s()!)).toEqual(['Tronco']);
+  });
+
+  it('o número do ramal é a ordem em que foi aberto, e ramal dentro de ramal empilha', () => {
+    cableDraftStore.begin({ cableType: 'AS-80', fiberCount: 12 });
+    cableDraftStore.addVertex({ elementId: 'ceo1', ...A }, 'ceo1');
+    cableDraftStore.branch(DROP); // Ramal 1
+    cableDraftStore.addVertex({ elementId: 'cto1', ...B }, 'cto1');
+    expect(cableDraftStore.endBranch()).toBe(true);
+    cableDraftStore.branch(DROP); // Ramal 2, saindo de novo do mesmo ponto do tronco
+    expect(trailLabels(s()!)).toEqual(['Tronco', 'Ramal 2']);
+    cableDraftStore.addVertex({ elementId: 'p9', ...C }, 'p9');
+    cableDraftStore.branch(DROP); // Ramal 3, dentro do Ramal 2
+    expect(trailLabels(s()!)).toEqual(['Tronco', 'Ramal 2', 'Ramal 3']);
   });
 });

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useRoute } from '../lib/route';
-import { isTabRoute } from './TabBar';
+import { isTabRoute } from './tabs';
 import './ui.css';
 
 export default function ScreenShell({

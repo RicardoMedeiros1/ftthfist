@@ -1,21 +1,12 @@
 import type { ReactNode } from 'react';
 import { useRoute, navigate, type Route } from '../lib/route';
+import { projectsRouteFor, tabBarVisible, tabOf, type Tab } from './tabs';
 import { useAccount } from '../features/account/accountStore';
 import AddButton from '../features/elements/AddButton';
 import { useDraft } from '../features/elements/draftStore';
 import { useSelectedRoute } from '../features/cables/routeStore';
 import { useLegendOpen } from '../features/map/legendStore';
 import './tabbar.css';
-
-/** Telas "raiz": a barra de abas aparece nelas (e some nas telas de detalhe, que têm o botão ←). */
-const TAB_ROUTES: readonly Route[] = ['map', 'atividades', 'meus-projetos', 'projetos', 'config'];
-
-export const isTabRoute = (route: Route): boolean => TAB_ROUTES.includes(route);
-
-type Tab = 'mapa' | 'atividades' | 'projetos' | 'ajustes';
-
-const tabOf = (route: Route): Tab | null =>
-  route === 'map' ? 'mapa' : route === 'atividades' ? 'atividades' : route === 'meus-projetos' || route === 'projetos' ? 'projetos' : route === 'config' ? 'ajustes' : null;
 
 const ICONS: Record<Tab, ReactNode> = {
   mapa: <path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14" />,
@@ -51,8 +42,7 @@ export default function TabBar() {
   const legendOpen = useLegendOpen();
   const role = useAccount((a) => (a.status === 'ativo' ? a.profile?.role : undefined));
 
-  if (!isTabRoute(route)) return null;
-  if (route === 'map' && (phase !== 'idle' || routeOpen || legendOpen)) return null;
+  if (!tabBarVisible({ route, phase, routeOpen, legendOpen })) return null;
 
   const current = tabOf(route);
   // Entre abas troca no lugar (o ← do celular volta para o mapa, não percorre as abas visitadas).
@@ -71,7 +61,7 @@ export default function TabBar() {
           Marcar
         </span>
       </div>
-      <TabButton tab="projetos" label="Projetos" current={current} onGo={() => go(role === 'admin' ? 'projetos' : 'meus-projetos')} />
+      <TabButton tab="projetos" label="Projetos" current={current} onGo={() => go(projectsRouteFor(role))} />
       <TabButton tab="ajustes" label="Ajustes" current={current} onGo={() => go('config')} />
     </nav>
   );

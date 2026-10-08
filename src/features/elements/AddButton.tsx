@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { navigate, parseRoute } from '../../lib/route';
 import { activities } from '../activities/activityRepo';
 import { draftStore } from './draftStore';
+import { decideStartMark, needsMapNavigation } from './startMark';
 
 /**
  * Começa a marcar um elemento. Sem atividade aberta, leva para iniciar uma (todo elemento pertence a uma atividade).
@@ -12,19 +13,15 @@ export function useStartMark(): { ready: boolean; start: () => void } {
   return {
     ready: open !== undefined,
     start() {
-      if (open === undefined) return;
-      // Marcação ou lançamento em andamento (o técnico foi olhar outra tela): só volta ao mapa, sem recomeçar nada.
-      if (draftStore.getState().phase !== 'idle') {
-        if (parseRoute(window.location.hash) !== 'map') navigate('map', { replace: true });
-        return;
-      }
-      if (open === null) {
+      const action = decideStartMark({ open, phase: draftStore.getState().phase });
+      if (action === 'wait') return;
+      if (action === 'need-activity') {
         draftStore.hintNeedsActivity();
         navigate('nova-atividade');
         return;
       }
-      if (parseRoute(window.location.hash) !== 'map') navigate('map', { replace: true });
-      draftStore.startAdd();
+      if (needsMapNavigation(parseRoute(window.location.hash))) navigate('map', { replace: true });
+      if (action === 'start') draftStore.startAdd();
     },
   };
 }

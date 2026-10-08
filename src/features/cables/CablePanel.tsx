@@ -28,7 +28,7 @@ import {
   draftReserveMeters,
   inBranch,
   lastVertex,
-  openStack,
+  trailLabels,
   useCableDraft,
 } from './cableDraft';
 import { CableRuleError } from './cableRepo';
@@ -128,10 +128,7 @@ export default function CablePanel() {
   const bad = pending?.accuracy !== undefined && classifyAccuracy(pending.accuracy) === 'ruim';
   const gpsBad = fix ? classifyAccuracy(fix.accuracy) === 'ruim' : false;
   // Tronco › Ramal 1 › Ramal 3: o último é o cabo que recebe os pontos agora
-  const trail = openStack(draft).map((id) => {
-    const i = draft.cables.findIndex((c) => c.cableId === id);
-    return i <= 0 ? 'Tronco' : `Ramal ${i}`;
-  });
+  const trail = trailLabels(draft);
 
   async function run(fn: () => Promise<void>) {
     setBusy(true);

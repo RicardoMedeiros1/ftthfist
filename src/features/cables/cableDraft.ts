@@ -89,6 +89,14 @@ export function openStack(d: CableDraft): string[] {
   return stack;
 }
 
+/** Nomes dos cabos abertos, do tronco ao ativo: "Tronco", "Ramal 1"… (o número é a ordem em que o ramal foi aberto). */
+export function trailLabels(d: CableDraft): string[] {
+  return openStack(d).map((id) => {
+    const i = d.cables.findIndex((c) => c.cableId === id);
+    return i <= 0 ? 'Tronco' : `Ramal ${i}`;
+  });
+}
+
 /** O cabo que recebe os pontos e reservas agora. */
 export function activeCable(d: CableDraft): DraftCable {
   const id = openStack(d).at(-1);
