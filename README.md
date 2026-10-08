@@ -119,6 +119,16 @@ Capturas com **dados de exemplo e mapa ilustrativo**: as ruas e as quadras vêm 
   </tr>
 </table>
 
+### Primeiro acesso: sem aprovação, nada abre
+
+<table>
+  <tr>
+    <td align="center" width="33%"><img src="docs/img/16-pedir-acesso.png" alt="Primeira tela do app: Pedir acesso, sem mapa" width="190"><br><b>Pedir acesso</b><br><sub>É a primeira tela de todo aparelho novo: o mapa nem abre</sub></td>
+    <td align="center" width="33%"><img src="docs/img/17-aguardando-aprovacao.png" alt="Aguardando a aprovação do administrador" width="190"><br><b>Aguardando aprovação</b><br><sub>Confere sozinha e abre o app quando o administrador aprova</sub></td>
+    <td align="center" width="33%"><img src="docs/img/18-limite-de-tentativas.png" alt="Aparelho travado depois de 5 erros de senha, com contagem regressiva" width="190"><br><b>Limite de tentativas</b><br><sub>5 erros seguidos travam o aparelho por alguns minutos</sub></td>
+  </tr>
+</table>
+
 ### Dois temas de cor
 
 Cada pessoa escolhe em *Ajustes › Aparência* (vale só para o aparelho dela). O desenho é o mesmo; o mapa fica claro nos dois.
