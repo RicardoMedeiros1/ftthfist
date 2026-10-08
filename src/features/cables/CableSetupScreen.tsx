@@ -7,6 +7,8 @@ import { activities } from '../activities/activityRepo';
 import { draftStore } from '../elements/draftStore';
 import { Chips } from '../elements/fields';
 import { cableDraftStore } from './cableDraft';
+import { ColorStandardChips, useColorStandard } from './colorStandard';
+import type { ColorStandard } from './fibers';
 import { useCableTypes } from './cableTypes';
 import { FiberLine, LegendList } from './Legend';
 import { FIBER_COUNTS } from './style';
@@ -18,6 +20,8 @@ export default function CableSetupScreen() {
   const last = useLiveQuery(() => getSetting<{ cableType: string; fiberCount: number } | null>(SETTING_KEYS.lastCable, null));
   const [cableType, setCableType] = useState('');
   const [fiberCount, setFiberCount] = useState<number>(12);
+  const savedStandard = useColorStandard();
+  const [standard, setStandard] = useState<ColorStandard | null>(null); // null = ainda não escolhido aqui (vale o das Configurações)
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -28,7 +32,7 @@ export default function CableSetupScreen() {
   }, [ready, types, last]);
 
   function start() {
-    cableDraftStore.begin({ cableType, fiberCount });
+    cableDraftStore.begin({ cableType, fiberCount, colorStandard: standard ?? savedStandard ?? 'abnt' });
     draftStore.startCable();
     goBack('map');
   }
@@ -61,6 +65,7 @@ export default function CableSetupScreen() {
               ))}
             </div>
           </div>
+          {savedStandard && <ColorStandardChips value={standard ?? savedStandard} onChange={setStandard} />}
           <LegendList />
           <button className="btn btn-primary btn-block" disabled={!ready || !cableType || open === undefined} onClick={start}>
             Começar a lançar

@@ -10,6 +10,7 @@ import PanelCard from '../panel/PanelCard';
 import { useAccount } from '../account/accountStore';
 import { isSupabaseConfigured } from '../account/supabaseClient';
 import CableTypesEditor from '../cables/CableTypesEditor';
+import { ColorStandardSetting } from '../cables/colorStandard';
 import { useTechnician } from './useTechnician';
 
 export default function SettingsScreen() {
@@ -60,6 +61,7 @@ export default function SettingsScreen() {
       <PanelCard />
       <AdminCard />
       <CableTypesEditor />
+      <ColorStandardSetting />
       <section className="card" aria-label="Camadas de referência">
         <div className="card-title">Camadas de referência</div>
         <div className="card-meta">Importe um KML/KMZ de uma rede existente para consultar no mapa.</div>

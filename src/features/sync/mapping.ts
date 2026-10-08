@@ -1,4 +1,6 @@
 import type { Activity, BaseRecord, Cable, NetworkElement, Photo, TrackPoint } from '../../db/types';
+import { isColorStandard } from '../cables/fibers';
+import { parseLinks } from '../cables/linkData';
 import type { SyncTable } from './tables';
 
 // Tradução entre o registro local (camelCase, tempo em ms) e a linha do servidor (snake_case, ISO 8601).
@@ -96,6 +98,9 @@ export function toRemote(table: SyncTable, r: Local): RemoteRow {
         reserve_m: c.reserveMeters,
         total_m: c.totalMeters,
         notes: c.notes,
+        // so vao quando existem: um servidor ainda sem a migration das fibras continua recebendo os cabos de sempre
+        ...(c.colorStandard ? { color_standard: c.colorStandard } : {}),
+        ...(c.links !== undefined ? { links: c.links } : {}),
       };
     }
     case 'photos': {
@@ -174,7 +179,8 @@ export function fromRemote(table: 'activities' | 'elements' | 'cables' | 'photos
         takenAt: parseMs(row.taken_at, 'taken_at'),
         ...(row.storage_path != null ? { storagePath: String(row.storage_path) } : {}),
       };
-    case 'cables':
+    case 'cables': {
+      const links = parseLinks(row.links);
       return {
         ...base,
         activityId: String(row.activity_id),
@@ -185,6 +191,9 @@ export function fromRemote(table: 'activities' | 'elements' | 'cables' | 'photos
         reserveMeters: Number(row.reserve_m),
         totalMeters: Number(row.total_m),
         notes: String(row.notes ?? ''),
+        ...(isColorStandard(row.color_standard) ? { colorStandard: row.color_standard } : {}),
+        ...(links.length > 0 ? { links } : {}),
       };
+    }
   }
 }

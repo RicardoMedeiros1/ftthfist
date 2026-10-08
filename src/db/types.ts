@@ -108,6 +108,15 @@ export interface CableVertex {
   lng: number;
 }
 
+/** Padrão de cores das fibras e dos tubos: ABNT (padrão do app) ou o internacional (TIA-598). */
+export type ColorStandard = 'abnt' | 'tia598';
+
+/** "Neste elemento, este cabo continua no cabo `cableId`" (os dois cabos passam pelo elemento). A ligação vale nos dois sentidos. */
+export interface CableLink {
+  elementId: string;
+  cableId: string;
+}
+
 // Usado a partir da Fase 1B.
 export interface Cable extends BaseRecord {
   cableType: string; // lista editável nas Configurações
@@ -118,6 +127,10 @@ export interface Cable extends BaseRecord {
   totalMeters: number;
   activityId: string;
   notes: string;
+  /** Cores das fibras deste cabo. Ausente = ABNT. */
+  colorStandard?: ColorStandard;
+  /** Ligações com outros cabos (guardadas no cabo de quem as fez). Ausente = nenhuma. */
+  links?: CableLink[];
 }
 
 export interface Photo extends BaseRecord {

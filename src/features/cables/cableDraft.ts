@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { SETTING_KEYS, db, getSetting } from '../../db/db';
+import type { ColorStandard } from '../../db/types';
 import { pathLengthMeters, round2 } from '../../lib/geo';
 
 // Cabo em lançamento (antes de finalizar). Fica salvo no aparelho a cada mudança: se o app recarregar ou
@@ -21,6 +22,8 @@ export interface CableDraft {
   cableId: string;
   cableType: string;
   fiberCount: number;
+  /** Cores das fibras (lançamento salvo antes desta versão não tem: vale ABNT). */
+  colorStandard?: ColorStandard;
   vertices: DraftVertex[];
   actions: DraftAction[];
   startedAt: number;
@@ -48,11 +51,12 @@ export const cableDraftStore = {
     return () => listeners.delete(l);
   },
 
-  begin(cfg: { cableType: string; fiberCount: number }) {
+  begin(cfg: { cableType: string; fiberCount: number; colorStandard?: ColorStandard }) {
     commit({
       cableId: crypto.randomUUID(),
       cableType: cfg.cableType,
       fiberCount: cfg.fiberCount,
+      ...(cfg.colorStandard ? { colorStandard: cfg.colorStandard } : {}),
       vertices: [],
       actions: [],
       startedAt: Date.now(),

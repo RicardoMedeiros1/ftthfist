@@ -92,6 +92,8 @@ export const SETTING_KEYS = {
   syncLast: 'syncLast',
   // copia do token de ACESSO (nunca o de renovacao) e do endereco do servidor, para o service worker enviar com o app fechado
   authMirror: 'authMirror',
+  // padrao de cores das fibras usado nos cabos novos ('abnt' ou 'tia598')
+  colorStandard: 'colorStandard',
   // camada "Projetado" (desenho dos projetos) ligada ou desligada no mapa do tecnico
   plannedVisible: 'plannedVisible',
   // nomes das pessoas (id -> nome do cadastro), guardados quando ha internet para o painel mostrar o tecnico de um projeto sem rede

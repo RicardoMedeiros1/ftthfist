@@ -123,6 +123,8 @@ export class TestServer {
           if (table === 'cables') {
             if (!FIBERS.has(Number(r.fiber_count))) throw new SyncHttpError('permanent', 'check constraint', 400, '23514');
             if (!Array.isArray(r.vertices) || r.vertices.length < 2) throw new SyncHttpError('permanent', 'o cabo precisa de pelo menos 2 pontos', 400, '23514');
+            if (r.color_standard != null && r.color_standard !== 'abnt' && r.color_standard !== 'tia598') throw new SyncHttpError('permanent', 'check constraint', 400, '23514');
+            if (r.links !== undefined && (!Array.isArray(r.links) || r.links.length > 200)) throw new SyncHttpError('permanent', 'check constraint', 400, '23514');
           }
           if (table === 'photos' && r.element_id != null && !this.rows.elements!.has(String(r.element_id))) {
             throw new SyncHttpError('dependency', 'violates foreign key constraint', 409, '23503');

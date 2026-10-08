@@ -223,3 +223,30 @@ describe('editar o traçado', () => {
     expect(await code(cables.moveVertex(c.id, 0, { lat: 1, lng: 1 }))).toBe('NOT_FOUND');
   });
 });
+
+describe('padrão de cores das fibras', () => {
+  it('o cabo novo guarda o padrão escolhido; sem escolha, fica sem padrão gravado (vale ABNT)', async () => {
+    const { poles } = await withPoles(2);
+    const v = poles.map((p) => ({ elementId: p.id, lat: p.lat, lng: p.lng }));
+    const a = await cables.create({ cableType: 'AS-80', fiberCount: 12, colorStandard: 'tia598', vertices: v }, 'Carlos');
+    expect(a.colorStandard).toBe('tia598');
+    const b = await cables.create({ cableType: 'AS-80', fiberCount: 12, vertices: v }, 'Carlos');
+    expect('colorStandard' in b).toBe(false);
+  });
+  it('trocar o padrão na ficha grava e mexe só nisso', async () => {
+    const { poles } = await withPoles(2);
+    const c = await cables.create({ cableType: 'AS-80', fiberCount: 24, vertices: poles.map((p) => ({ elementId: p.id, lat: p.lat, lng: p.lng })) }, 'Carlos');
+    const u = await cables.update(c.id, { colorStandard: 'tia598' });
+    expect(u.colorStandard).toBe('tia598');
+    expect([u.cableType, u.fiberCount, u.notes]).toEqual(['AS-80', 24, '']);
+    expect((await cables.update(c.id, { notes: 'x' })).colorStandard).toBe('tia598'); // outras edições não o apagam
+  });
+  it('padrão inválido é recusado, ao criar e ao editar', async () => {
+    const { poles } = await withPoles(2);
+    const v = poles.map((p) => ({ elementId: p.id, lat: p.lat, lng: p.lng }));
+    expect(await code(cables.create({ cableType: 'AS-80', fiberCount: 12, colorStandard: 'iec' as never, vertices: v }, 'Carlos'))).toBe('INVALID_STANDARD');
+    const c = await cables.create({ cableType: 'AS-80', fiberCount: 12, vertices: v }, 'Carlos');
+    expect(await code(cables.update(c.id, { colorStandard: 'ABNT' as never }))).toBe('INVALID_STANDARD');
+    expect((await cables.get(c.id))!.colorStandard).toBeUndefined();
+  });
+});

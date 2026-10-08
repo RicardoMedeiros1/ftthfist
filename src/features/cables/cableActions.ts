@@ -125,7 +125,7 @@ export async function finishCable(notes: string): Promise<string> {
   const d = cableDraftStore.getState();
   if (!d) throw new Error('Nenhum cabo em lançamento.');
   const cable = await cableStore.create(
-    { id: d.cableId, cableType: d.cableType, fiberCount: d.fiberCount, vertices: d.vertices, notes },
+    { id: d.cableId, cableType: d.cableType, fiberCount: d.fiberCount, ...(d.colorStandard ? { colorStandard: d.colorStandard } : {}), vertices: d.vertices, notes },
     await technician(),
   );
   await setSetting(SETTING_KEYS.lastCable, { cableType: d.cableType, fiberCount: d.fiberCount });

@@ -521,3 +521,45 @@ describe.skipIf(!DB_URL)('conferir-desenho.sql (a migration do desenho do projet
     });
   });
 });
+
+describe.skipIf(!DB_URL)('conferir-fibras.sql (a migration das fibras e ligacoes de cabos)', () => {
+  let db: TestDb;
+  beforeAll(async () => { db = await createTestDb(); });
+  afterAll(async () => { await db?.drop(); });
+  const script = () => readFileSync(new URL('../conferir-fibras.sql', import.meta.url), 'utf8');
+  const migration = () => readFileSync(new URL('../migrations/20261006150800_cabos_fibras.sql', import.meta.url), 'utf8');
+
+  it('num banco com todas as migrations, todas as linhas dizem OK', async () => {
+    const rows = await db.admin<{ item: string; resultado: string }>(script());
+    expect(rows).toHaveLength(3);
+    expect(rows.filter((r) => r.resultado !== 'OK')).toEqual([]);
+  });
+
+  it('o arquivo pode ser rodado de novo (colado duas vezes) sem erro e sem alterar nada', async () => {
+    await db.admin(migration());
+    await db.admin(migration());
+    expect((await db.admin<{ resultado: string }>(script())).filter((r) => r.resultado !== 'OK')).toEqual([]);
+  });
+
+  it('rodar de novo completa o que faltava (colagem cortada)', async () => {
+    await db.run('postgres', async (tx) => {
+      await tx.q(`alter table public.cables drop constraint cables_links_valid`);
+      await tx.q(`drop function public.cable_links_valid(jsonb)`);
+      await tx.q(`alter table public.cables drop column color_standard`);
+      await tx.q(migration());
+      expect((await tx.q<{ resultado: string }>(script())).filter((r) => r.resultado !== 'OK')).toEqual([]);
+    });
+  });
+
+  it('acusa FALTA quando a migration nao foi aplicada ate o fim', async () => {
+    await db.run('postgres', async (tx) => {
+      await tx.q(`alter table public.cables drop constraint cables_links_valid`);
+      await tx.q(`drop function public.cable_links_valid(jsonb)`);
+      const falta = (await tx.q<{ resultado: string; item: string }>(script())).filter((r) => r.resultado === 'FALTA').map((r) => r.item);
+      expect(falta).toHaveLength(2); // a regra das ligacoes e a funcao
+      await tx.q(`alter table public.cables drop column color_standard`);
+      await tx.q(`alter table public.cables drop column links`);
+      expect((await tx.q<{ resultado: string }>(script())).filter((r) => r.resultado === 'FALTA')).toHaveLength(3);
+    });
+  });
+});

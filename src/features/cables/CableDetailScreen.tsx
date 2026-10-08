@@ -17,6 +17,9 @@ import { elementStore } from '../elements/elementRepo';
 import { ELEMENT_META } from '../elements/meta';
 import { Chips } from '../elements/fields';
 import { CableRuleError, cableStore } from './cableRepo';
+import { ColorStandardChips } from './colorStandard';
+import FiberList from './FiberList';
+import { DEFAULT_COLOR_STANDARD, STANDARD_LABEL, tubeCount, type ColorStandard } from './fibers';
 import { useCableTypes } from './cableTypes';
 import { FiberLine, LegendList } from './Legend';
 import { FIBER_COUNTS } from './style';
@@ -58,6 +61,7 @@ export default function CableDetailScreen() {
   const [editing, setEditing] = useState(false);
   const [cableType, setCableType] = useState('');
   const [fiberCount, setFiberCount] = useState(12);
+  const [standard, setStandard] = useState<ColorStandard>(DEFAULT_COLOR_STANDARD);
   const [notes, setNotes] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,6 +84,7 @@ export default function CableDetailScreen() {
     if (!cable) return;
     setCableType(cable.cableType);
     setFiberCount(cable.fiberCount);
+    setStandard(cable.colorStandard ?? DEFAULT_COLOR_STANDARD);
     setNotes(cable.notes);
     setError(null);
     setEditing(true);
@@ -90,7 +95,7 @@ export default function CableDetailScreen() {
     setBusy(true);
     setError(null);
     try {
-      await cableStore.update(cable.id, { cableType, fiberCount, notes });
+      await cableStore.update(cable.id, { cableType, fiberCount, colorStandard: standard, notes });
       setEditing(false);
     } catch (e) {
       fail(e, 'Não foi possível salvar. Tente de novo.');
@@ -141,6 +146,7 @@ export default function CableDetailScreen() {
               ))}
             </div>
           </div>
+          <ColorStandardChips value={standard} onChange={setStandard} />
           <div className="field">
             <label htmlFor="cable-notes">Observações</label>
             <textarea id="cable-notes" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
@@ -176,6 +182,14 @@ export default function CableDetailScreen() {
         {cable.notes && <Row label="Observações" value={cable.notes} />}
         <Row label="Registrado" value={`${cable.createdBy} · ${formatDateTime(cable.createdAt)}`} />
       </div>
+
+      <section className="field" aria-label="Fibras do cabo">
+        <span className="label">
+          Fibras ({cable.fiberCount}) · cores {STANDARD_LABEL[cable.colorStandard ?? DEFAULT_COLOR_STANDARD]}
+          {tubeCount(cable.fiberCount) > 0 ? ` · ${tubeCount(cable.fiberCount)} tubos` : ''}
+        </span>
+        <FiberList fiberCount={cable.fiberCount} standard={cable.colorStandard ?? DEFAULT_COLOR_STANDARD} />
+      </section>
 
       <section className="field" aria-label="Pontos do traçado">
         <span className="label">Pontos do traçado</span>

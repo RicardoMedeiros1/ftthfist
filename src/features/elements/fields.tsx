@@ -11,11 +11,14 @@ export function Chips<T extends string>({
   value,
   options,
   onChange,
+  className,
 }: {
   label: string;
   value: string;
   options: Option<T>[];
   onChange: (v: string) => void;
+  /** Classe a mais no grupo de botões (ex.: para diferenciar este grupo de outro igual na mesma tela). */
+  className?: string;
 }) {
   const id = `chips-${label.replace(/\W+/g, '-')}`;
   return (
@@ -23,7 +26,7 @@ export function Chips<T extends string>({
       <span className="label" id={id}>
         {label}
       </span>
-      <div className="chips" role="group" aria-labelledby={id}>
+      <div className={className ? `chips ${className}` : 'chips'} role="group" aria-labelledby={id}>
         {options.map((o) => (
           <button
             type="button"

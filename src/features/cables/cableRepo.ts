@@ -1,8 +1,9 @@
 import { db, newBase, touch, type RotaFibraDB } from '../../db/db';
-import type { Cable, CableVertex, FiberCount } from '../../db/types';
+import type { Cable, CableVertex, ColorStandard, FiberCount } from '../../db/types';
 import { round2 } from '../../lib/geo';
 import { canEdit, isMine, notMineMessage } from '../../lib/ownership';
 import { moveElementWithCables, recomputeCable, totalsFor, unlinkReserves } from './cableLinks';
+import { isColorStandard } from './fibers';
 import { isFiberCount } from './style';
 
 export type CableRuleCode =
@@ -11,6 +12,7 @@ export type CableRuleCode =
   | 'MIN_VERTICES'
   | 'INVALID_POSITION'
   | 'INVALID_FIBERS'
+  | 'INVALID_STANDARD'
   | 'INVALID_TYPE'
   | 'NOT_FOUND'
   | 'NOT_OWNER';
@@ -30,6 +32,7 @@ export interface NewCableInput {
   id?: string;
   cableType: string;
   fiberCount: number;
+  colorStandard?: ColorStandard;
   vertices: CableVertex[];
   notes?: string;
 }
@@ -37,6 +40,7 @@ export interface NewCableInput {
 export interface CablePatch {
   cableType?: string;
   fiberCount?: number;
+  colorStandard?: ColorStandard;
   notes?: string;
 }
 
@@ -50,6 +54,10 @@ function checkType(t: string): string {
   const v = t.trim();
   if (!v) throw new CableRuleError('INVALID_TYPE', 'Escolha o tipo do cabo.');
   return v;
+}
+function checkStandard(s: string): ColorStandard {
+  if (!isColorStandard(s)) throw new CableRuleError('INVALID_STANDARD', 'Padrão de cores inválido.');
+  return s;
 }
 function checkFibers(n: number): FiberCount {
   if (!isFiberCount(n)) throw new CableRuleError('INVALID_FIBERS', 'Número de fibras inválido.');
@@ -114,6 +122,7 @@ export function cableRepo(database: RotaFibraDB = db) {
           ...(input.id ? { id: input.id } : {}),
           cableType,
           fiberCount,
+          ...(input.colorStandard ? { colorStandard: checkStandard(input.colorStandard) } : {}),
           vertices,
           ...totalsFor(vertices, 0),
           activityId: open.id,
@@ -132,6 +141,7 @@ export function cableRepo(database: RotaFibraDB = db) {
         const changes: Partial<Cable> = {};
         if (patch.cableType !== undefined) changes.cableType = checkType(patch.cableType);
         if (patch.fiberCount !== undefined) changes.fiberCount = checkFibers(patch.fiberCount);
+        if (patch.colorStandard !== undefined) changes.colorStandard = checkStandard(patch.colorStandard);
         if (patch.notes !== undefined) changes.notes = patch.notes.trim();
         await database.cables.update(c.id, touch<Cable>(changes));
         return (await database.cables.get(id)) as Cable;
