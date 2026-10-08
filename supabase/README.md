@@ -50,7 +50,9 @@ supabase/
      `supabase/conferir-admin.sql` (arquivos 10 a 12, do administrador: as 10 linhas devem dizer `OK`) e
      `supabase/conferir-projetos.sql` (arquivo 13, dos projetos designados: as 6 linhas devem dizer `OK`) e
      `supabase/conferir-desenho.sql` (arquivo 14, do desenho do projeto: as 3 linhas devem dizer `OK`). `FALTA` indica
-     qual parte nao foi aplicada ate o fim.
+     qual parte nao foi aplicada ate o fim. O arquivo 14 (e o de aprovacao de acesso) **pode ser colado de novo sem erro**: so cria
+     o que ainda nao existe, entao serve tambem para completar uma colagem cortada. Os outros dao "already exists" se repetidos:
+     isso quer dizer que ja estavam aplicados (confira com o `conferir-...` correspondente).
    - *CLI* (com o repositorio no computador, dentro da pasta do projeto): `npx supabase init`, `npx supabase login`,
      `npx supabase link --project-ref <ref>` e `npx supabase db push`. O `<ref>` e o trecho da URL do projeto
      (`https://<ref>.supabase.co`). Nao misture: se aplicou pelo SQL Editor, nao use `db push` depois para as mesmas migrations.

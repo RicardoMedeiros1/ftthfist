@@ -4,6 +4,8 @@ import { formatMeters } from '../../lib/geo';
 import { navigate } from '../../lib/route';
 import { useAccount } from '../account/accountStore';
 import { KIND_LABEL } from '../activities/labels';
+import { planSummary } from '../projects/plan';
+import { plannedFromProject } from '../projects/planInfo';
 import { formatDueDate, STATE_LABEL } from '../projects/projectState';
 import '../projects/projects.css';
 import { panelMapStore } from './panelMapStore';
@@ -16,6 +18,7 @@ export default function ProjectInfo({ row, activities }: { row: ProjectTableRow;
   const { project: p, state } = row;
   const mine = activities.filter((a) => a.projectId === p.id && !a.deleted).sort((a, b) => a.startedAt - b.startedAt);
   const hasPoint = p.lat !== undefined && p.lng !== undefined;
+  const planned = plannedFromProject(p);
 
   return (
     <>
@@ -60,6 +63,21 @@ export default function ProjectInfo({ row, activities }: { row: ProjectTableRow;
         <div className="total-tile"><strong>{row.cables}</strong><span>{row.cables === 1 ? 'cabo' : 'cabos'}</span></div>
         <div className="total-tile"><strong>{formatMeters(row.meters)}</strong><span>de cabo</span></div>
       </div>
+      {planned && (
+        <section aria-label="Desenho do projeto">
+          <span className="label">Desenho do projeto</span>
+          <p className="project-instructions">{planSummary(planned.plan)}</p>
+          <button
+            className="btn"
+            onClick={() => {
+              panelMapStore.showProjectPlan(planned);
+              navigate('painel', { id: 'mapa' });
+            }}
+          >
+            Ver o desenho no mapa
+          </button>
+        </section>
+      )}
       {hasPoint && (
         <button
           className="btn"

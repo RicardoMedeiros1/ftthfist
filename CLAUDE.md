@@ -39,6 +39,7 @@ Todos os registros têm: `id` (UUID gerado no aparelho), `createdAt`, `updatedAt
 ### Project (projeto designado)
 - Criado só pelo administrador (pela internet); no aparelho é uma **cópia só de leitura** do servidor (nunca é enviada; não é `BaseRecord`).
 - `title`, `kind`, `osNumber?`, `description` (instruções), `address`, `lat?`/`lng?`, `dueDate?` (`AAAA-MM-DD`), `assignedTo` (técnico), `status`: `'aberto' | 'concluido' | 'cancelado'`, `deleted`
+- `plan?`: o **desenho** que o administrador fez no mapa para o técnico seguir como guia: `{ lines: [{ id, points: [[lat, lng], …] }], points: [{ id, type: 'poste' | 'cto' | 'ceo' | 'reserva' | 'outro', lat, lng, code? }] }`. Limites (app = banco): 200 traçados, 2000 pontos, 5000 pontos por traçado, 20 mil no total, código de 60 letras. **Nunca vira cabo nem elemento sozinho** (princípio 2): o técnico só o vê, tracejado, na camada "Projetado".
 - A situação mostrada (pendente, em andamento, concluído, cancelado) sai de `status` + atividades ligadas (`projectState`); o técnico nunca grava o projeto. Guia em `docs/projetos.md`.
 
 ### Element (elemento de rede)
@@ -81,7 +82,7 @@ collector/             (Fase 3)
 ## Papéis e painel web
 - Papéis (`profiles.role`): `tecnico` (campo; só altera o que é dele), `escritorio` (só leitura, abre o painel) e `admin` (altera e exclui tudo, aprova pessoas). Só perfil **ativo** vale; o servidor (RLS) é quem garante, o app só esconde o que não serviria.
 - Painel web (escritório/NOC): mesma aplicação, rota `#/painel` (`src/features/panel/`), só leitura, trabalha com o que o navegador já sincronizou. Guia em `docs/painel-web.md`.
-- Projetos designados: o admin cria e entrega a um técnico (`#/projetos`, `src/features/projects/`); o técnico vê "Você tem N projetos para fazer" ao abrir o app, inicia (a atividade nasce ligada) e, ao concluir, responde se o projeto terminou; o escritório os acompanha na seção Projetos do painel. O servidor nunca recusa trabalho de campo por mudança no projeto. Guia em `docs/projetos.md`.
+- Projetos designados: o admin cria e entrega a um técnico (`#/projetos`, `src/features/projects/`); o técnico vê "Você tem N projetos para fazer" ao abrir o app, inicia (a atividade nasce ligada) e, ao concluir, responde se o projeto terminou; o escritório os acompanha na seção Projetos do painel. O servidor nunca recusa trabalho de campo por mudança no projeto. O admin também **desenha** o traçado e os pontos do projeto (`#/projeto/<id>/desenho`, no computador ou celular, com importação de KML/KMZ); o técnico vê como guia na camada "Projetado" do mapa (funciona offline) e o escritório vê no mapa do painel. Guia em `docs/projetos.md`.
 - Excluir atividade (dono e admin) é lógico e em cascata (elementos, cabos, fotos, trilha). Admin edita registros de outros pelo envio normal; o servidor registra quem alterou (`admin_edits`).
 - Lista do que testar no celular/computador: `docs/guia-de-testes.md`.
 

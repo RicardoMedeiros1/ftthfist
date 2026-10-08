@@ -177,8 +177,12 @@
 .panel-table .badge { margin-right: 6px; white-space: nowrap; }
 .panel-checkbox { display: flex; align-items: center; gap: 10px; min-height: 48px; font-weight: 700; cursor: pointer; }
 .panel-checkbox input { width: 28px; height: 28px; accent-color: var(--accent); }
-.panel-map-pin {
+.panel-map-marks {
   position: absolute; z-index: 1000; left: 10px; bottom: 96px; max-width: calc(100% - 20px);
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+}
+.panel-map-pin {
+  max-width: 100%;
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
   padding: 8px 12px; border: 3px solid #000; border-radius: 12px; background: #fff; color: #000; font-weight: 700;
 }

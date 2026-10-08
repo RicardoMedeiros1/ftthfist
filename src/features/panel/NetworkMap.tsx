@@ -7,6 +7,7 @@ import RemoteTrackLayer from '../admin/RemoteTrackLayer';
 import { CASING_COLOR, CASING_EXTRA, cableStyle } from '../cables/style';
 import { elementIcon } from '../elements/leafletIcon';
 import { ELEMENT_META } from '../elements/meta';
+import PlanShapes from '../projects/PlanShapes';
 import { projectPinIcon } from '../projects/projectPinIcon';
 import { BASE_LAYERS } from '../map/layers';
 import type { Bounds } from '../map/mapCommands';
@@ -151,6 +152,8 @@ export default function NetworkMap({ data, view, fitKey, onSelect }: { data: Map
   const base = usePanelMap((s) => s.base);
   const selection = usePanelMap((s) => s.selection);
   const pin = usePanelMap((s) => s.projectPin);
+  const planned = usePanelMap((s) => s.projectPlan);
+  const plans = useMemo(() => (planned ? [planned] : []), [planned]);
   const [box, setBox] = useState<Bounds | null>(null);
   const saved = useRef(panelMapStore.getState().view);
   const layer = BASE_LAYERS[base];
@@ -180,13 +183,24 @@ export default function NetworkMap({ data, view, fitKey, onSelect }: { data: Map
         <FitRequests />
         <RemoteTrackLayer />
         {pin && <Marker position={[pin.lat, pin.lng]} icon={projectPinIcon} title={`Projeto: ${pin.title}`} interactive={false} zIndexOffset={1000} />}
+        <PlanShapes plans={plans} interactive topInset={110} />
         <Layers elements={elements} cables={cables} dense={dense} selected={selection} onSelect={onSelect} />
       </MapContainer>
       <RemoteTrackBar />
-      {pin && (
-        <div className="panel-map-pin" role="status">
-          <span>Projeto: <strong>{pin.title}</strong></span>
-          <button className="btn btn-small" onClick={panelMapStore.clearProjectPin}>Tirar a marca</button>
+      {(pin || planned) && (
+        <div className="panel-map-marks">
+          {pin && (
+            <div className="panel-map-pin" role="status">
+              <span>Projeto: <strong>{pin.title}</strong></span>
+              <button className="btn btn-small" onClick={panelMapStore.clearProjectPin}>Tirar a marca</button>
+            </div>
+          )}
+          {planned && (
+            <div className="panel-map-pin panel-map-plan" role="status">
+              <span>Desenho do projeto: <strong>{planned.title}</strong></span>
+              <button className="btn btn-small" onClick={panelMapStore.clearProjectPlan}>Tirar o desenho</button>
+            </div>
+          )}
         </div>
       )}
       <button className="btn btn-small panel-map-base" onClick={() => panelMapStore.setBase(other.id)} aria-label={`Trocar para ${other.label}`}>

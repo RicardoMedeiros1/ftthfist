@@ -18,6 +18,7 @@ import MapCommandHost from './MapCommandHost';
 import ReferenceLayers from '../reference/ReferenceLayers';
 import { references } from '../reference/referenceRepo';
 import ProjectPinsLayer from '../projects/ProjectPinsLayer';
+import { PlannedToggle, ProjectPlanLayer } from '../projects/plannedLayer';
 import TrackLayer from '../tracking/TrackLayer';
 import RemoteTrackBar from '../admin/RemoteTrackBar';
 import RemoteTrackLayer from '../admin/RemoteTrackLayer';
@@ -210,6 +211,7 @@ export default function MapScreen() {
         {fix && <LocationMarker fix={fix} />}
         <ReferenceLayers />
         <ProjectPinsLayer />
+        <ProjectPlanLayer />
         <TrackLayer />
         <RemoteTrackLayer />
         <CablesLayer />
@@ -244,6 +246,7 @@ export default function MapScreen() {
             Referência
           </button>
         )}
+        <PlannedToggle />
         {phase === 'idle' && (
           <button
             className="map-btn map-btn-wide"

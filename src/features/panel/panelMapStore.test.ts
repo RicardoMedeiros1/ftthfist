@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_MAP_FILTERS } from './mapFilters';
+import type { PlannedProject } from '../projects/planInfo';
 import { createPanelMapStore } from './panelMapStore';
 
 describe('panelMapStore', () => {
   it('comeca sem filtros, sem selecao e em "Ruas"', () => {
-    expect(createPanelMapStore().getState()).toEqual({ filters: DEFAULT_MAP_FILTERS, selection: null, view: null, base: 'ruas', focus: null, focusApplied: 0, fitTo: null, fitApplied: 0, projectPin: null });
+    expect(createPanelMapStore().getState()).toEqual({ filters: DEFAULT_MAP_FILTERS, selection: null, view: null, base: 'ruas', focus: null, focusApplied: 0, fitTo: null, fitApplied: 0, projectPin: null, projectPlan: null });
   });
 
   it('setFilters junta com o que ja esta e resetFilters volta ao padrao', () => {
@@ -102,5 +103,39 @@ describe('ponto de um projeto no mapa do painel', () => {
     s.showProjectPoint({ lat: 1, lng: 2, title: 'A' });
     s.clearProjectPin();
     expect(n).toBe(2);
+  });
+});
+
+describe('desenho de um projeto no mapa do painel', () => {
+  const planned: PlannedProject = {
+    id: 'p1',
+    title: 'Rua das Flores',
+    plan: { lines: [{ id: 'l', points: [[-23.55, -46.63], [-23.56, -46.62]] }], points: [{ id: 'x', type: 'cto', lat: -23.57, lng: -46.64 }] },
+  };
+  it('mostra o desenho e pede para enquadrar tudo (linhas e pontos)', () => {
+    const s = createPanelMapStore();
+    s.showProjectPlan(planned);
+    expect(s.getState().projectPlan).toEqual(planned);
+    expect(s.getState().fitTo!.bounds).toEqual([-23.57, -46.64, -23.55, -46.62]);
+  });
+  it('desenho vazio nao faz nada', () => {
+    const s = createPanelMapStore();
+    s.showProjectPlan({ id: 'p', title: 'Vazio', plan: { lines: [], points: [] } });
+    expect(s.getState().projectPlan).toBeNull();
+    expect(s.getState().fitTo).toBeNull();
+  });
+  it('pedir de novo gera pedido novo; tirar o desenho nao mexe no ponto do projeto nem no resto', () => {
+    const s = createPanelMapStore();
+    s.showProjectPoint({ lat: 1, lng: 2, title: 'A' });
+    s.showProjectPlan(planned);
+    const first = s.getState().fitTo!.seq;
+    s.showProjectPlan(planned);
+    expect(s.getState().fitTo!.seq).toBeGreaterThan(first);
+    s.clearProjectPlan();
+    expect(s.getState().projectPlan).toBeNull();
+    expect(s.getState().projectPin).toEqual({ lat: 1, lng: 2, title: 'A' });
+    s.showProjectPlan(planned);
+    s.clearProjectPin();
+    expect(s.getState().projectPlan).toEqual(planned);
   });
 });

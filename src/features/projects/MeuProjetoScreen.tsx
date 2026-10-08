@@ -9,7 +9,9 @@ import { ActivityRuleError, activities } from '../activities/activityRepo';
 import { KIND_LABEL } from '../activities/labels';
 import { mapCommands } from '../map/mapCommands';
 import { useTechnician } from '../settings/useTechnician';
-import { canStart, directionsUrl, startInput, technicianNameFor } from './myProjects';
+import { canStart, directionsUrl, isTodo, startInput, technicianNameFor } from './myProjects';
+import { planBounds, planSummary } from './plan';
+import { setPlannedVisible } from './plannedLayer';
 import { formatDueDate, STATE_LABEL } from './projectState';
 import { useMyProjects } from './useMyProjects';
 import './projects.css';
@@ -51,6 +53,14 @@ export default function MeuProjetoScreen() {
     if (p.lat === undefined || p.lng === undefined) return;
     navigate('map');
     mapCommands.center(p.lat, p.lng, 18);
+  }
+
+  function seePlan() {
+    const bounds = p.plan ? planBounds(p.plan) : null;
+    if (!bounds) return;
+    void setPlannedVisible(true); // com a camada desligada o desenho nao apareceria
+    navigate('map');
+    mapCommands.fitBounds(bounds);
   }
 
   async function start() {
@@ -119,6 +129,15 @@ export default function MeuProjetoScreen() {
             <button className="btn" onClick={seeOnMap}>Ver no mapa</button>
             <a className="btn" href={url} target="_blank" rel="noopener noreferrer">Como chegar</a>
           </div>
+        </section>
+      )}
+
+      {p.plan && planBounds(p.plan) && (
+        <section className="field" aria-label="Desenho do projeto">
+          <span className="label">Desenho do projeto</span>
+          <p className="project-instructions">{planSummary(p.plan)}</p>
+          <p className="hint">O desenho aparece no mapa tracejado, só como guia. Os postes e o cabo de verdade você marca no campo, como sempre.</p>
+          {isTodo(row) && <button className="btn" onClick={seePlan}>Ver desenho no mapa</button>}
         </section>
       )}
 

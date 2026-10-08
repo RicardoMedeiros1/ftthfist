@@ -16,7 +16,7 @@ export default function ProjectPinsLayer() {
             position={[r.project.lat, r.project.lng]}
             icon={projectPinIcon}
             title={`Projeto: ${r.project.title}`}
-            zIndexOffset={500}
+            zIndexOffset={-300} // abaixo do desenho e dos elementos: o pino do projeto costuma ficar em cima do primeiro ponto projetado
             eventHandlers={{ click: () => navigate('meu-projeto', { id: r.project.id }) }}
           />
         ) : null,

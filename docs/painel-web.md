@@ -23,7 +23,8 @@ Para acompanhar a rede e o histórico no computador. É a **mesma aplicação** 
   com materiais, totais e lista de elementos e cabos.
 - **Projetos:** os projetos que o administrador designou, com técnico, tipo, situação, prazo, atividades e **metros de cabo** feitos
   em cada um; filtros (situação, técnico, "só os atrasados"), busca, ordenação, **CSV** e ficha com instruções, o que foi feito,
-  "Ver o ponto no mapa" e a lista de atividades. A visão geral também conta os projetos. Detalhes em `docs/projetos.md`.
+  "Ver o ponto no mapa", **"Ver o desenho no mapa"** (o traçado e os pontos que o administrador projetou, tracejados, com faixa
+  "Tirar o desenho") e a lista de atividades. A visão geral também conta os projetos. Detalhes em `docs/projetos.md`.
 - **Totais:** por técnico e período — atividades, cabos, traçado, reservas, total de cabo e elementos por tipo; **CSV** para o
   Excel brasileiro; **Conferir com o servidor** (soma os cabos no servidor e compara).
 - **Exportar** e **Sincronização:** abrem as telas de sempre (KMZ, GeoJSON e KML, por atividade ou da rede toda).

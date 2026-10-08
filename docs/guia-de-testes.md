@@ -5,8 +5,9 @@ chaves nem senhas). O deploy é conferido pelo número da versão em *Configura�
 
 ## 0. Antes de tudo (uma vez)
 
-- [ ] No Supabase, as **13 migrations** foram aplicadas em ordem e `supabase/conferir-passo-1.sql` (16 linhas),
-      `supabase/conferir-admin.sql` (10 linhas) e `supabase/conferir-projetos.sql` (6 linhas) dizem `OK`. (`supabase/README.md`)
+- [ ] No Supabase, as **14 migrations** foram aplicadas em ordem e `supabase/conferir-passo-1.sql` (16 linhas),
+      `supabase/conferir-admin.sql` (10 linhas), `supabase/conferir-projetos.sql` (6 linhas) e `supabase/conferir-desenho.sql`
+      (3 linhas, migration 14 do desenho) dizem `OK`. (`supabase/README.md`)
 - [ ] Existe pelo menos **um administrador ativo** (README, passo 5). Recomendado: aumentar a validade do token (JWT expiry).
 - [ ] No GitHub, as **Variables** `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` estão preenchidas (chave **publicável**) e o deploy
       do Pages passou.
@@ -69,10 +70,26 @@ chaves nem senhas). O deploy é conferido pelo número da versão em *Configura�
 - [ ] **Projetos (concluir):** abrir um projeto concluído por uma atividade: aparece "Concluído porque uma atividade do técnico terminou o
       projeto" e como reabrir (abrir a atividade e responder "Não" em "Com esta atividade o projeto terminou?"). Fazer isso e ver o
       projeto voltar para "Em andamento" (depois de sincronizar). "Marcar como concluído" à mão continua valendo sobre as atividades.
+- [ ] **Desenhar o projeto (celular e computador):** no projeto, o cartão "Desenho no mapa" mostra "Sem desenho". *Desenhar no mapa* →
+      **Traçado**: toque 4 pontos e *Terminar traçado* (o resumo mostra os metros). **Selecionar**: arraste uma bolinha, crie um ponto
+      tocando na bolinha pequena entre duas, apague um ponto e o traçado. **Ponto**: coloque uma CTO e escreva "CTO-03"; troque o
+      tipo depois. **Desfazer/Refazer**. Os botões têm tamanho bom para o dedo e o mapa tem tamanho útil no celular. **Salvar
+      desenho**, voltar e abrir de novo: volta igual. Sair com mudanças pede confirmação; **Apagar tudo** pede confirmação e dá para
+      Desfazer. Sem internet a tela avisa e bloqueia o salvar. Um técnico abrindo `#/projeto/<id>/desenho` vê "só para administradores".
+- [ ] **Importar KML/KMZ no desenho:** escolha um arquivo seu com linhas e pontos: "Importado: N traçados e M pontos…" e o mapa enquadra.
+      Os pontos entram como "Outro" com o nome do arquivo como código. Áreas (polígonos) **não** entram e o aviso diz quantas. Com desenho
+      na tela, pergunta *Acrescentar* ou *Substituir* (Desfazer volta tudo de uma vez). Arquivo que não é KML dá aviso e não muda nada.
 - [ ] **Pessoas:** aprovar um pedido escolhendo o papel; recusar; desativar e reativar; mudar o papel (rebaixar administrador usa botão
       de perigo). O próprio cartão não tem ações. Sem internet aparece "Sem conexão".
 - [ ] Editar um poste de um técnico (faixa "Você está alterando como administrador"); o técnico recebe e continua sendo o dono.
 - [ ] **Alterações e conflitos:** a edição aparece como "Fulano alterou · Poste X · Identificação: A → B".
+- [ ] **Projetado no mapa do técnico (celular):** depois de sincronizar, no projeto aparece o cartão "Desenho do projeto" com o resumo e
+      *Ver desenho no mapa*. No mapa: traçado **tracejado** e pontos com anel tracejado (não confundem com cabo e elemento de verdade), botão
+      **Projetado** liga e desliga (e lembra depois de fechar o app). Tocar num ponto mostra "Poste projetado / código / projeto" e
+      *Abrir o projeto*; tocar no traçado mostra os metros. Tocar no vazio fecha. **Sem internet** (modo avião) o desenho continua lá.
+      Ao marcar um elemento ou lançar cabo, o desenho fica só de fundo e o botão some; ao terminar, volta. Nada vira poste ou cabo
+      sozinho. Se o administrador mudar ou apagar o desenho, o aparelho acompanha **depois de sincronizar**. Projeto concluído ou
+      cancelado sai do mapa (o cartão com o resumo continua, sem o botão de ver no mapa).
 - [ ] **Ver trilha GPS** de uma atividade de técnico; conferir pontos, metros e "Esconder trilha".
 - [ ] **Excluir atividade** de um técnico: a confirmação diz o que sai; depois some da tabela, do mapa e dos totais, e o técnico
       recebe na sincronização.
@@ -84,6 +101,9 @@ chaves nem senhas). O deploy é conferido pelo número da versão em *Configura�
       (inclui instruções), "Só os atrasados", ordenar pelas colunas (terceiro clique volta à ordem padrão), **Exportar CSV** (abre
       no Excel com acentos e vírgula decimal). A ficha tem "Ver o ponto no mapa" (pino no mapa do painel; "Tirar a marca" remove)
       e abre cada atividade na tabela de Atividades. O escritório **não** tem "Editar projeto". A Visão geral conta os projetos.
+- [ ] **Desenho do projeto no painel:** a ficha de um projeto com desenho mostra o resumo e **Ver o desenho no mapa**: o mapa do painel
+      enquadra o desenho (tracejado) com a faixa "Desenho do projeto: …"; clicar num ponto mostra tipo e código (sem botão de abrir o
+      projeto); **Tirar o desenho** limpa. Dá para ver junto com a marca do ponto do projeto. Projeto sem desenho não mostra o cartão.
 
 - [ ] Configurações → **Painel** → "Abrir o painel"; o técnico **não** vê esse cartão; abrir `#/painel` como técnico mostra o aviso.
 - [ ] **Visão geral** bate com o que os técnicos registraram; "Sincronizar agora" atualiza.

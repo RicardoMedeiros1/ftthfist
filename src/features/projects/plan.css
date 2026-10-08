@@ -50,3 +50,11 @@
 .plan-import .hint { margin: 0; }
 .plan-import-actions { flex-direction: column; }
 .plan-import-actions .btn { width: 100%; }
+
+/* popup de um item do desenho (mapa do tecnico e do painel): texto grande, legivel no sol */
+.plan-popup { display: flex; flex-direction: column; gap: 6px; min-width: 190px; font: 600 17px/1.3 system-ui, sans-serif; color: #000; }
+.plan-popup strong { font-size: 19px; }
+.plan-popup-project { overflow-wrap: anywhere; }
+.plan-popup-note { font-size: 14px; color: #333; font-weight: 500; }
+.plan-popup .btn { margin-top: 4px; color: #fff; }
+.plan-popup-box .leaflet-popup-content { margin: 12px 14px; }

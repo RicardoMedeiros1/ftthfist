@@ -1,6 +1,8 @@
 import { useSyncExternalStore } from 'react';
 import type { BaseLayerId } from '../map/layers';
 import type { Bounds } from '../map/mapCommands';
+import { planBounds } from '../projects/plan';
+import type { PlannedProject } from '../projects/planInfo';
 import { DEFAULT_MAP_FILTERS, type MapFilters } from './mapFilters';
 
 // O estado do mapa do painel (filtros, item aberto, ultima vista) fica fora da tela: abrir a ficha de um elemento e voltar
@@ -31,10 +33,12 @@ export interface PanelMapState {
   fitApplied: number;
   /** O ponto de um projeto que o escritorio pediu para ver ("Ver no mapa" da ficha do projeto). */
   projectPin: { lat: number; lng: number; title: string } | null;
+  /** O desenho de um projeto que o escritorio pediu para ver ("Ver o desenho no mapa" da ficha). */
+  projectPlan: PlannedProject | null;
 }
 
 export function createPanelMapStore() {
-  let state: PanelMapState = { filters: DEFAULT_MAP_FILTERS, selection: null, view: null, base: 'ruas', focus: null, focusApplied: 0, fitTo: null, fitApplied: 0, projectPin: null };
+  let state: PanelMapState = { filters: DEFAULT_MAP_FILTERS, selection: null, view: null, base: 'ruas', focus: null, focusApplied: 0, fitTo: null, fitApplied: 0, projectPin: null, projectPlan: null };
   let seq = 0;
   const listeners = new Set<() => void>();
   const set = (patch: Partial<PanelMapState>) => {
@@ -60,6 +64,12 @@ export function createPanelMapStore() {
     /** Marca o ponto de um projeto no mapa e pede para enquadra-lo. */
     showProjectPoint: (pin: { lat: number; lng: number; title: string }) => set({ projectPin: pin, fitTo: { bounds: [pin.lat, pin.lng, pin.lat, pin.lng], seq: ++seq } }),
     clearProjectPin: () => set({ projectPin: null }),
+    /** Mostra o desenho do projeto no mapa e pede para enquadra-lo. Desenho vazio nao faz nada. */
+    showProjectPlan: (planned: PlannedProject) => {
+      const bounds = planBounds(planned.plan);
+      if (bounds) set({ projectPlan: planned, fitTo: { bounds, seq: ++seq } });
+    },
+    clearProjectPlan: () => set({ projectPlan: null }),
   };
 }
 
