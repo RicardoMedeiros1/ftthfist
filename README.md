@@ -11,8 +11,13 @@ Os técnicos marcam postes, CTOs e CEOs e lançam o cabo poste a poste, direto n
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)
 ![PWA](https://img.shields.io/badge/PWA-offline--first-5a0fc8)
 ![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%2B%20PostGIS-3ecf8e?logo=supabase&logoColor=white)
+![Uso](https://img.shields.io/badge/uso-privado-critical)
+![Licença](https://img.shields.io/badge/licen%C3%A7a-propriet%C3%A1ria-lightgrey)
 
-[Abrir o app](https://ricardomedeiros1.github.io/ftthfist/) · [Documentação](#documentação) · [Guia de testes](docs/guia-de-testes.md)
+[Abrir o app](https://ricardomedeiros1.github.io/ftthfist/) (login e aprovação necessários) · [Telas](#telas) · [Documentação](#documentação) · [Guia de testes](docs/guia-de-testes.md)
+
+> [!IMPORTANT]
+> **Software proprietário, de uso privado.** O código, os dados e a documentação são confidenciais e **todos os direitos são reservados**. Não é permitido usar, copiar, modificar, distribuir ou publicar nada daqui sem autorização prévia e por escrito do titular. Ver o código não dá licença nenhuma. Termos completos em [`LICENSE`](LICENSE).
 
 </div>
 
@@ -23,6 +28,7 @@ Os técnicos marcam postes, CTOs e CEOs e lançam o cabo poste a poste, direto n
 - [Sobre](#sobre)
 - [Princípios](#princípios)
 - [Funcionalidades](#funcionalidades)
+- [Telas](#telas)
 - [Como funciona](#como-funciona)
 - [Stack](#stack)
 - [Começando](#começando)
@@ -90,6 +96,41 @@ Estas regras guiam todas as decisões do projeto.
 - **Projetos:** criar, designar a um técnico, **desenhar o traçado e os pontos no mapa** (inclusive importando KML/KMZ), cancelar, concluir e reabrir.
 - **Auditoria:** o servidor registra quem alterou o quê (antes e depois) e os conflitos de sincronização.
 - Excluir atividades (em cascata, de forma lógica) e ver a trilha GPS dos técnicos sob demanda.
+
+## Telas
+
+Capturas com **dados de exemplo e mapa ilustrativo**: as ruas e as quadras vêm de um simulador, e nenhum dado real aparece aqui.
+
+### No celular (técnico)
+
+<table>
+  <tr>
+    <td align="center" width="25%"><img src="docs/img/01-marcar-poste.png" alt="Marcando um poste com GPS de 4 metros de precisão" width="190"><br><b>Marcar um poste</b><br><sub>GPS ±4 m: posição pronta</sub></td>
+    <td align="center" width="25%"><img src="docs/img/02-gps-impreciso.png" alt="GPS impreciso: mapa de satélite e marcador para ajustar" width="190"><br><b>GPS impreciso</b><br><sub>Acima de 15 m, o app avisa e abre o satélite para ajustar</sub></td>
+    <td align="center" width="25%"><img src="docs/img/03-lancar-tronco.png" alt="Lançamento do cabo-tronco com escolha de Poste, CEO ou CTO" width="190"><br><b>Lançar o tronco</b><br><sub>Poste, CEO ou CTO a cada ponto</sub></td>
+    <td align="center" width="25%"><img src="docs/img/04-derivar-ramal.png" alt="Diálogo para derivar um ramal a partir de uma CEO" width="190"><br><b>Derivar um ramal</b><br><sub>Tipo e fibras do ramal, a partir da CEO</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/img/05-ramal-em-andamento.png" alt="Ramal em andamento saindo da CEO até a CTO" width="190"><br><b>Ramal em andamento</b><br><sub>Sai da CEO e vai até a CTO</sub></td>
+    <td align="center"><img src="docs/img/06-finalizar-lancamento.png" alt="Resumo do lançamento com tronco, ramais e fibra de cada CTO" width="190"><br><b>Finalizar</b><br><sub>Tronco, ramais e a fibra de cada CTO</sub></td>
+    <td align="center"><img src="docs/img/07-rota-acesa.png" alt="Rota acesa no mapa com os três cabos ligados e as CTOs" width="190"><br><b>Rota acesa</b><br><sub>Tocar num cabo mostra a rede toda, ligada</sub></td>
+    <td align="center"><img src="docs/img/08-fibras-do-cabo.png" alt="Ficha do cabo com as fibras e tubos nas cores da ABNT" width="190"><br><b>Fibras do cabo</b><br><sub>Cores ABNT, por tubo</sub></td>
+  </tr>
+</table>
+
+### No painel do escritório (computador)
+
+<p align="center">
+  <img src="docs/img/10-painel-mapa-rota.png" alt="Painel web: mapa da rede com a rota acesa e a fibra de cada CTO" width="900"><br>
+  <sub><b>Mapa da rede:</b> a rota acesa, os cabos ligados e a fibra de cada CTO</sub>
+</p>
+
+<table>
+  <tr>
+    <td align="center" width="50%"><img src="docs/img/09-painel-visao-geral.png" alt="Painel web: visão geral com contagens da rede e dos projetos" width="440"><br><b>Visão geral</b><br><sub>Rede e projetos designados</sub></td>
+    <td align="center" width="50%"><img src="docs/img/11-painel-atividades.png" alt="Painel web: tabela de atividades com totais" width="440"><br><b>Atividades</b><br><sub>Tabela com filtros e totais</sub></td>
+  </tr>
+</table>
 
 ## Como funciona
 
@@ -200,6 +241,9 @@ O workflow [`deploy.yml`](.github/workflows/deploy.yml) publica no **GitHub Page
 
 O número da versão publicada aparece em *Configurações*, para conferir se o celular já atualizou.
 
+> [!NOTE]
+> O GitHub Pages serve o app **já compilado** (HTML e JavaScript) numa URL de acesso aberto. Os dados continuam protegidos por login, aprovação e RLS: sem conta ativa, o app não mostra nada da rede.
+
 ## Testes
 
 ```bash
@@ -270,8 +314,11 @@ Limites conhecidos:
 - O dono de um registro não muda, e o servidor grava quem alterou o quê quando o administrador edita dados de outra pessoa.
 - Cadastro novo nasce **pendente**: sem aprovação, a pessoa não lê nem grava nada.
 - Não coloque chaves, senhas ou tokens (Supabase, OLT) em código, issues ou conversas.
+- O projeto é de uso privado: não publique cópias, forks ou trechos do código ou dos dados sem autorização do titular.
 
 ## Contribuindo
+
+Só contribui quem foi autorizado pelo titular do projeto.
 
 1. Faça uma branch a partir da `main`.
 2. Mantenha os commits pequenos e descritivos.
@@ -281,4 +328,6 @@ Limites conhecidos:
 
 ## Licença
 
-Nenhuma licença foi definida até agora. Por padrão, todos os direitos ficam com o autor. Para permitir o uso por terceiros, adicione um arquivo `LICENSE` ao repositório.
+**Software proprietário e privado. Todos os direitos reservados.** © 2026 RicardoMedeiros1.
+
+Este projeto não é de código aberto. Ninguém pode usar, copiar, modificar, distribuir, hospedar para terceiros ou publicar o código, os dados ou a documentação sem autorização prévia e por escrito do titular. O acesso ao repositório (inclusive por convite, fork ou cópia local) não concede licença nem direito algum sobre o software. Os termos completos estão em [`LICENSE`](LICENSE).
