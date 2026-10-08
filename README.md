@@ -92,7 +92,8 @@ Estas regras guiam todas as decisões do projeto.
 
 ### Administração
 
-- **Pessoas:** cadastro com aprovação (a pessoa pede acesso, o administrador aprova e define o papel: técnico, escritório ou administrador).
+- **Pessoas:** cadastro com aprovação (a pessoa pede acesso, o administrador aprova e define o papel: técnico, escritório ou administrador). Sem aprovação o app **nem abre**: o primeiro acesso cai em "Pedir acesso", e depois de aprovado ele abre direto, até sem internet.
+- **Limite de tentativas:** 5 erros seguidos travam o aparelho por 5 min (depois 15 e 30), além do limite do servidor.
 - **Projetos:** criar, designar a um técnico, **desenhar o traçado e os pontos no mapa** (inclusive importando KML/KMZ), cancelar, concluir e reabrir.
 - **Auditoria:** o servidor registra quem alterou o quê (antes e depois) e os conflitos de sincronização.
 - Excluir atividades (em cascata, de forma lógica) e ver a trilha GPS dos técnicos sob demanda.
@@ -255,7 +256,7 @@ O workflow [`deploy.yml`](.github/workflows/deploy.yml) publica no **GitHub Page
 O número da versão publicada aparece em *Configurações*, para conferir se o celular já atualizou.
 
 > [!NOTE]
-> O GitHub Pages serve o app **já compilado** (HTML e JavaScript) numa URL de acesso aberto. Os dados continuam protegidos por login, aprovação e RLS: sem conta ativa, o app não mostra nada da rede.
+> O GitHub Pages serve o app **já compilado** (HTML e JavaScript) numa URL de acesso aberto. Os dados continuam protegidos por login, aprovação e RLS: sem conta ativa, o app nem abre e o servidor não entrega nada da rede.
 
 ## Testes
 

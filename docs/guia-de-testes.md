@@ -17,7 +17,15 @@ chaves nem senhas). O deploy é conferido pelo número da versão em *Configura�
 
 **Instalar e abrir**
 - [ ] Abrir o endereço do app com internet, aceitar "Pronto para usar sem internet" e instalar na tela inicial.
-- [ ] Pedir acesso (nome, e-mail, senha); o administrador aprova; "Verificar agora" mostra "Acesso aprovado".
+- [ ] **Primeiro acesso:** a primeira tela é **Pedir acesso** (sem mapa, sem barra de baixo). Peça acesso (nome, e-mail, senha); fica
+      "Aguardando aprovação", ainda sem mapa. Quando o administrador aprova, o app **abre sozinho** (até 20 s) ou ao tocar em "Verificar agora".
+- [ ] **Sem acesso aprovado nada abre:** nem pelo endereço direto (ex.: `…/#/config` ou `…/#/painel`). Acesso desativado mostra o aviso e nada mais.
+- [ ] **Sem internet depois de aprovado:** feche o app, ative o modo avião e reabra: abre **direto no mapa**, sem pedir nada.
+- [ ] **Sair** (Ajustes › Conta): volta para a tela de acesso (agora em "Entrar"); as atividades e elementos continuam no aparelho e
+      reaparecem ao entrar de novo.
+- [ ] **Limite de tentativas:** erre a senha 5 vezes seguidas: o botão fica apagado com "Aguarde 5:00" (contagem regressiva), mostra
+      "Muitas tentativas. Tente de novo em …" e continua travado depois de fechar e reabrir o app. Acertar a senha depois de passada a
+      espera entra normalmente. (A falta de internet e o e-mail digitado errado não contam como tentativa.)
 
 **Sem internet (modo avião) — tudo deve funcionar**
 - [ ] Iniciar atividade (implantação) com título e OS.

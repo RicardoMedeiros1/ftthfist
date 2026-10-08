@@ -19,7 +19,8 @@ import { setActingRole } from '../../lib/ownership';
 import { applyIdentity } from './deviceOwner';
 import { isSupabaseConfigured, loadAuthApi } from './supabaseClient';
 
-// Estado da conta neste aparelho. Regras de ouro: (1) o app nunca depende de conta para funcionar em campo;
+// Estado da conta neste aparelho. Regras de ouro: (1) com o servidor configurado o app só abre com o acesso aprovado (accessGate), mas
+// depois disso nunca depende de internet para funcionar em campo;
 // (2) sem internet, vale o ultimo estado conhecido; (3) sair da conta NAO apaga nenhum dado do aparelho.
 
 export type AccountStatus =

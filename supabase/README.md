@@ -271,13 +271,25 @@ mesma trava (Web Locks) do app: nunca dois ciclos ao mesmo tempo.
 ## Login no app (passo 2 da Fase 2)
 
 O app so liga a conta quando o build recebe as duas variaveis (`VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`, a
-**Publishable key**). Sem elas, nada muda: o cartao "Conta" nem aparece nas Configuracoes.
+**Publishable key**). Sem elas, nada muda: o app abre direto, so no aparelho, e o cartao "Conta" nem aparece nas Configuracoes.
 
-- **Onde fica:** Configuracoes -> *Conta* (`#/conta`): *Entrar* ou *Pedir acesso* (nome, e-mail e senha de 8+ caracteres).
-- **Estados:** *aguardando aprovacao* (pediu e o admin ainda nao aprovou), *acesso aprovado*, *acesso desativado*, *verificando*
-  (logado, mas sem internet para confirmar). Depois de aprovado o nome do tecnico passa a ser o do cadastro e fica travado.
-- **Sem internet:** vale o ultimo estado conhecido, sem esperar o servidor. Entrar, pedir acesso e trocar a senha precisam
-  de internet (o app avisa). Sair da conta **nunca apaga dados do aparelho**.
+- **Tela de acesso (com as variaveis):** o app **so abre (mapa, barra, GPS) para quem tem o acesso aprovado**. O primeiro acesso do
+  aparelho cai em *Pedir acesso* (nome, e-mail e senha de 8+ caracteres); quem ja teve conta ve *Entrar*. Rotas como `#/config`
+  e `#/painel` tambem ficam atras dela. Fica **na frente de tudo**: nenhuma parte do app e montada por tras.
+- **Estados:** *aguardando aprovacao* (pediu e o admin ainda nao aprovou), *acesso desativado* e *verificando* (logado, mas sem
+  internet para confirmar) ficam numa tela so de aviso, com *Verificar agora* e *Sair*; ela confere sozinha a cada 20 s e abre o app
+  quando o admin aprova. Depois de aprovado o nome do tecnico passa a ser o do cadastro e fica travado.
+- **Sem internet:** depois de aprovado vale o ultimo estado conhecido, sem esperar o servidor: **reabrir sem internet abre direto**.
+  Entrar, pedir acesso e trocar a senha precisam de internet (o app avisa). Sair da conta **nunca apaga dados do aparelho**, mas
+  volta para a tela de acesso (para entrar de novo e preciso internet uma vez).
+- **Limite de tentativas no aparelho:** 5 erros seguidos (senha errada, e-mail ja cadastrado...) travam *Entrar* e *Pedir acesso*
+  por **5 min**; as proximas travas duram **15 min** e depois **30 min**. O botao mostra a contagem regressiva e recarregar a pagina
+  **nao destrava**. Falta de rede, e-mail digitado errado, senha curta e e-mail nao confirmado **nao** contam. Se o servidor
+  responder "muitas tentativas" (429), o aparelho espera 2 min. Mais de 24 h sem erro zera o historico. E so conforto: quem protege
+  de verdade e o limite do Supabase (*Authentication -> Rate Limits*), que continua valendo.
+- **Limite do que isto protege:** a tela e logica do navegador (quem sabe mexer nele consegue abri-la), mas **os dados da rede continuam
+  protegidos no servidor** (login, aprovacao e RLS): sem conta ativa nao ha o que ler. Dados que ja estejam no proprio aparelho ficam
+  nele.
 - **Seguranca do build:** se alguem colar a **Secret key** (`sb_secret_...` ou `service_role`) numa variavel, o build **falha**
   com mensagem clara (nada e publicado) e o app recusa usa-la. Testes vigiam o codigo e o workflow contra segredos; o
   workflow le as chaves de **variaveis** do repositorio, nunca de segredos.
@@ -289,8 +301,9 @@ limita a espera a 10 s e so trata como "saiu" o evento `SIGNED_OUT`.
 ### Para testar no celular
 
 1. Cadastre as 2 variaveis no GitHub (*Settings -> Secrets and variables -> Actions -> Variables*) e publique.
-2. Configuracoes -> Conta -> **Pedir acesso** com um e-mail de teste: deve ficar *Aguardando aprovacao*.
+2. Abra o app: a primeira tela e **Pedir acesso** (sem mapa). Peca acesso com um e-mail de teste: deve ficar *Aguardando aprovacao*.
 3. No Supabase (*Table Editor -> profiles*), marque `active = true` para esse e-mail. No app, **Verificar agora**:
-   *Acesso aprovado*, e o nome do tecnico passa a ser o do cadastro.
+   o app abre sozinho, e o nome do tecnico passa a ser o do cadastro.
 4. Ative o modo aviao e reabra o app: a conta continua ativa, na hora.
-5. **Sair da conta**: os dados (atividades, elementos, fotos) continuam la.
+5. **Sair da conta** (Ajustes -> Conta): volta para a tela de acesso; os dados (atividades, elementos, fotos) continuam no aparelho.
+6. Erre a senha 5 vezes: o botao trava com a contagem (5 min) e continua travado ao recarregar.

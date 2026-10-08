@@ -10,7 +10,7 @@ Para acompanhar a rede e o histórico no computador. É a **mesma aplicação** 
 | Escritório | sim, só leitura | vê tudo, não altera nem exclui nada |
 | Administrador | sim | pode também editar e excluir pelas telas e fichas |
 | Técnico | não | usa o app de campo |
-| Pendente, desativado, sem conta | não | a tela diz o motivo |
+| Pendente, desativado, sem conta | não | a tela de acesso diz o motivo (o app nem abre) |
 
 ## O que tem
 
