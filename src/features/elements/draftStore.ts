@@ -130,6 +130,8 @@ export const draftStore = {
       movingId: null,
       movingFrom: null,
     }),
+  /** Lançando cabo: o tipo do próximo ponto a marcar (poste, CEO ou CTO). Também é o ícone do ponto aguardando ajuste. */
+  setMarkType: (type: ElementType) => set({ type }),
   startCableEdit: (cableId: string) =>
     set({ phase: 'cabo-editar', editingCableId: cableId, selectedVertex: null, type: null, position: null, error: null }),
   selectVertex: (i: number | null) => set({ selectedVertex: i }),

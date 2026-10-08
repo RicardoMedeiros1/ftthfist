@@ -10,7 +10,8 @@ import { cableDraftStore } from './cableDraft';
 import { ColorStandardChips, useColorStandard } from './colorStandard';
 import type { ColorStandard } from './fibers';
 import { useCableTypes } from './cableTypes';
-import { FiberLine, LegendList } from './Legend';
+import FiberCountChips from './FiberCountChips';
+import { LegendList } from './Legend';
 import { FIBER_COUNTS } from './style';
 
 /** Antes de lançar: tipo do cabo e nº de fibras (lembra a última escolha). */
@@ -54,24 +55,14 @@ export default function CableSetupScreen() {
             options={(types ?? []).map((t) => ({ value: t, label: t }))}
             onChange={(v) => v && setCableType(v)}
           />
-          <div className="field">
-            <span className="label" id="fibers-label">Nº de fibras</span>
-            <div className="chips fibers" role="group" aria-labelledby="fibers-label">
-              {FIBER_COUNTS.map((n) => (
-                <button type="button" key={n} aria-pressed={fiberCount === n} onClick={() => setFiberCount(n)}>
-                  <span>{n}</span>
-                  <FiberLine fiberCount={n} width={40} />
-                </button>
-              ))}
-            </div>
-          </div>
+          <FiberCountChips value={fiberCount} onChange={setFiberCount} />
           {savedStandard && <ColorStandardChips value={standard ?? savedStandard} onChange={setStandard} />}
           <LegendList />
           <button className="btn btn-primary btn-block" disabled={!ready || !cableType || open === undefined} onClick={start}>
             Começar a lançar
           </button>
           <p className="hint">
-            Depois, ande de poste em poste: toque em “Marcar poste aqui e ligar” em cada um. Tocar num elemento do mapa também o liga ao cabo.
+            Depois, ande de poste em poste: toque em “Marcar poste aqui e ligar” em cada um. Para marcar uma CEO ou CTO, escolha o tipo antes de tocar. Onde o cabo se divide, toque em “Derivar” e lance o ramal na mesma vez. Tocar num elemento do mapa também o liga ao cabo.
           </p>
         </>
       )}

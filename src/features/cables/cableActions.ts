@@ -1,5 +1,5 @@
 import { SETTING_KEYS, db, getSetting, setSetting } from '../../db/db';
-import type { NetworkElement } from '../../db/types';
+import type { ElementType, NetworkElement } from '../../db/types';
 import { distanceMeters, formatMeters, nearestWithin, round2 } from '../../lib/geo';
 import { classifyAccuracy } from '../../lib/geo';
 import { canEdit } from '../../lib/ownership';
@@ -29,6 +29,17 @@ export const MIN_POLE_SPACING_M = 3;
 
 const technician = () => getSetting<string>(SETTING_KEYS.technician, '');
 
+/** O que dá para marcar durante o lançamento. Poste é o comum; CEO e CTO valem para o próximo ponto só. */
+export const MARK_TYPES = ['poste', 'ceo', 'cto'] as const;
+export type MarkType = (typeof MARK_TYPES)[number];
+const isMarkType = (t: ElementType | null): t is MarkType => (MARK_TYPES as readonly (ElementType | null)[]).includes(t);
+
+/** O tipo do rascunho como tipo de ponto do lançamento (poste se não for um dos três). */
+export const toMarkType = (t: ElementType | null): MarkType => (isMarkType(t) ? t : 'poste');
+
+/** O tipo escolhido para o próximo ponto agora. */
+export const markTypeNow = (): MarkType => toMarkType(draftStore.getState().type);
+
 // ---- pontos do traçado ----
 
 /** Toque no mapa durante o lançamento: gruda no elemento mais próximo (≤ 25 px) ou cria um ponto solto. */
@@ -53,22 +64,24 @@ export type MarkResult =
   | { ok: false; message: string }
   | { ok: 'pending' }; // precisão ruim: o técnico ajusta o ponto antes de confirmar
 
-/** Cria o poste (posição do GPS ou ajustada) e o liga ao cabo. */
-export async function createPoleAndLink(pos: {
-  lat: number;
-  lng: number;
-  accuracy?: number;
-  source: 'gps' | 'manual';
-}): Promise<void> {
+/**
+ * Cria o ponto (poste, CEO ou CTO; posição do GPS ou ajustada) e o liga ao cabo ativo.
+ * Depois de uma CEO ou CTO o próximo ponto volta a ser poste, que é o comum.
+ */
+export async function createPointAndLink(
+  pos: { lat: number; lng: number; accuracy?: number; source: 'gps' | 'manual' },
+  type: MarkType = markTypeNow(),
+): Promise<void> {
   const el = await elementStore.create(
-    { type: 'poste', lat: pos.lat, lng: pos.lng, accuracy: pos.accuracy, positionSource: pos.source },
+    { type, lat: pos.lat, lng: pos.lng, accuracy: pos.accuracy, positionSource: pos.source },
     await technician(),
   );
   cableDraftStore.addVertex({ elementId: el.id, lat: el.lat, lng: el.lng }, el.id);
+  draftStore.setMarkType('poste');
 }
 
-/** "Marcar poste aqui e ligar": usa o GPS agora. Precisão acima de 15 m pede ajuste no mapa. */
-export async function markPoleHere(): Promise<MarkResult> {
+/** "Marcar … aqui e ligar": usa o GPS agora. Precisão acima de 15 m pede ajuste no mapa. */
+export async function markPointHere(): Promise<MarkResult> {
   const d = cableDraftStore.getState();
   if (!d) return { ok: false, message: 'Nenhum cabo em lançamento.' };
   const fix = await quickCapture(gpsFeed);
@@ -82,15 +95,15 @@ export async function markPoleHere(): Promise<MarkResult> {
     draftStore.setGpsBest(fix); // vira o marcador arrastável (satélite)
     return { ok: 'pending' };
   }
-  await createPoleAndLink({ lat: fix.lat, lng: fix.lng, accuracy: fix.accuracy, source: 'gps' });
+  await createPointAndLink({ lat: fix.lat, lng: fix.lng, accuracy: fix.accuracy, source: 'gps' });
   return { ok: true };
 }
 
 /** Confirma o ponto de precisão baixa (já ajustado ou não). */
-export async function confirmPendingPole(): Promise<void> {
+export async function confirmPendingPoint(): Promise<void> {
   const p = draftStore.getState().position;
   if (!p) return;
-  await createPoleAndLink({ lat: p.lat, lng: p.lng, accuracy: p.accuracy, source: p.source });
+  await createPointAndLink({ lat: p.lat, lng: p.lng, accuracy: p.accuracy, source: p.source });
   draftStore.discardPosition();
 }
 
@@ -98,10 +111,18 @@ export async function confirmPendingPole(): Promise<void> {
 
 export type BranchResult = { ok: true } | { ok: false; message: string };
 
+/** Dá para derivar daqui? O último ponto do cabo ativo precisa ser um elemento (poste, CEO, CTO…), não um ponto solto. */
+export function canBranchHere(): boolean {
+  const d = cableDraftStore.getState();
+  return d !== null && lastVertex(activeCable(d))?.elementId !== undefined;
+}
+
+export const BRANCH_FROM_MESSAGE = 'Derive de um poste, CEO ou CTO. Marque o ponto primeiro (toque num ponto solto não serve).';
+
 /** Deriva um ramal do último ponto (precisa ser um elemento já marcado) e guarda a escolha para a próxima derivação. */
 export async function branchHere(choice: CableChoice): Promise<BranchResult> {
   if (!cableDraftStore.branch(choice)) {
-    return { ok: false, message: 'Derive de um poste, CEO ou CTO. Marque o ponto primeiro (toque num ponto solto não serve).' };
+    return { ok: false, message: BRANCH_FROM_MESSAGE };
   }
   await setSetting(SETTING_KEYS.lastBranch, { cableType: choice.cableType, fiberCount: choice.fiberCount });
   return { ok: true };
