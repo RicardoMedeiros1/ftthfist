@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import { useRoute } from '../lib/route';
+import { isTabRoute } from './TabBar';
 import './ui.css';
 
 export default function ScreenShell({
@@ -10,8 +12,10 @@ export default function ScreenShell({
   onBack: () => void;
   children: ReactNode;
 }) {
+  // Nas telas raiz a barra de abas fica por cima do rodapé: o conteúdo precisa terminar acima dela.
+  const tabs = isTabRoute(useRoute());
   return (
-    <div className="screen" role="dialog" aria-modal="true" aria-label={title}>
+    <div className={`screen${tabs ? ' screen-tabs' : ''}`} role="dialog" aria-modal="true" aria-label={title}>
       <header className="screen-header">
         <button className="btn btn-small" onClick={onBack} aria-label="Voltar">
           ←

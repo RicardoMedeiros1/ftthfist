@@ -1,0 +1,41 @@
+/* Barra de abas de baixo. --tabbar-total já inclui a área segura (barra de gestos) do aparelho. */
+:root {
+  --tabbar-h: 64px;
+  --tabbar-total: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+}
+.tab-bar {
+  position: fixed; z-index: 1050; left: 0; right: 0; bottom: 0;
+  height: var(--tabbar-total); box-sizing: border-box;
+  padding: 4px 6px env(safe-area-inset-bottom);
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2px;
+  background: var(--bg); border-top: 1px solid var(--border);
+}
+/* Sobre as telas (que ficam em z-index 3000) a barra sobe junto */
+.tab-bar-over { z-index: 3050; }
+.tab-btn {
+  min-height: 52px; padding: 0; border: 0; border-radius: 16px; background: transparent; color: var(--muted);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  font: 600 14px/1.1 system-ui, sans-serif; touch-action: manipulation;
+}
+.tab-btn:active { background: var(--surface-2); }
+.tab-btn[aria-current='page'] { color: var(--accent); font-weight: 800; }
+
+/* "+" central: círculo que sobe 22 px sobre a barra (a atribuição do mapa e os botões ficam acima disso, ver map.css) */
+.tab-add-slot { position: relative; }
+.add-btn {
+  position: absolute; left: 50%; top: -24px; transform: translateX(-50%);
+  width: 68px; height: 68px; padding: 0; border-radius: 50%;
+  border: 5px solid var(--bg); background: var(--accent); color: var(--on-accent);
+  font: 700 42px/1 system-ui, sans-serif;
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 40%, transparent);
+  display: flex; align-items: center; justify-content: center; touch-action: manipulation;
+}
+.add-btn:active { filter: brightness(.9); }
+.add-btn:disabled { opacity: .5; }
+.tab-add-label {
+  position: absolute; left: 0; right: 0; bottom: 2px; text-align: center;
+  font: 700 14px/1.1 system-ui, sans-serif; color: var(--fg);
+}
+
+/* Telas com barra: o conteúdo termina acima dela (e do "+", que sobe 22 px) */
+.screen.screen-tabs { padding-bottom: calc(var(--tabbar-total) + 30px); }

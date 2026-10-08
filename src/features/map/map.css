@@ -58,6 +58,12 @@
 }
 .gps-banner.gps-warn { background: #ff9f0a; color: #000; }
 
+/* Mapa livre: a atribuição (obrigatória) e os botões ficam acima da barra de abas e do "+" que sobe 22 px sobre ela.
+   A barra some quando uma folha ou painel abre; aí valem as medidas de cada um. */
+.map-screen.phase-idle:not(.legend-open):not(.route-open) .leaflet-bottom { margin-bottom: calc(var(--tabbar-total) + 24px); }
+.map-screen.phase-idle:not(.legend-open):not(.route-open) .map-btn-group,
+.map-screen.phase-idle:not(.legend-open):not(.route-open) .map-controls { bottom: calc(var(--tabbar-total) + 52px); }
+
 /* Atribuição legível mas discreta */
 .leaflet-control-attribution { font-size: 11px; }
 

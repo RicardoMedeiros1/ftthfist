@@ -154,7 +154,6 @@
 :root[data-theme] .gps-banner { background: color-mix(in srgb, var(--bg) 90%, transparent); color: var(--fg); border-radius: 17px; }
 :root[data-theme] .gps-banner.gps-warn { background: var(--warn); color: var(--on-accent); }
 :root[data-theme] .remote-track-bar { border: 0; border-radius: 22px; background: var(--bg); color: var(--fg); }
-:root[data-theme] .add-btn { border-color: var(--bg); background: var(--accent); color: var(--on-accent); }
 
 /* fibras, ligações e rota (as cores das fibras em si não mudam) */
 :root[data-theme] .fiber-tubes details { border: 1px solid var(--border); border-radius: 18px; background: var(--surface); }

@@ -16,6 +16,7 @@ import RouteSheet from '../cables/RouteSheet';
 import { useSelectedRoute } from '../cables/routeStore';
 import { cableStore } from '../cables/cableRepo';
 import { LegendSheet } from '../cables/Legend';
+import { legendStore, useLegendOpen } from './legendStore';
 import MapCommandHost from './MapCommandHost';
 import ReferenceLayers from '../reference/ReferenceLayers';
 import { references } from '../reference/referenceRepo';
@@ -27,7 +28,6 @@ import RemoteTrackLayer from '../admin/RemoteTrackLayer';
 import { useTrack } from '../tracking/trackRecorder';
 import { navigate } from '../../lib/route';
 import { useLiveQuery } from 'dexie-react-hooks';
-import AddButton from '../elements/AddButton';
 import { useDraft } from '../elements/draftStore';
 import ElementsLayer from '../elements/ElementsLayer';
 import GpsCaptureHost from '../elements/GpsCapture';
@@ -144,7 +144,8 @@ export default function MapScreen() {
   const hasCables = (useLiveQuery(() => cableStore.list())?.length ?? 0) > 0;
   const refLayers = useLiveQuery(() => references.list());
   const refVisible = refLayers?.some((l) => l.visible) ?? false;
-  const [legendOpen, setLegendOpen] = useState(false);
+  const legendOpen = useLegendOpen();
+  const setLegendOpen = legendStore.set;
   const trackStatus = useTrack((t) => t.status);
   const routeOpen = useSelectedRoute() !== null && phase === 'idle';
 
@@ -280,7 +281,6 @@ export default function MapScreen() {
         </div>
       )}
 
-      <AddButton />
       <TypePicker />
       <PlacementPanel />
       <MovePanel />

@@ -42,6 +42,5 @@ button.route-row { touch-action: manipulation; cursor: pointer; border-color: #f
 .route-sheet { height: calc(300px + env(safe-area-inset-bottom)); box-sizing: border-box; }
 .route-scroll { flex: 1; min-height: 0; overflow-y: auto; }
 .map-screen.route-open .map-btn-group,
-.map-screen.route-open .map-controls,
-.map-screen.route-open .add-btn { display: none; }
+.map-screen.route-open .map-controls { display: none; }
 .map-screen.route-open .leaflet-bottom { margin-bottom: calc(300px + env(safe-area-inset-bottom)); }

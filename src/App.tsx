@@ -1,3 +1,4 @@
+import TabBar from './components/TabBar';
 import UpdatePrompt from './components/UpdatePrompt';
 import SavedNotice from './features/elements/SavedNotice';
 import BackupReminder from './features/export/BackupReminder';
@@ -92,6 +93,7 @@ export default function App() {
       {route === 'camadas' && <CamadasScreen />}
       {route === 'camada' && <LayerScreen />}
       {route === 'referencia' && <ReferenceFeatureScreen />}
+      <TabBar />
       <div className="toast-host">
         <SavedNotice />
         <UpdatePrompt />
