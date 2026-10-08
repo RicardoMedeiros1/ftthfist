@@ -10,7 +10,7 @@ import CableDrawLayer from '../cables/CableDrawLayer';
 import CableEditLayer from '../cables/CableEditLayer';
 import CableEditPanel from '../cables/CableEditPanel';
 import CableGps from '../cables/CableGps';
-import CablePanel from '../cables/CablePanel';
+import CablePanel, { ReserveButton } from '../cables/CablePanel';
 import CablesLayer, { RouteMapEffects } from '../cables/CablesLayer';
 import RouteSheet from '../cables/RouteSheet';
 import { useSelectedRoute } from '../cables/routeStore';
@@ -252,6 +252,7 @@ export default function MapScreen() {
           </button>
         )}
         <PlannedToggle />
+        <ReserveButton />
         {phase === 'idle' && (
           <button
             className="map-btn map-btn-wide"

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState, type ReactNode } from 'react';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { formatMeters } from '../../lib/geo';
 import { draftStore, useDraft } from '../elements/draftStore';
@@ -25,10 +25,10 @@ import {
   activeCable,
   cableLengthMeters,
   canFinishDraft,
-  draftLengthMeters,
   draftReserveMeters,
   inBranch,
   lastVertex,
+  openStack,
   useCableDraft,
 } from './cableDraft';
 import { CableRuleError } from './cableRepo';
@@ -37,10 +37,12 @@ import CableSummaryDialog from './CableSummaryDialog';
 import { useLatestFix } from './gpsFeed';
 import { FiberLine } from './Legend';
 import MetersDialog from './MetersDialog';
+import { reserveUi, useReserveOpen } from './reserveUi';
+import './cableDock.css';
 
 /**
- * Guarda a altura do painel em `--cabo-panel-h` no mapa: os botões do mapa e a atribuição ficam sempre acima dele,
- * qualquer que seja o estado (tronco, ramal, ponto aguardando ajuste, texto em mais linhas).
+ * Guarda a altura da parte de baixo (tipo + dock) em `--cabo-panel-h` no mapa: os botões do mapa e a atribuição ficam
+ * sempre acima dela, qualquer que seja o estado (tronco, ramal, ponto aguardando ajuste).
  */
 function usePanelHeightVar() {
   const cleanup = useRef<(() => void) | null>(null);
@@ -63,9 +65,33 @@ function usePanelHeightVar() {
 const errMsg = (e: unknown, fallback: string) =>
   e instanceof ElementRuleError || e instanceof CableRuleError ? e.message : fallback;
 
+const ICON_PROPS = { width: 24, height: 24, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2.4, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true } as const;
+
+function DockButton({ icon, label, ariaLabel, tone, disabled, onClick }: { icon: ReactNode; label: string; ariaLabel?: string; tone?: 'end'; disabled?: boolean; onClick: () => void }) {
+  return (
+    <button type="button" className={`dock-btn${tone ? ` dock-btn-${tone}` : ''}`} aria-label={ariaLabel} disabled={disabled} onClick={onClick}>
+      <svg {...ICON_PROPS}>{icon}</svg>
+      {label}
+    </button>
+  );
+}
+
+/** Botão "Reserva" entre os botões do mapa durante o lançamento (o diálogo dos metros abre no painel de lançamento). */
+export function ReserveButton() {
+  const phase = useDraft((s) => s.phase);
+  const pending = useDraft((s) => s.position !== null);
+  const hasPoints = useCableDraft((d) => (d ? activeCable(d).vertices.length > 0 : false));
+  if (phase !== 'cabo' || pending || !hasPoints) return null;
+  return (
+    <button className="map-btn map-btn-wide" onClick={() => reserveUi.set(true)}>
+      Reserva
+    </button>
+  );
+}
+
 /**
- * Painel inferior do lançamento: andar de poste em poste e tocar em "Marcar poste aqui e ligar". Onde o cabo se divide,
- * "Derivar" abre um ramal (que termina com "Terminar ramal"); CEO e CTO se marcam escolhendo o tipo antes.
+ * Parte de baixo do lançamento: no alto o caminho (Tronco › Ramal) com as medidas e o Cancelar; embaixo a escolha do tipo do
+ * próximo ponto e o dock com o MARCAR no meio. Onde o cabo se divide, "Derivar" abre um ramal (que termina com "Terminar").
  */
 export default function CablePanel() {
   const phase = useDraft((s) => s.phase);
@@ -74,7 +100,7 @@ export default function CablePanel() {
   const fix = useLatestFix();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [metersOpen, setMetersOpen] = useState(false);
+  const metersOpen = useReserveOpen();
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
@@ -97,10 +123,15 @@ export default function CablePanel() {
   const current = activeCable(draft);
   const branching = inBranch(draft);
   const several = draft.cables.length > 1;
-  const length = draftLengthMeters(draft);
   const reserves = draftReserveMeters(draft);
   const points = current.vertices.length;
   const bad = pending?.accuracy !== undefined && classifyAccuracy(pending.accuracy) === 'ruim';
+  const gpsBad = fix ? classifyAccuracy(fix.accuracy) === 'ruim' : false;
+  // Tronco › Ramal 1 › Ramal 3: o último é o cabo que recebe os pontos agora
+  const trail = openStack(draft).map((id) => {
+    const i = draft.cables.findIndex((c) => c.cableId === id);
+    return i <= 0 ? 'Tronco' : `Ramal ${i}`;
+  });
 
   async function run(fn: () => Promise<void>) {
     setBusy(true);
@@ -145,100 +176,110 @@ export default function CablePanel() {
   }
 
   return (
-    <div className="placement-panel" role="region" aria-label="Lançar cabo" ref={panelRef}>
-      <div className="placement-status cabo-status" role="status">
-        <div className="cabo-head">
-          <span className="cabo-title">
-            <FiberLine fiberCount={current.fiberCount} width={36} />
-            <strong>{current.cableType}</strong> · {current.fiberCount} fibras
+    <>
+      <div className="cabo-top" role="region" aria-label="Cabo em lançamento">
+        <div className="cabo-crumbs">
+          {trail.slice(0, -1).map((name, i) => (
+            <span key={i} className="cabo-crumb-wrap">
+              <span className="cabo-crumb">{name}</span>
+              <span className="cabo-sep" aria-hidden="true">›</span>
+            </span>
+          ))}
+          <span className={`cabo-crumb cabo-crumb-now${branching ? ' cabo-crumb-ramal' : ''}`}>
+            <FiberLine fiberCount={current.fiberCount} width={30} />
+            <span>
+              {several ? `${trail.at(-1)} · ` : ''}
+              {current.cableType} · <span className="nb">{current.fiberCount} fibras</span>
+            </span>
           </span>
-          <button className="btn btn-small cabo-cancel" onClick={() => setConfirmCancel(true)}>
-            Cancelar
-          </button>
         </div>
-        {pending && bad ? (
-          <div className="tone-warn">
-            Precisão baixa ({formatAccuracy(pending.accuracy!)}). Arraste o marcador até o ponto certo.
+        {!pending && (
+          <div className="cabo-stats" role="status">
+            <span className="nb">
+              {formatMeters(cableLengthMeters(current))} · {points} {points === 1 ? 'ponto' : 'pontos'}
+              {reserves > 0 ? ` · Reservas ${formatMeters(reserves)}` : ''}
+            </span>{' '}
+            <span className={`nb ${gpsBad ? 'tone-warn' : 'cabo-gps-ok'}`}>· {fix ? `GPS ${formatAccuracy(fix.accuracy)}` : 'Aguardando o GPS…'}</span>
           </div>
-        ) : pending ? (
-          <div>Posição ajustada. Confirme o ponto.</div>
+        )}
+        {message && (
+          <div className="cabo-msg" role="alert">
+            {message}
+          </div>
+        )}
+      </div>
+      <button className="cabo-cancel" onClick={() => setConfirmCancel(true)}>
+        Cancelar
+      </button>
+
+      <div className="cabo-stack" ref={panelRef}>
+        {pending ? (
+          <div className="placement-panel cabo-pending" role="region" aria-label="Confirmar ponto">
+            <div className={`placement-status${bad ? ' tone-warn' : ''}`} role="status">
+              {bad && pending.accuracy !== undefined
+                ? `Precisão baixa (${formatAccuracy(pending.accuracy)}). Arraste o marcador até o ponto certo.`
+                : 'Posição ajustada. Confirme o ponto.'}
+            </div>
+            <button className="btn btn-primary btn-block" disabled={busy} onClick={() => void run(confirmPendingPoint)}>
+              Confirmar ponto
+            </button>
+            <div className="placement-row">
+              <button className="btn btn-small" onClick={draftStore.discardPosition}>
+                Descartar ponto
+              </button>
+            </div>
+          </div>
         ) : (
           <>
-            <div>
-              {several ? (
-                <>
-                  <span className="cabo-badge">{branching ? 'Ramal' : 'Tronco'}</span> {formatMeters(cableLengthMeters(current))}
-                </>
-              ) : (
-                `Traçado ${formatMeters(length)}`
-              )}{' '}
-              · {points} {points === 1 ? 'ponto' : 'pontos'}
-              {reserves > 0 ? ` · Reservas ${formatMeters(reserves)}` : ''}
+            <div className="cabo-types" role="group" aria-label="Tipo do próximo ponto">
+              {MARK_TYPES.map((t) => (
+                <button type="button" key={t} className={`cabo-type cabo-type-${t}`} aria-pressed={markType === t} onClick={() => draftStore.setMarkType(t)}>
+                  <span className="cabo-type-icon" aria-hidden="true" />
+                  {ELEMENT_META[t].label}
+                </button>
+              ))}
             </div>
-            <div className={message ? 'tone-error' : fix && classifyAccuracy(fix.accuracy) === 'ruim' ? 'tone-warn' : ''}>
-              {message ?? (fix ? `GPS ${formatAccuracy(fix.accuracy)}` : 'Aguardando o GPS…')}
+            <div className="cabo-dock" role="region" aria-label="Lançar cabo">
+              <DockButton icon={<path d="M9 14 4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3" />} label="Desfazer" disabled={busy || draft.actions.length === 0} onClick={() => void run(undoLast)} />
+              <DockButton icon={<path d="M6 4v8a4 4 0 0 0 4 4h8M14 12l4 4-4 4" />} label="Derivar" disabled={busy || !lastVertex(current)} onClick={openBranch} />
+              <span className="dock-gap" aria-hidden="true" />
+              {branching ? (
+                <DockButton icon={<path d="M5 12h12M13 7l5 5-5 5M20 5v14" />} label="Terminar" ariaLabel="Terminar ramal" tone="end" disabled={busy || points < 2} onClick={endBranch} />
+              ) : (
+                <span aria-hidden="true" />
+              )}
+              <DockButton
+                icon={<path d="M5 13l4 4L19 7" />}
+                label="Finalizar"
+                disabled={busy || !canFinishDraft(draft)}
+                onClick={() => {
+                  setSummaryError(null);
+                  setSummaryOpen(true);
+                }}
+              />
+              <button
+                type="button"
+                className="cabo-mark"
+                disabled={busy}
+                aria-label={`Marcar ${markType === 'poste' ? 'poste' : ELEMENT_META[markType].label} aqui e ligar`}
+                onClick={() => void mark()}
+              >
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z" />
+                  <circle cx="12" cy="10" r="2.5" />
+                </svg>
+                {busy ? 'GPS…' : 'MARCAR'}
+              </button>
             </div>
           </>
         )}
       </div>
 
-      {pending ? (
-        <>
-          <button className="btn btn-primary btn-block" disabled={busy} onClick={() => void run(confirmPendingPoint)}>
-            Confirmar ponto
-          </button>
-          <div className="placement-row">
-            <button className="btn btn-small" onClick={draftStore.discardPosition}>
-              Descartar ponto
-            </button>
-          </div>
-        </>
-      ) : (
-        <>
-          <div className="chips mark-types" role="group" aria-label="Tipo do próximo ponto">
-            {MARK_TYPES.map((t) => (
-              <button type="button" key={t} aria-pressed={markType === t} onClick={() => draftStore.setMarkType(t)}>
-                {ELEMENT_META[t].label}
-              </button>
-            ))}
-          </div>
-          <button className="btn btn-primary btn-block" disabled={busy} onClick={() => void mark()}>
-            {busy ? 'Pegando GPS…' : `Marcar ${markType === 'poste' ? 'poste' : ELEMENT_META[markType].label} aqui e ligar`}
-          </button>
-          {branching && (
-            <button className="btn btn-small btn-block" disabled={busy || points < 2} onClick={endBranch}>
-              Terminar ramal
-            </button>
-          )}
-          <div className="placement-row placement-row-4">
-            <button className="btn btn-small" disabled={busy || draft.actions.length === 0} onClick={() => void run(undoLast)}>
-              Desfazer
-            </button>
-            <button className="btn btn-small" disabled={busy || points === 0} onClick={() => setMetersOpen(true)}>
-              Reserva
-            </button>
-            <button className="btn btn-small" disabled={busy || !lastVertex(current)} onClick={openBranch}>
-              Derivar
-            </button>
-            <button
-              className="btn btn-small"
-              disabled={busy || !canFinishDraft(draft)}
-              onClick={() => {
-                setSummaryError(null);
-                setSummaryOpen(true);
-              }}
-            >
-              Finalizar
-            </button>
-          </div>
-        </>
-      )}
-
       {metersOpen && (
         <MetersDialog
-          onCancel={() => setMetersOpen(false)}
+          onCancel={() => reserveUi.set(false)}
           onConfirm={(m) => {
-            setMetersOpen(false);
+            reserveUi.set(false);
             void run(async () => {
               const r = await addReserveHere(m);
               if (!r.ok) setMessage(r.message ?? 'Não foi possível registrar a reserva.');
@@ -283,6 +324,6 @@ export default function CablePanel() {
           }}
         />
       )}
-    </div>
+    </>
   );
 }

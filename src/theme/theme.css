@@ -221,7 +221,6 @@
 :root[data-theme] .panel-map-pin { border-radius: 16px; }
 
 /* marcas e etiquetas */
-:root[data-theme] .cabo-badge { background: var(--ramal); color: var(--on-accent); }
 :root[data-theme] .badge-state-pendente,
 :root[data-theme] .badge-state-verificando,
 :root[data-theme] .sync-badge-andamento,
