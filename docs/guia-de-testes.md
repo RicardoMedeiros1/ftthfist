@@ -23,7 +23,7 @@ chaves nem senhas). O deploy é conferido pelo número da versão em *Configura�
 - [ ] Iniciar atividade (implantação) com título e OS.
 - [ ] Marcar poste: GPS bom (≤ 15 m) salva direto; GPS ruim (> 15 m) avisa e oferece ajustar arrastando sobre o satélite.
 - [ ] Marcar CTO, CEO, reserva e ocorrência; abrir um elemento e **editar**, **mover** e **excluir** (pede confirmação).
-- [ ] Lançar cabo poste a poste ("Marcar poste aqui e ligar"), ver os metros crescerem, **Reserva**, **Finalizar** e **Salvar cabo**.
+- [ ] Lançar cabo poste a poste (botão redondo **MARCAR**), ver os metros crescerem, **Reserva** (botão ao lado do mapa), **Finalizar** e **Salvar cabo**.
 - [ ] Tirar **foto** de um poste (câmera traseira) e ver a miniatura.
 - [ ] **Trilha GPS:** iniciar, andar, pausar/retomar, encerrar. Conferir que **não** vira cabo.
 - [ ] Concluir a atividade; reabrir; editar título/OS/descrição/materiais.
@@ -76,18 +76,18 @@ chaves nem senhas). O deploy é conferido pelo número da versão em *Configura�
       no mapa" enquadra a rota inteira; a ficha de uma CTO mostra "Fibra de entrada". *Exportar* (KML) traz o padrão de cores e a fibra da CTO.
 
 **Lançar a rede toda de uma vez: tronco e ramais (guia em `docs/fibras.md`)**
-- [ ] *Lançar cabo* (AS-120, 48 fibras) e andar: **"Marcar poste aqui e ligar"** num poste, depois toque em **CEO** (o botão vira "Marcar CEO aqui e
-      ligar") e marque a CEO: o ícone laranja nasce no lugar e o tipo **volta para Poste** sozinho. O mesmo vale para **CTO** (ícone verde).
+- [ ] *Lançar cabo* (AS-120, 48 fibras) e andar: **MARCAR** num poste, depois toque em **CEO** (na pílula acima do dock) e em MARCAR: o ícone
+      laranja nasce no lugar e o tipo **volta para Poste** sozinho. O mesmo vale para **CTO** (ícone verde).
 - [ ] Na CEO, **Derivar**: a tela diz "Saindo de CEO", abre com o tipo e as fibras do cabo de origem (na 2ª vez, com o **último ramal usado**) e
-      os botões estão sempre à vista, sem rolar. Confirmar: o painel mostra **Ramal** e o tipo/fibras do ramal.
-- [ ] Marque 1–2 postes e uma **CTO** no ramal, toque em **Terminar ramal**: o painel volta a **Tronco**. Marque o próximo poste do tronco: a
-      linha do tronco segue **da CEO**, sem pular. (*Terminar ramal* fica apagado enquanto o ramal não tem nenhum ponto.)
+      os botões estão sempre à vista, sem rolar. Confirmar: o caminho no alto mostra **Tronco › Ramal 1** e o tipo/fibras do ramal.
+- [ ] Marque 1–2 postes e uma **CTO** no ramal, toque em **Terminar** (botão laranja do dock): o caminho volta a **Tronco**. Marque o próximo poste do tronco: a
+      linha do tronco segue **da CEO**, sem pular. (*Terminar* fica apagado enquanto o ramal não tem nenhum ponto.)
 - [ ] **Desfazer** em sequência: tira o último ponto (e o poste/CEO/CTO que ele criou do mapa), depois o "terminar ramal" (volta para dentro do
       ramal) e por fim a própria derivação. Poste que já existia no mapa **não** some.
 - [ ] Derivar de um ponto **solto** (toque no mapa fora de qualquer ícone) avisa "Derive de um poste, CEO ou CTO" e não abre nada.
 - [ ] Fechar o app (ou recarregar a página) **no meio de um ramal**: ao abrir, o lançamento volta de onde parou, ainda dentro do ramal.
 - [ ] Repita o desenho do mapa: tronco com **2 CEOs**, de cada uma um ramal até uma **CTO**. O mapa mostra tronco e ramais, cada um na
-      espessura/cor da sua quantidade de fibras. O painel cabe na tela e os botões do mapa ficam acima dele (no tronco e no ramal).
+      espessura/cor da sua quantidade de fibras. A parte de baixo cabe na tela e os botões do mapa (e a atribuição) ficam acima dela (no tronco e no ramal).
 - [ ] **Finalizar**: o resumo lista "Tronco · … / Ramal 1 · … sai de CEO / Ramal 2 · …" com os metros e a soma; abaixo, uma caixa por **CTO**
       (código opcional e **Escolher fibra**: tubo e cor no padrão do cabo; "fim do …" ou "no meio do …"). Escolha a fibra de uma CTO e deixe a
       outra em branco. **Salvar tudo**: aviso "3 cabos salvos".
@@ -159,6 +159,19 @@ chaves nem senhas). O deploy é conferido pelo número da versão em *Configura�
 - [ ] O escritório **não** tem Editar, Excluir nem Concluir em lugar nenhum.
 - [ ] Sem internet, o painel continua mostrando e filtrando o que já foi sincronizado.
 - [ ] No celular o painel é usável (tabelas viram cartões, sem rolagem lateral).
+
+## 3b. Temas e navegação (barra de baixo)
+
+- [ ] *Ajustes › Aparência*: escolher **Polegar** (grafite e verde-limão) e **Fibra** (azul-petróleo e ciano). A troca é na hora, vale **só neste
+      aparelho** e continua ao reabrir o app (sem piscar a cor errada ao abrir). O mapa continua claro nos dois.
+- [ ] **Barra de baixo** no mapa, em *Atividades*, *Projetos* e *Ajustes*: Mapa, Atividades, **+ Marcar** (círculo no meio), Projetos, Ajustes. A aba
+      da tela atual fica na cor de destaque. Trocar de aba não empilha telas: o ← do celular volta para o mapa.
+- [ ] **+ Marcar** funciona de qualquer aba: vai para o mapa e abre a escolha de tipo. Sem atividade aberta, leva a iniciar uma.
+- [ ] Durante a marcação de um elemento, o lançamento de cabo, a legenda e a rota acesa, a barra **some** (os painéis ficam no lugar dela).
+      Abrir *Ajustes* no meio do lançamento e tocar em **+** só **volta ao mapa**, sem recomeçar nada.
+- [ ] Os botões do mapa (zoom, satélite, localização) e a atribuição ("Leaflet | © OpenStreetMap") ficam **acima** da barra e do círculo do +.
+- [ ] Todos os botões da barra e do dock de lançamento são fáceis de tocar com o polegar (≥ 48 px), nos dois temas, no sol e à noite.
+- [ ] Como administrador: a aba **Projetos** abre a gestão de projetos; como técnico, *Meus projetos*.
 
 ## 4. Atualizações do app
 

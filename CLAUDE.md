@@ -88,6 +88,7 @@ collector/             (Fase 3)
 - Fibras e rota: o técnico liga cabos no elemento onde se encontram (CEO/poste/CTO) e diz a fibra de cada CTO; tocar num cabo acende a rota toda (app e painel). Emenda por fibra (qual fibra do cabo A com qual do B) ainda não existe. Guia em `docs/fibras.md`.
 - Lançamento em árvore: no mesmo lançamento o técnico marca poste/CEO/CTO, **deriva** ramais de uma CEO/CTO e termina cada ramal; ao finalizar salva tudo de uma vez (tronco + ramais já ligados no elemento da derivação) e diz a fibra de cada CTO no resumo. O rascunho (`cableDraft`) guarda vários cabos (`cables[]`) e o cabo ativo sai das ações. Guia em `docs/fibras.md`.
 - Excluir atividade (dono e admin) é lógico e em cascata (elementos, cabos, fotos, trilha). Admin edita registros de outros pelo envio normal; o servidor registra quem alterou (`admin_edits`).
+- Temas e navegação: dois temas de cor (**Polegar** e **Fibra**, escolha por aparelho em Ajustes › Aparência; `src/theme/`, variáveis CSS em `<html data-theme>`) sobre o mesmo desenho, mapa claro nos dois. Barra de baixo (`src/components/TabBar.tsx`) com Mapa, Atividades, + Marcar, Projetos e Ajustes; o lançamento de cabo tem dock próprio (`src/features/cables/CablePanel.tsx`, `cableDock.css`).
 - Lista do que testar no celular/computador: `docs/guia-de-testes.md`.
 
 ## Comandos

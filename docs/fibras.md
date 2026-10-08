@@ -9,12 +9,13 @@ Em vez de um cabo por vez, o técnico entra com o cabo (o **tronco**) e, em cada
 Ao finalizar, **tudo é salvo de uma vez, já ligado** (um tronco com ramais até as CTOs, como no desenho do mapa).
 
 1. *Lançar cabo*: tipo, fibras e cores do **tronco** → *Começar a lançar*.
-2. Andar de poste em poste e tocar em **"Marcar poste aqui e ligar"**. Para marcar uma **CEO** ou **CTO**, toque em **CEO**/**CTO** (acima do
-   botão) e depois em "Marcar … aqui e ligar". A escolha vale **só para o próximo ponto**: depois ele volta para Poste.
+2. Andar de poste em poste e tocar no botão redondo **MARCAR** (no meio do dock, embaixo). Para marcar uma **CEO** ou **CTO**, toque em
+   **CEO**/**CTO** (na pílula acima do dock) e depois em MARCAR. A escolha vale **só para o próximo ponto**: depois ele volta para Poste.
+   No alto da tela fica o caminho (**Tronco › Ramal 1 …**, com o tipo e as fibras do cabo) e as medidas: metros · pontos · GPS.
 3. Onde a rede se divide, com esse ponto já marcado, toque em **Derivar**: escolha o tipo e as fibras do ramal (a tela já abre com o
-   **último ramal usado**; na primeira vez, com o cabo de onde ele sai). O painel passa a mostrar **Ramal**. Marque os pontos do ramal
-   até onde ele termina (normalmente uma CTO).
-4. **Terminar ramal** volta ao cabo de onde ele saiu, no ponto da derivação, e o lançamento segue por ali. Dá para derivar de novo no
+   **último ramal usado**; na primeira vez, com o cabo de onde ele sai). O caminho no alto passa a mostrar **Ramal N** (em laranja). Marque os
+   pontos do ramal até onde ele termina (normalmente uma CTO).
+4. **Terminar** (ramal) volta ao cabo de onde ele saiu, no ponto da derivação, e o lançamento segue por ali. Dá para derivar de novo no
    mesmo ponto (CEO com duas saídas) e derivar de dentro de um ramal.
 5. **Desfazer** desfaz a última coisa que o técnico fez: um ponto (e o poste/CEO/CTO que ele criou), uma reserva, o "terminar ramal"
    (volta para dentro do ramal) ou a própria derivação.
