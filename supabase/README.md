@@ -248,7 +248,14 @@ Descobertas dos testes que o app respeita (`src/features/sync`):
 Em segundo plano, sem nunca atrapalhar o campo: ao abrir o app com conta ativa; quando a internet volta; quando o app volta
 para a tela; a cada 2 minutos com o app aberto; e ~4 s depois de gravar algo (junta gravações seguidas, no máximo um ciclo
 automático a cada 30 s: a trilha grava a cada poucos segundos). Falhas do servidor repetem com espera crescente
-(15 s, 30 s, 1 min, 2 min, 5 min); **sem internet não insiste** (espera o aparelho voltar à rede). 
+(15 s, 30 s, 1 min, 2 min, 5 min); **sem internet não insiste** (espera o aparelho voltar à rede).
+
+**Editou o registro enquanto ele subia:** o ciclo só marca como enviado o que não mudou durante o envio, então a versão nova
+continua pendente (a contagem de pendentes não aumenta, por isso nada disparava). Agora, se o ciclo enviou algo e ainda sobrou
+pendente que não está só esperando outro registro, o app abre outro ciclo ~4 s depois, em vez de esperar o relógio de 2 minutos.
+No máximo 5 acompanhamentos seguidos, e só enquanto cada ciclo realmente envia algo (registro recusado ou esperando dependência
+não faz o app repetir à toa).
+
 ### Envio com o app fechado (Chrome/Edge, Android e computador)
 
 O service worker (`src/sw.ts`) usa o **Background Sync**: se o app ficou com pendências sem internet (ou o envio falhou

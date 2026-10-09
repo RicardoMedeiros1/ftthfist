@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { CycleAbort, type CycleReport, type Who } from './engine';
-import { CHANGE_DEBOUNCE_MS, MIN_AUTO_INTERVAL_MS, PERIODIC_MS, createSyncStore, type SyncStoreDeps } from './syncStore';
+import { CHANGE_DEBOUNCE_MS, MAX_FOLLOW_UPS, MIN_AUTO_INTERVAL_MS, PERIODIC_MS, createSyncStore, type SyncStoreDeps } from './syncStore';
 
 const REPORT: CycleReport = { pushed: 0, pulled: 0, lostEdits: 0, newlyBlocked: 0, waiting: 0 };
 const ANA: Who = { userId: 'ana', role: 'tecnico' };
@@ -297,6 +297,149 @@ describe('gravou durante um ciclo', () => {
     await flush();
     await h.tick(MIN_AUTO_INTERVAL_MS);
     expect(h.cycles).toHaveLength(1);
+  });
+});
+
+describe('sobrou pendente depois de um ciclo que enviou (edição durante o envio)', () => {
+  const PUSHED: CycleReport = { ...REPORT, pushed: 1 };
+
+  /** Um ciclo "pendurado" enviando o registro; devolve como termina-lo com o resultado escolhido. */
+  async function startHangingCycle() {
+    await h.store.start();
+    await flush();
+    h.cycles.length = 0;
+    let release!: (r: CycleReport) => void;
+    h.setOutcome(() => new Promise((r) => (release = r)));
+    h.changeCounts(1);
+    await h.tick(CHANGE_DEBOUNCE_MS);
+    expect(h.store.getState().phase).toBe('sincronizando');
+    return (report: CycleReport) => release(report);
+  }
+
+  it('editou o registro que estava subindo (a contagem não mudou): o envio seguinte sai em poucos segundos, sem esperar o relógio de 2 min', async () => {
+    const finish = await startHangingCycle();
+    // o técnico edita o mesmo registro: continua 1 pendente, nenhuma contagem nova é avisada
+    h.setOutcome(async () => {
+      h.counts.pending = 0; // o 2º ciclo envia a versão nova
+      return PUSHED;
+    });
+    finish(PUSHED);
+    await flush();
+    expect(h.store.getState().pending).toBe(1); // sobrou: o ciclo só marca como enviado o que não mudou
+    expect(h.cycles).toHaveLength(1);
+    await h.tick(CHANGE_DEBOUNCE_MS);
+    expect(h.cycles).toHaveLength(2);
+    expect(h.store.getState().pending).toBe(0);
+    await h.tick(PERIODIC_MS); // e não abre um 3º ciclo à toa
+    expect(h.cycles).toHaveLength(2);
+  });
+
+  it('o ciclo não enviou nada (pushed = 0) e ainda há pendente: NÃO repete (não gasta rede à toa)', async () => {
+    const finish = await startHangingCycle();
+    finish(REPORT);
+    await flush();
+    expect(h.pendingTimers()).toBe(0);
+    await h.tick(CHANGE_DEBOUNCE_MS * 3);
+    expect(h.cycles).toHaveLength(1);
+  });
+
+  it('o que sobrou só espera outro registro (dependência): NÃO repete', async () => {
+    const finish = await startHangingCycle();
+    h.counts.pending = 2;
+    finish({ ...REPORT, pushed: 1, waiting: 2 });
+    await flush();
+    await h.tick(CHANGE_DEBOUNCE_MS * 3);
+    expect(h.cycles).toHaveLength(1);
+  });
+
+  it('enviou tudo (nada sobrou): NÃO repete', async () => {
+    const finish = await startHangingCycle();
+    h.counts.pending = 0;
+    finish(PUSHED);
+    await flush();
+    await h.tick(CHANGE_DEBOUNCE_MS * 3);
+    expect(h.cycles).toHaveLength(1);
+  });
+
+  it('sem internet ao terminar: não agenda nada (o app avisa "sem rede" quando um gatilho tentar)', async () => {
+    const finish = await startHangingCycle();
+    h.setOnline(false);
+    finish(PUSHED);
+    await flush();
+    expect(h.pendingTimers()).toBe(0);
+    await h.tick(CHANGE_DEBOUNCE_MS * 3);
+    expect(h.cycles).toHaveLength(1);
+  });
+
+  it('sem conta ativa ao terminar (saiu no meio do ciclo): não agenda nada', async () => {
+    const finish = await startHangingCycle();
+    h.setWho(null);
+    finish(PUSHED);
+    await flush();
+    expect(h.pendingTimers()).toBe(0);
+    await h.tick(CHANGE_DEBOUNCE_MS * 3);
+    expect(h.cycles).toHaveLength(1);
+  });
+
+  it('se o ciclo falhou, vale só o recuo crescente (nada de acompanhamento extra)', async () => {
+    await h.store.start();
+    await flush();
+    h.cycles.length = 0;
+    h.setOutcome(async () => {
+      throw new CycleAbort('server', 'x');
+    });
+    h.changeCounts(1);
+    await h.tick(CHANGE_DEBOUNCE_MS);
+    expect(h.cycles).toHaveLength(1);
+    await h.tick(CHANGE_DEBOUNCE_MS + 1_000); // ainda no recuo de 15 s
+    expect(h.cycles).toHaveLength(1);
+    await h.tick(15_000);
+    expect(h.cycles).toHaveLength(2);
+  });
+
+  it('sem laço: se cada ciclo envia algo e sempre sobra, para depois de MAX_FOLLOW_UPS e deixa o resto para o relógio periódico', async () => {
+    const finish = await startHangingCycle();
+    h.setOutcome(async () => PUSHED); // todo ciclo "envia" e continua sobrando 1 (alguém edita sem parar)
+    finish(PUSHED);
+    await flush();
+    for (let i = 0; i < MAX_FOLLOW_UPS + 3; i++) await h.tick(CHANGE_DEBOUNCE_MS);
+    expect(h.cycles).toHaveLength(1 + MAX_FOLLOW_UPS);
+    await h.tick(PERIODIC_MS); // o gatilho periódico ainda funciona
+    h.fire('every');
+    await flush();
+    expect(h.cycles.length).toBeGreaterThan(1 + MAX_FOLLOW_UPS);
+  });
+
+  it('um ciclo que termina limpo zera a contagem do limite', async () => {
+    const finish = await startHangingCycle();
+    h.setOutcome(async () => PUSHED);
+    finish(PUSHED);
+    await flush();
+    for (let i = 0; i < MAX_FOLLOW_UPS - 1; i++) await h.tick(CHANGE_DEBOUNCE_MS); // quase no limite
+    h.counts.pending = 0;
+    await h.tick(CHANGE_DEBOUNCE_MS); // este ciclo termina sem sobra
+    const before = h.cycles.length;
+    // outro registro sobe e sobra de novo: recomeça do zero (não herda os acompanhamentos de antes)
+    h.setOutcome(async () => PUSHED);
+    h.changeCounts(1);
+    await h.tick(CHANGE_DEBOUNCE_MS);
+    for (let i = 0; i < MAX_FOLLOW_UPS + 2; i++) await h.tick(CHANGE_DEBOUNCE_MS);
+    expect(h.cycles.length - before).toBe(1 + MAX_FOLLOW_UPS);
+  });
+
+  it('gravar de verdade durante o ciclo continua mandando (o acompanhamento não atrapalha o agrupamento de gravações)', async () => {
+    const finish = await startHangingCycle();
+    h.changeCounts(2); // um 2º registro novo durante o ciclo
+    h.setOutcome(async () => {
+      h.counts.pending = 0;
+      return PUSHED;
+    });
+    finish(PUSHED);
+    await flush();
+    await h.tick(CHANGE_DEBOUNCE_MS);
+    expect(h.cycles).toHaveLength(2);
+    await h.tick(CHANGE_DEBOUNCE_MS * 3);
+    expect(h.cycles).toHaveLength(2);
   });
 });
 

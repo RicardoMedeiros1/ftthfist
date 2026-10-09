@@ -63,6 +63,8 @@ export const CHANGE_DEBOUNCE_MS = 4_000;
 /** Entre ciclos automaticos disparados por gravacao/relogio (a trilha grava a cada poucos segundos). */
 export const MIN_AUTO_INTERVAL_MS = 30_000;
 export const PERIODIC_MS = 2 * 60_000;
+/** Quantos ciclos de acompanhamento seguidos (por sobrar pendente depois de enviar) antes de deixar para o relogio periodico. */
+export const MAX_FOLLOW_UPS = 5;
 const BACKOFF_MS = [15_000, 30_000, 60_000, 120_000, 300_000];
 
 interface Persisted {
@@ -77,6 +79,8 @@ export function createSyncStore(deps: SyncStoreDeps) {
   let rerun = false;
   /** Algo novo foi gravado com um ciclo em andamento: o ciclo ja tinha lido a fila, entao precisa de outro logo depois. */
   let grewWhileRunning: 'comum' | 'trilha' | null = null;
+  /** Ciclos de acompanhamento seguidos (sobrou pendente depois de um ciclo que enviou algo). */
+  let followUps = 0;
   let failures = 0;
   let lastAutoAt = -Infinity;
   let cancelTimer: (() => void) | null = null;
@@ -218,9 +222,25 @@ export function createSyncStore(deps: SyncStoreDeps) {
         // gravou durante o ciclo: sem isto o registro ficaria pendente ate o proximo gatilho (a contagem acima ja o absorveu).
         // Se o ciclo falhou, vale o recuo crescente ja agendado.
         schedule(grew === 'comum' ? CHANGE_DEBOUNCE_MS : Math.max(CHANGE_DEBOUNCE_MS, lastAutoAt + MIN_AUTO_INTERVAL_MS - deps.now()), 'mudanca');
+        followUps = 0;
+      } else if (report && leftoverAfterProgress(report) && followUps < MAX_FOLLOW_UPS) {
+        // editou um registro que ja estava pendente enquanto ele subia: a contagem nao muda (nao dispara nada) e o ciclo, que
+        // so marca como enviado o que nao mudou, o deixa pendente. Sem isto ele esperaria o relogio periodico (ate 2 min).
+        followUps++;
+        schedule(CHANGE_DEBOUNCE_MS, 'repetir');
+      } else {
+        followUps = 0;
       }
     }
     return report;
+  }
+
+  /**
+   * O ciclo enviou algo e ainda sobrou pendente que nao esta so esperando outro registro? So assim vale outro ciclo logo:
+   * se nada subiu (servidor recusando, registro esperando dependencia) repetir so gastaria rede e bateria.
+   */
+  function leftoverAfterProgress(report: CycleReport): boolean {
+    return report.pushed > 0 && state.pending - report.waiting > 0 && deps.who() !== null && deps.isOnline();
   }
 
   async function refreshCounts() {
