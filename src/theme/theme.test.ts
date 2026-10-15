@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { DEFAULT_THEME, THEMES, THEME_STORAGE_KEY, applyTheme, getTheme, isThemeId, parseTheme, readTheme, setTheme } from './theme';
 
@@ -68,5 +69,19 @@ describe('tema da interface', () => {
     expect(new Set(THEMES.map((t) => t.swatch.accent)).size).toBe(2);
     expect(new Set(THEMES.map((t) => t.color)).size).toBe(2);
     for (const t of THEMES) expect(t.color).toBe(t.swatch.bg);
+  });
+
+  it('a abertura do app instalado usa o grafite do tema padrão (manifesto e <meta> do index.html)', () => {
+    const padrao = THEMES.find((t) => t.id === DEFAULT_THEME)!.color;
+    const manifesto = readFileSync(new URL('../../vite.config.ts', import.meta.url), 'utf8');
+    const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+    expect(manifesto).toContain(`background_color: '${padrao}'`);
+    expect(manifesto).toContain(`theme_color: '${padrao}'`);
+    expect(html).toContain(`<meta name="theme-color" content="${padrao}" />`);
+  });
+  it('o ícone do app tem o mesmo fundo grafite (sem quadrado preto na abertura)', () => {
+    const padrao = THEMES.find((t) => t.id === DEFAULT_THEME)!.color;
+    const svg = readFileSync(new URL('../../public/icon.svg', import.meta.url), 'utf8');
+    expect(svg).toContain(`<rect width="512" height="512" fill="${padrao}"/>`);
   });
 });

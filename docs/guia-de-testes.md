@@ -180,6 +180,9 @@ chaves nem senhas). O deploy é conferido pelo número da versão em *Configura�
 - [ ] Os botões do mapa (zoom, satélite, localização) e a atribuição ("Leaflet | © OpenStreetMap") ficam **acima** da barra e do círculo do +.
 - [ ] Todos os botões da barra e do dock de lançamento são fáceis de tocar com o polegar (≥ 48 px), nos dois temas, no sol e à noite.
 - [ ] Como administrador: a aba **Projetos** abre a gestão de projetos; como técnico, *Meus projetos*.
+- [ ] **App instalado (Android)**: remova o RotaFibra da tela inicial e instale de novo (o Android só troca o ícone ao reinstalar ou depois de alguns
+      dias). O ícone novo tem fundo **grafite** (antes era preto). Ao abrir, a abertura aparece em grafite, sem "piscar" preto, e a barra de cima
+      acompanha o tema escolhido. Quem usa o tema Fibra vê a abertura em grafite e depois a tela em azul-petróleo (o manifesto só guarda uma cor).
 
 ## 4. Atualizações do app
 

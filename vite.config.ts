@@ -34,8 +34,9 @@ const config = defineConfig({
         scope: base,
         display: 'standalone',
         orientation: 'portrait',
-        background_color: '#000000',
-        theme_color: '#000000',
+        // grafite do tema Polegar (--bg): abertura do app instalado sem piscar; o tema escolhido troca a barra depois (theme.ts)
+        background_color: '#111418',
+        theme_color: '#111418',
         icons: [
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
