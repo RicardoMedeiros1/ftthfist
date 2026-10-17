@@ -1,4 +1,6 @@
 .people-list, .change-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+/* papéis: os três botões cabem em qualquer largura de celular (quebram em duas linhas, nunca saem do cartão) */
+.person .chips { display: flex; flex-wrap: wrap; }
 .person .chips button { min-height: 48px; min-width: max-content; padding-inline: 14px; flex: 1 1 auto; }
 .person[data-group='pendente'] { border-color: var(--accent); }
 .change-fields { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 15px; overflow-wrap: anywhere; }

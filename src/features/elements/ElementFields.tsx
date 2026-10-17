@@ -53,7 +53,7 @@ function TypeFields({
     case 'poste':
       return (
         <>
-          <Chips label="De quem é o poste" value={get('owner')} options={[...OWNERS]} onChange={(v) => set('owner', v)} />
+          <Chips label="De quem é o poste" value={get('owner')} options={[...OWNERS]} onChange={(v) => set('owner', v)} className="chips-wide" />
           <TextField id="ownerCode" label="Nº da plaqueta da concessionária" value={get('ownerCode')} onChange={(v) => set('ownerCode', v)} />
         </>
       );
@@ -97,7 +97,7 @@ function TypeFields({
     case 'ocorrencia':
       return (
         <>
-          <Chips label="Problema" value={get('problem')} options={[...PROBLEMS]} onChange={(v) => set('problem', v)} />
+          <Chips label="Problema" value={get('problem')} options={[...PROBLEMS]} onChange={(v) => set('problem', v)} className="chips-wide" />
           <TextField id="actionTaken" label="O que foi feito" value={get('actionTaken')} onChange={(v) => set('actionTaken', v)} />
         </>
       );
