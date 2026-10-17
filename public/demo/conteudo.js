@@ -1,0 +1,305 @@
+// Conteúdo do "Como usar" (demonstrativo) e do POP em documento: um único texto, em português, para os dois.
+// Cada capítulo tem os passos (com a tela de exemplo `img`, quando há) e o procedimento (`pop`).
+// Dados e nomes das telas são de exemplo. Quando mudar uma tela do app, refaça as capturas (docs/pop/README.md).
+
+export const PAPEIS = [
+  { id: 'tecnico', titulo: 'Técnico de campo', sub: 'No celular, no campo: marcar, lançar cabo, fibras e uso sem internet.', device: 'phone' },
+  { id: 'escritorio', titulo: 'Administrador e escritório', sub: 'Aprovar pessoas, projetos, desenho e painel (no computador; o administrador também no celular).', device: 'desktop' },
+];
+
+export const CAPITULOS = [
+  // ====================================================================================== TÉCNICO
+  {
+    id: 'acesso', papel: 'tecnico', titulo: 'Instalar e entrar',
+    resumo: 'Instalar o app, pedir acesso, esperar a aprovação e entrar.',
+    pop: {
+      codigo: 'POP-01', quem: 'Técnico de campo (e o administrador, que aprova o pedido).',
+      objetivo: 'Deixar o celular do técnico com o app instalado e o acesso aprovado.',
+      antes: ['Celular com internet (só nesta primeira vez).', 'Nome completo, e-mail e uma senha de 8 caracteres ou mais.'],
+      conferir: ['O app mostra o mapa e a barra de baixo (Mapa, Atividades, + Marcar, Projetos, Ajustes).', 'Com o modo avião ligado, fechar e abrir o app abre direto no mapa.'],
+      seDerErrado: ['“Aguardando aprovação” por muito tempo: avise o administrador. Ele aprova em Ajustes › Administração › Pessoas.', '“Acesso desativado”: o administrador desativou este acesso; fale com ele.', 'Senha errada várias vezes: a tela trava por alguns minutos; espere a contagem terminar.'],
+    },
+    passos: [
+      { titulo: 'Instale o app na tela inicial', texto: 'Abra o endereço do app no celular, com internet. No Android (Chrome): menu ⋮ › Instalar app. No iPhone (Safari): botão de compartilhar › Adicionar à Tela de Início.', dica: 'Depois de instalar, abra o app uma vez com internet. A partir daí ele abre também sem internet.' },
+      { img: 't1-pedir-acesso', titulo: 'Peça acesso', texto: 'No primeiro acesso o app abre direto em “Pedir acesso”, sem mostrar o mapa. Escreva o nome completo, o e-mail e uma senha de pelo menos 8 caracteres.', acao: 'Toque em Pedir acesso' },
+      { img: 't1-aguardando', titulo: 'Aguarde a aprovação', texto: 'O pedido vai para o administrador. A tela fica em “Aguardando aprovação” e confere sozinha de tempos em tempos; o app abre assim que for aprovado.', acao: 'Para conferir na hora, toque em Verificar agora' },
+      { img: 't1-mapa', titulo: 'O app abre no mapa', texto: 'Aprovado, o app abre no mapa. Dali em diante ele funciona também sem internet: se você fechar e abrir de novo, mesmo no modo avião, ele abre direto.', acao: 'Toque em “Nenhuma atividade aberta” para começar' },
+      { img: 't1-entrar', titulo: 'Nas próximas vezes: Entrar', texto: 'Se você sair da conta ou trocar de aparelho, use “Entrar” com o e-mail e a senha. O que já estava no aparelho continua lá.', acao: 'Toque em Entrar' },
+      { img: 't1-limite', titulo: 'Muitas senhas erradas travam a tela', texto: 'Depois de 5 erros seguidos o aparelho trava a tela por 5 minutos (e por mais tempo se continuar errando) e mostra a contagem. Falta de internet e e-mail digitado errado não contam como tentativa.', atencao: 'Espere a contagem terminar e tente de novo com calma.' },
+    ],
+  },
+  {
+    id: 'atividade', papel: 'tecnico', titulo: 'Começar e concluir uma atividade',
+    resumo: 'Tudo o que você marca pertence a uma atividade (a ordem de serviço).',
+    pop: {
+      codigo: 'POP-02', quem: 'Técnico de campo.',
+      objetivo: 'Abrir uma atividade antes de trabalhar e concluí-la ao terminar o serviço.',
+      antes: ['Acesso aprovado.', 'Se o serviço veio de um projeto do administrador, use “Iniciar este projeto” (capítulo Projeto designado).'],
+      conferir: ['O título da atividade aparece no alto do mapa, com o tipo e a OS.', 'Na lista de Atividades ela aparece como “Concluída”, com a hora do fim.'],
+      seDerErrado: ['O app só deixa uma atividade aberta por vez: conclua a aberta antes de iniciar outra.', 'Concluiu por engano: abra a atividade e toque em Reabrir.'],
+    },
+    passos: [
+      { img: 't2-nova', titulo: 'Dê nome à atividade', texto: 'Escolha o tipo (Implantação ou Manutenção), escreva o título e, se tiver, o número da OS. O seu nome já vem do cadastro.', acao: 'Toque em Iniciar atividade', atencao: 'Só pode haver uma atividade aberta por vez.' },
+      { img: 't2-aberta', titulo: 'Atividade aberta', texto: 'O título aparece no alto do mapa. Tudo o que você marcar a partir de agora entra nesta atividade. O botão verde + Marcar fica no meio da barra de baixo.', acao: 'Toque em + Marcar quando for marcar algo' },
+      { img: 't2-lista', titulo: 'Suas atividades', texto: 'Em Atividades você vê tudo o que já fez, com busca e filtros. Cada cartão tem Abrir, Reabrir e Exportar.' },
+      { img: 't2-detalhe', titulo: 'Concluir a atividade', texto: 'Abra a atividade para ver materiais, metros de cabo e totais. Quando terminar o serviço, conclua.', acao: 'Toque em Concluir', dica: 'Concluiu por engano? Use Reabrir.' },
+      { img: 't2-concluida', titulo: 'Atividade concluída', texto: 'Ela fica como “Concluída”, com a hora do fim. Para mudar título, OS, descrição e materiais, use Editar.' },
+    ],
+  },
+  {
+    id: 'elementos', papel: 'tecnico', titulo: 'Marcar poste, CTO, CEO e ocorrência',
+    resumo: 'Marcar um elemento da rede com o GPS, preencher a ficha e tirar foto.',
+    pop: {
+      codigo: 'POP-03', quem: 'Técnico de campo.',
+      objetivo: 'Registrar cada poste, CTO, CEO, reserva ou ocorrência com a posição e a precisão do GPS.',
+      antes: ['Uma atividade aberta.', 'GPS do celular ligado e permissão de localização dada ao app.', 'De preferência, céu aberto: a precisão é melhor.'],
+      conferir: ['O elemento aparece no mapa com o ícone do tipo.', 'Na ficha, a posição mostra a precisão (GPS ±4 m, por exemplo).', 'A foto aparece como miniatura em “Fotos”.'],
+      seDerErrado: ['Precisão acima de 15 m: o app avisa; arraste o marcador sobre o satélite até o ponto certo ou use “Tocar no mapa”.', '“Ainda sem sinal de GPS”: espere alguns segundos, vá para um lugar aberto ou toque no mapa para marcar à mão.', 'Marcou o tipo errado: abra a ficha, exclua (com confirmação) e marque de novo.'],
+    },
+    passos: [
+      { img: 't3-tipos', titulo: 'Escolha o tipo', texto: 'Toque em + Marcar e escolha o que está marcando: Poste, CTO, CEO, Reserva, Ocorrência ou Outro. Para lançar cabo, veja o capítulo seguinte.', acao: 'Toque em Poste' },
+      { img: 't3-poste-gps', titulo: 'O GPS pega a posição', texto: 'O app procura o sinal e mostra a precisão em metros. Com precisão boa (até 15 m) a posição fica pronta na hora.', acao: 'Toque em Continuar' },
+      { img: 't3-gps-ruim', titulo: 'GPS ruim? Ajuste no satélite', texto: 'Se a precisão passar de 15 m o app avisa e mostra o satélite. Arraste o marcador até o ponto certo, ou use “Tocar no mapa” ou “Buscar de novo”.', acao: 'Toque em Continuar quando o marcador estiver no lugar', atencao: 'Um ponto arrastado vira posição manual: o app deixa de mostrar a precisão do GPS.' },
+      { img: 't3-foto', titulo: 'Preencha a ficha e tire a foto', texto: 'Escreva a identificação (a plaqueta) e o que mais souber. “Tirar foto” abre a câmera traseira; a foto é reduzida e fica no aparelho.', acao: 'Toque em Salvar Poste' },
+      { img: 't3-form-cto', titulo: 'Cada tipo tem os seus campos', texto: 'A CTO pede capacidade e splitter; a CEO, bandejas e emendas; a reserva, os metros; a ocorrência, o problema e o que foi feito.', acao: 'Toque em Salvar CTO' },
+      { img: 't3-ocorrencia', titulo: 'Ocorrência (manutenção)', texto: 'Marque o problema (rompimento, atenuação, poste caído, caixa danificada ou outro) e escreva o que foi feito.', acao: 'Toque em Salvar Ocorrência' },
+      { img: 't3-ficha', titulo: 'Abrir, editar e mover', texto: 'Toque num elemento no mapa para abrir a ficha. Dali você edita, move (arrastando) ou exclui, e vê as fotos.', acao: 'Toque em Mover para mudar de lugar' },
+      { img: 't3-excluir', titulo: 'Excluir sempre pede confirmação', texto: 'Antes de excluir o app pergunta e avisa o que sai junto, como as fotos. O registro some das telas, mas não quebra o que já foi sincronizado.', acao: 'Toque em Cancelar para desistir' },
+    ],
+  },
+  {
+    id: 'cabo', papel: 'tecnico', titulo: 'Lançar cabo poste a poste, com ramais',
+    resumo: 'Marcar o cabo poste a poste, derivar ramais e salvar a rede toda de uma vez.',
+    pop: {
+      codigo: 'POP-04', quem: 'Técnico de campo.',
+      objetivo: 'Registrar o traçado do cabo ligando os elementos, com o tronco, os ramais, as reservas e a fibra de cada CTO.',
+      antes: ['Uma atividade aberta.', 'Saber o tipo do cabo (drop, AS-80, AS-120…) e a quantidade de fibras.', 'Estar em cima do poste ao marcar (o ponto vem do GPS).'],
+      conferir: ['Os metros do cabo crescem a cada ponto marcado.', 'No resumo, o tronco e cada ramal aparecem com os seus metros e o total bate com o esperado.', 'Depois de salvar, o mapa mostra o tronco e os ramais ligados.'],
+      seDerErrado: ['Marcou um ponto errado: toque em Desfazer (tira o último ponto; repetindo, volta o “terminar ramal” e a própria derivação).', 'Quer desistir do lançamento todo: Cancelar (pede confirmação).', 'Fechou o app no meio: ao abrir, o lançamento volta de onde parou, ainda dentro do ramal.', '“Derive de um poste, CEO ou CTO”: a derivação só abre num ponto que existe, não num toque solto no mapa.'],
+    },
+    passos: [
+      { img: 't4-escolher', titulo: 'Escolha o cabo', texto: 'Em + Marcar, toque em “Lançar cabo”. Escolha o tipo (drop, AS-80, AS-120…), a quantidade de fibras e o padrão de cores das fibras (ABNT ou Internacional).', acao: 'Toque em Começar a lançar' },
+      { img: 't4-primeiro', titulo: 'Marque o primeiro poste', texto: 'Fique em cima do poste e toque no círculo MARCAR. O app usa o GPS, guarda o ponto e já liga ao anterior. Os metros crescem a cada ponto.', acao: 'Toque em MARCAR', dica: 'Errou um ponto? Desfazer tira o último. Para CEO ou CTO, escolha o tipo na pílula acima do botão antes de marcar; depois ele volta para Poste sozinho.' },
+      { img: 't4-reserva', titulo: 'Reserva de cabo', texto: 'Deixou uma sobra de cabo no poste? Toque em Reserva e diga quantos metros. Ela entra no total do cabo.', acao: 'Toque em Adicionar' },
+      { img: 't4-tronco', titulo: 'Marque a CEO e derive o ramal', texto: 'Numa CEO ou CTO o cabo pode se dividir. “Derivar” abre um ramal que sai daquele ponto.', acao: 'Toque em Derivar' },
+      { img: 't4-derivar', titulo: 'Cabo do ramal', texto: 'Escolha o tipo e as fibras do ramal (a tela já traz as do cabo de origem, ou as do último ramal).', acao: 'Toque em Derivar' },
+      { img: 't4-ramal', titulo: 'Marque o ramal e termine', texto: 'No alto aparece o caminho “Tronco › Ramal 1”. Marque os postes e a CTO do ramal. Terminou? Toque em Terminar: você volta ao tronco, que segue da CEO.', acao: 'Toque em Terminar' },
+      { img: 't4-resumo', titulo: 'Finalizar: o resumo', texto: 'Ao finalizar o app lista o tronco e cada ramal, com os metros, as reservas e o total do lançamento.' },
+      { img: 't4-fibra', titulo: 'Fibra de cada CTO', texto: 'Para cada CTO diga de qual fibra do cabo ela vive: tubo e cor, no padrão escolhido. Quem não souber agora informa depois, em Editar.', acao: 'Toque na fibra (por exemplo, Branco)' },
+      { img: 't4-salvar', titulo: 'Salvar tudo', texto: 'Confira e salve de uma vez. O tronco e os ramais já saem ligados no elemento da derivação.', acao: 'Toque em Salvar tudo' },
+      { img: 't4-salvo', titulo: 'Cabos salvos', texto: 'O aviso diz quantos cabos foram salvos e o total de metros. A rede aparece no mapa, cada cabo na cor e na espessura da sua quantidade de fibras.' },
+    ],
+  },
+  {
+    id: 'fibras', papel: 'tecnico', titulo: 'Fibras, ligações e rota acesa',
+    resumo: 'Ver as fibras do cabo, ligar cabos num ponto, a fibra de cada CTO e a rota inteira.',
+    pop: {
+      codigo: 'POP-05', quem: 'Técnico de campo.',
+      objetivo: 'Conferir as fibras de um cabo, ligar cabos no ponto onde se encontram e saber, para cada CTO, qual fibra a alimenta.',
+      antes: ['Os cabos já salvos.', 'Saber, de cada CTO, o cabo e a fibra de entrada.'],
+      conferir: ['A ficha da CTO mostra “Fibra de entrada”, por exemplo “Fibra 3 · Branco”.', 'Na ficha do cabo a fibra usada aparece marcada com a CTO.', 'Ao tocar num cabo, a rota acende com “Rota: N cabos · metros · N CTOs”.'],
+      seDerErrado: ['Escolheu uma fibra que outra CTO já usa: o app avisa antes de salvar.', 'Marcou só um cabo no ponto: o app avisa que é preciso pelo menos dois para ligar.', 'Emenda fibra a fibra (qual fibra do cabo A com qual do B) ainda não existe no app.'],
+    },
+    passos: [
+      { img: 't5-cabo', titulo: 'Ficha do cabo e fibras', texto: 'Abra um cabo no mapa. A ficha mostra as fibras com cor e número, agrupadas em tubos (12 fibras por tubo, nos cabos acima de 12 fibras). A fibra usada por uma CTO aparece marcada.', acao: 'Toque num tubo para abrir ou fechar' },
+      { img: 't5-ceo', titulo: 'Ligar cabos num ponto', texto: 'Onde dois cabos se encontram (numa CEO, poste ou CTO), marque quais continuam um no outro e toque em Salvar ligações. Quem lança a rede toda de uma vez já sai ligado.', acao: 'Toque num cabo para marcar ou desmarcar', atencao: 'O app liga cabo com cabo no ponto. A emenda fibra a fibra ainda não existe.' },
+      { img: 't5-cto', titulo: 'Fibra de entrada da CTO', texto: 'A ficha da CTO mostra qual cabo e qual fibra a alimentam (por exemplo, Fibra 3 · Branco). Para mudar, toque em Editar.', acao: 'Toque em Editar' },
+      { img: 't5-ver-rota', titulo: 'Ver a rota no mapa', texto: 'Na ficha do cabo, “Ver a rota no mapa” acende todos os cabos ligados a ele.', acao: 'Toque em Ver a rota no mapa' },
+      { img: 't5-rota', titulo: 'A rota acesa', texto: 'Os cabos da rota ficam com halo amarelo e o resto esmaece. A folha de baixo mostra “Rota: 3 cabos · 336,9 m · 2 CTOs” e a fibra de cada CTO. Dá para abrir um cabo ou uma CTO da lista.', acao: 'Toque em Fechar para apagar a rota', dica: 'Tocar em qualquer parte de um cabo, no mapa, também acende a rota.' },
+      { img: 't5-mapa-rede', titulo: 'A rede no mapa', texto: 'Postes, CEOs, CTOs, reservas e ocorrências, com os cabos na cor e na espessura da quantidade de fibras. O botão Legenda explica cada símbolo.' },
+    ],
+  },
+  {
+    id: 'projeto-designado', papel: 'tecnico', titulo: 'Projeto que o administrador entregou',
+    resumo: 'Receber o projeto, ver o desenho como guia, iniciar e concluir.',
+    pop: {
+      codigo: 'POP-06', quem: 'Técnico de campo.',
+      objetivo: 'Executar um projeto designado pelo administrador, seguindo o desenho dele como guia.',
+      antes: ['Abrir o app com internet pelo menos uma vez depois que o administrador entregou o projeto (depois funciona sem internet).', 'Nenhuma outra atividade aberta.'],
+      conferir: ['A atividade nasce com o nome, o tipo e a OS do projeto, e o projeto passa a “Em andamento”.', 'Ao concluir, o projeto fica “Concluído” (se você respondeu Sim) e some do aviso.'],
+      seDerErrado: ['“Já existe uma atividade aberta”: conclua a atividade aberta antes de iniciar o projeto.', 'Respondeu errado se o projeto terminou: abra a atividade concluída e use “Com esta atividade o projeto terminou? Sim / Não”.', 'O administrador passou o projeto para outro técnico ou cancelou: ele some da sua lista na próxima sincronização; o que você já fez continua.'],
+    },
+    passos: [
+      { img: 't6-aviso', titulo: 'Aviso ao abrir o app', texto: 'Quando o administrador entrega um projeto, ao abrir o app aparece “Você tem N projetos para fazer”. “Depois” esconde o aviso até abrir o app de novo.', acao: 'Toque em Ver' },
+      { img: 't6-projeto', titulo: 'A ficha do projeto', texto: 'Veja as instruções, o prazo, o endereço e o desenho que o administrador fez. “Ver no mapa” centraliza no ponto e “Como chegar” abre o aplicativo de mapas do celular.', acao: 'Toque em Ver desenho no mapa' },
+      { img: 't6-projetado', titulo: 'O desenho aparece tracejado', texto: 'Na camada “Projetado”, o traçado e os pontos do projeto aparecem tracejados, só como guia. Eles não viram cabo nem elemento: você marca no campo, como sempre.', acao: 'Toque em Projetado para ligar ou desligar' },
+      { img: 't6-iniciar', titulo: 'Iniciar o projeto', texto: 'Iniciar cria a atividade já com o nome, o tipo e a OS do projeto, e o projeto passa a “Em andamento”.', acao: 'Toque em Iniciar este projeto', atencao: 'Com outra atividade aberta, o app avisa e não deixa iniciar.' },
+      { img: 't6-iniciado', titulo: 'Trabalhe como sempre', texto: 'A atividade do projeto está aberta. Marque elementos e lance cabos normalmente, seguindo o desenho.', acao: 'Toque na atividade quando terminar, para concluir' },
+      { img: 't6-concluir', titulo: 'Este projeto está concluído?', texto: 'Ao concluir a atividade do projeto, o app pergunta se o projeto terminou. “Sim” conclui o projeto; “Não, ainda falta fazer” conclui só a atividade; “Voltar” desiste.', acao: 'Toque em Sim, o projeto está concluído' },
+      { img: 't6-concluido', titulo: 'No histórico', texto: 'A atividade fica concluída e ligada ao projeto. O escritório acompanha o andamento no painel.' },
+    ],
+  },
+  {
+    id: 'trilha', papel: 'tecnico', titulo: 'Trilha GPS e camadas de referência',
+    resumo: 'Gravar o seu deslocamento e consultar uma rede existente (KML/KMZ).',
+    pop: {
+      codigo: 'POP-07', quem: 'Técnico de campo.',
+      objetivo: 'Registrar o caminho percorrido (trilha) e consultar no mapa uma rede que veio de um arquivo KML/KMZ.',
+      antes: ['Uma atividade aberta (para a trilha).', 'Para as camadas: o arquivo .kml ou .kmz no celular.'],
+      conferir: ['A trilha aparece tracejada no mapa; a tela mostra os pontos e os metros.', 'A camada importada aparece em Camadas e liga e desliga no botão Referência do mapa.'],
+      seDerErrado: ['A trilha nunca vira cabo sozinha: o cabo se desenha poste a poste.', 'Arquivo que não é KML/KMZ: o app avisa e não importa nada.'],
+    },
+    passos: [
+      { img: 't7-trilha', titulo: 'Gravar a trilha', texto: 'A trilha é o registro do seu deslocamento, separado do cabo. Ela nunca vira cabo sozinha.', acao: 'Toque em Iniciar gravação', atencao: 'A gravação para se a tela apagar ou o app for fechado: mantenha o app aberto e a tela ligada.' },
+      { img: 't7-gravando', titulo: 'Pausar e encerrar', texto: 'Enquanto grava, a tela mostra o tempo, a distância e a precisão do GPS, e a trilha aparece tracejada no mapa. Pausar e Encerrar ficam à mão. O app descarta pontos com precisão pior que 30 m e pontos a menos de 5 m do anterior.', acao: 'Toque em Pausar para parar um instante' },
+      { img: 't7-camadas', titulo: 'Camadas de referência (KML/KMZ)', texto: 'Importe o arquivo KML ou KMZ de uma rede existente para consultar no mapa e, se quiser, converter pontos em elementos. A camada é só de consulta, fica salva no aparelho mesmo sem internet e não entra no backup.', acao: 'Toque em Importar arquivo KML/KMZ' },
+    ],
+  },
+  {
+    id: 'sem-internet', papel: 'tecnico', titulo: 'Sem internet e sincronização',
+    resumo: 'Trabalhar sem sinal e deixar o app enviar tudo quando a internet voltar.',
+    pop: {
+      codigo: 'POP-08', quem: 'Técnico de campo.',
+      objetivo: 'Trabalhar sem internet e conferir que o que foi registrado subiu para o servidor.',
+      antes: ['Acesso aprovado e o app aberto com internet pelo menos uma vez.'],
+      conferir: ['O indicador volta a “Online” e a contagem de pendentes chega a zero.', 'Em Ajustes › Conta › Sincronização, a situação diz “Tudo enviado”.'],
+      seDerErrado: ['Pendentes que não sobem: abra a tela Sincronização; registros recusados aparecem ali, com o motivo.', 'Sessão vencida: o app pede para você entrar de novo; os dados do aparelho continuam lá.', 'No iPhone o envio só acontece com o app aberto; no Android pode acontecer com o app fechado.'],
+    },
+    passos: [
+      { img: 't8-offline', titulo: 'Sem internet, nada para', texto: 'Tudo é salvo primeiro no aparelho. O indicador mostra “Offline” e quantos registros esperam para subir.' },
+      { img: 't8-online', titulo: 'A internet voltou', texto: 'Com a internet de volta, o indicador passa para “Online” e tudo sobe sozinho, sem você fazer nada. No Android o envio acontece até com o app fechado; no iPhone, ao abrir o app.' },
+      { img: 't8-sincronizacao', titulo: 'Tela Sincronização', texto: 'Em Ajustes › Conta › Sincronização você vê a situação (“Tudo enviado”), pode tocar em Sincronizar agora, e vê o que o servidor recusou (com o motivo) e as alterações que foram substituídas. As fotos sobem junto com os dados.' },
+    ],
+  },
+  {
+    id: 'backup', papel: 'tecnico', titulo: 'Backup e exportar',
+    resumo: 'Guardar uma cópia dos dados do aparelho e levar a rede para o Google Earth.',
+    pop: {
+      codigo: 'POP-09', quem: 'Técnico de campo (e o escritório, para abrir o arquivo).',
+      objetivo: 'Ter uma cópia dos dados do aparelho e exportar a rede para o Google Earth ou o QGIS.',
+      antes: ['Ao menos uma atividade registrada.'],
+      conferir: ['O arquivo de backup foi salvo ou compartilhado e o app mostra “Último backup há …” em Ajustes.', 'O arquivo KMZ abre no Google Earth com os elementos, cabos e trilhas.'],
+      seDerErrado: ['O backup não vai para o servidor: guarde o arquivo em um lugar seguro (e-mail, nuvem).', 'Para restaurar em outro aparelho use “Escolher arquivo de backup”.'],
+    },
+    passos: [
+      { img: 't9-backup', titulo: 'Backup do aparelho', texto: 'Prepare o arquivo de backup e guarde onde quiser: ele não vai para o servidor. Para restaurar (em outro aparelho, por exemplo), use “Escolher arquivo de backup”. O app também lembra de fazer o backup de tempos em tempos. “Proteger os dados” pede ao navegador para não apagar os dados do app.', acao: 'Toque em Preparar backup' },
+      { img: 't9-exportar', titulo: 'Exportar para o Google Earth', texto: 'Escolha o que exportar (só os seus registros, a rede inteira ou uma atividade), o formato (KMZ para o Google Earth, GeoJSON para o QGIS) e se leva as fotos. Elementos, cabos e trilhas saem no arquivo.', acao: 'Toque em Preparar arquivo' },
+    ],
+  },
+  {
+    id: 'ajustes', papel: 'tecnico', titulo: 'Ajustes: Como usar, tema e conta',
+    resumo: 'Onde achar este passo a passo, trocar o tema e cuidar da conta.',
+    pop: {
+      codigo: 'POP-10', quem: 'Técnico de campo.',
+      objetivo: 'Conhecer os Ajustes: abrir o Como usar, escolher o tema, os tipos de cabo e as cores das fibras.',
+      antes: ['Nenhum.'],
+      conferir: ['O tema escolhido continua depois de fechar e abrir o app.', 'Sair da conta não apaga nada do aparelho: ao entrar de novo tudo reaparece.'],
+      seDerErrado: ['O nome do técnico não muda no app depois de aprovado: ele vem do cadastro; peça ao administrador.', 'O tema vale só neste aparelho: em outro celular, escolha de novo.'],
+    },
+    passos: [
+      { img: 't10-ajustes', titulo: 'Como usar', texto: 'Nos Ajustes, o cartão “Como usar o app” abre este passo a passo quando você quiser.', acao: 'Toque em Como usar' },
+      { img: 't10-aparencia', titulo: 'Escolha o tema', texto: 'Polegar (grafite e verde-limão) tem contraste alto e é bom ao sol. Fibra (azul-petróleo e ciano) é mais suave e é bom à noite. A escolha vale só neste aparelho.', acao: 'Toque em Fibra para testar' },
+      { img: 't10-tema-fibra', titulo: 'Tema Fibra', texto: 'A troca é na hora e continua ao reabrir o app. O mapa continua claro nos dois temas.' },
+      { img: 't10-tipos-cabo', titulo: 'Tipos de cabo e cores das fibras', texto: 'Você pode acrescentar ou remover tipos de cabo e escolher o padrão de cores dos cabos novos: ABNT ou Internacional (TIA-598).' },
+      { img: 't10-conta', titulo: 'Conta e sincronização', texto: 'Abra a conta para trocar a senha ou sair. Sair não apaga nada do aparelho.', acao: 'Toque em Sincronização para ver o envio' },
+    ],
+  },
+
+  // ====================================================================================== ADMINISTRADOR E ESCRITÓRIO
+  {
+    id: 'aprovar', papel: 'escritorio', titulo: 'Aprovar pessoas (administrador)',
+    resumo: 'Liberar o acesso de quem pediu, escolhendo o papel de cada um.',
+    pop: {
+      codigo: 'POP-11', quem: 'Administrador.',
+      objetivo: 'Aprovar, recusar, desativar e mudar o papel das pessoas que usam o app.',
+      antes: ['Estar com a conta de administrador e com internet (esta tela precisa do servidor).'],
+      conferir: ['A pessoa passa para “Com acesso” e o app dela abre sozinho.', 'A lista mostra “Aprovado em … por …”.'],
+      seDerErrado: ['“Sem conexão com o servidor”: nada foi alterado; tente de novo com internet.', 'Aprovou com o papel errado: use “Mudar papel” (pede confirmação).', 'Desativar não apaga nada: o que a pessoa registrou continua; ela só deixa de entrar.'],
+    },
+    passos: [
+      { img: 'a1-ajustes', titulo: 'Abra Pessoas', texto: 'Em Ajustes › Administração (só o administrador vê esse cartão) toque em Pessoas.', acao: 'Toque em Pessoas' },
+      { img: 'a1-pessoas', titulo: 'Pedidos aguardando', texto: 'Quem pediu acesso aparece em “Aguardando aprovação”. Escolha o papel: Técnico (registra e altera o que é dele), Escritório (só consulta e abre o painel) ou Administrador (altera tudo e aprova pessoas).', acao: 'Escolha o papel e toque em Aprovar' },
+      { img: 'a1-aprovar', titulo: 'Confirme', texto: 'O app pergunta, citando a pessoa e o papel, antes de liberar.', acao: 'Toque em Aprovar' },
+      { img: 'a1-aprovado', titulo: 'Pronto', texto: 'A pessoa passa para “Com acesso” e o app dela abre sozinho. Depois você pode mudar o papel, desativar ou reativar.', atencao: 'Rebaixar um administrador usa um botão vermelho, de perigo.' },
+    ],
+  },
+  {
+    id: 'projeto-admin', papel: 'escritorio', titulo: 'Criar e entregar um projeto (administrador)',
+    resumo: 'Cadastrar o serviço, escolher o técnico e acompanhar a situação.',
+    pop: {
+      codigo: 'POP-12', quem: 'Administrador.',
+      objetivo: 'Criar um projeto e entregá-lo a um técnico, com instruções, local e prazo.',
+      antes: ['Conta de administrador, internet (a tela de projetos precisa do servidor).', 'O técnico já aprovado.'],
+      conferir: ['O projeto aparece na lista como Pendente (Atrasado, se o prazo passou).', 'O técnico recebe “Você tem N projetos para fazer” na próxima vez que abrir o app com internet.'],
+      seDerErrado: ['Sem nome ou sem técnico o app mostra o erro e não cria.', 'Coordenadas coladas do Google Maps: confira a linha “Entendi: …” antes de criar.', 'Sem internet a tela avisa e bloqueia “Novo projeto”.'],
+    },
+    passos: [
+      { img: 'a2-lista', titulo: 'Lista de projetos', texto: 'Em Projetos o administrador vê todos, com filtros (Para fazer, Pendentes, Em andamento, Concluídos, Cancelados), busca e filtro por técnico.', acao: 'Toque em Novo projeto' },
+      { img: 'a2-novo', titulo: 'Preencha o projeto', texto: 'Nome, tipo, técnico que vai fazer, OS, instruções, endereço, ponto no mapa (cole as coordenadas do Google Maps, em qualquer formato) e prazo.', acao: 'Toque em Criar projeto', atencao: 'Sem nome ou sem técnico o app avisa e não cria.' },
+      { img: 'a2-ficha', titulo: 'Ficha do projeto', texto: 'Aqui você edita, passa para outro técnico, marca como concluído, cancela, reabre ou exclui (cada um pede confirmação). O técnico recebe na próxima sincronização.', acao: 'Toque em Desenhar no mapa' },
+    ],
+  },
+  {
+    id: 'desenho', papel: 'escritorio', titulo: 'Desenhar o projeto no mapa (administrador)',
+    resumo: 'Traçar a rota e marcar os pontos para o técnico seguir como guia.',
+    pop: {
+      codigo: 'POP-13', quem: 'Administrador.',
+      objetivo: 'Desenhar no mapa o traçado e os pontos do projeto, para o técnico seguir como guia.',
+      antes: ['Projeto criado.', 'Internet (salvar o desenho precisa do servidor).', 'Opcional: um arquivo KML/KMZ com a rota.'],
+      conferir: ['O resumo mostra os traçados, os metros e os pontos.', 'Depois de salvar: “Desenho salvo. O técnico recebe na próxima sincronização.”', 'O técnico vê o desenho tracejado na camada “Projetado”; o escritório vê no mapa do painel.'],
+      seDerErrado: ['Errou um ponto: Desfazer e Refazer.', 'Sair com mudanças não salvas pede confirmação; “Apagar tudo” também (dá para Desfazer).', 'Importar KML/KMZ: pontos viram “Outro” e áreas (polígonos) não entram; o aviso diz quantas ficaram de fora.'],
+    },
+    passos: [
+      { img: 'a3-vazio', titulo: 'Escolha a ferramenta', texto: 'Selecionar mexe no que já existe; Traçado desenha a rota do cabo; Ponto marca poste, CTO, CEO ou reserva.', acao: 'Clique em Traçado' },
+      { img: 'a3-tracado', titulo: 'Desenhe o traçado', texto: 'Clique (ou toque) no mapa para marcar cada ponto do traçado. O resumo mostra os metros. Terminou? Clique em Terminar traçado.', acao: 'Clique em Terminar traçado' },
+      { img: 'a3-pontos', titulo: 'Marque os pontos', texto: 'Escolha o tipo (Poste, CTO, CEO, Reserva, Outro), clique no mapa e escreva o código. Desfazer e Refazer ajudam a corrigir.', acao: 'Clique em Salvar desenho' },
+      { img: 'a3-salvo', titulo: 'Desenho salvo', texto: 'O técnico recebe o desenho na próxima sincronização e o vê tracejado, como guia, na camada “Projetado”. O escritório vê no mapa do painel. Importar KML/KMZ também fica aqui.', acao: 'Para trazer linhas e pontos de um arquivo, use Importar KML/KMZ' },
+    ],
+  },
+  {
+    id: 'painel-mapa', papel: 'escritorio', titulo: 'Painel do escritório: mapa da rede',
+    resumo: 'A rede inteira em tela grande: filtros, busca, ficha do cabo e rota.',
+    pop: {
+      codigo: 'POP-14', quem: 'Escritório e administrador.',
+      objetivo: 'Acompanhar a rede e o trabalho dos técnicos pelo computador, só leitura.',
+      antes: ['Conta de escritório ou de administrador, aprovada.', 'O painel mostra o que este navegador já sincronizou: abra o app com internet para atualizar.'],
+      conferir: ['A Visão geral bate com o que os técnicos registraram.', 'Ao clicar num cabo, a rota acende e a ficha mostra as CTOs com a fibra de cada uma.'],
+      seDerErrado: ['Faltam dados recentes: “Sincronizar agora”, na Visão geral.', 'O painel não tem Editar, Excluir nem Concluir: ele só consulta.', 'Muitos pontos na tela: afaste o zoom e aparecem bolinhas; aproxime e voltam os símbolos.'],
+    },
+    passos: [
+      { img: 'a4-ajustes', titulo: 'Abrir o painel', texto: 'O escritório e o administrador têm o cartão Painel em Ajustes: a rede inteira em tela grande, só leitura.', acao: 'Clique em Abrir o painel' },
+      { img: 'a4-visao', titulo: 'Visão geral', texto: 'Técnicos, atividades, elementos, cabos, metros e projetos, tudo do que este navegador já sincronizou. “Sincronizar agora” atualiza.', acao: 'Clique em Mapa da rede' },
+      { img: 'a4-mapa', titulo: 'Mapa da rede', texto: 'Filtre por técnico, tipo, situação e período; busque um código de poste ou um tipo de cabo; alterne entre Ruas e Satélite.', acao: 'Clique na busca e digite' },
+      { img: 'a4-busca', titulo: 'Achar um cabo', texto: 'A busca acha pelo código, pela OS, pelo título e pelo que há dentro da atividade (por exemplo, o tipo de cabo).', acao: 'Clique no resultado' },
+      { img: 'a4-ficha-cabo', titulo: 'Ficha do cabo', texto: 'Mostra a atividade, os metros, a rota e as CTOs com a fibra de cada uma.', acao: 'Clique em Mostrar no mapa' },
+      { img: 'a4-rota', titulo: 'Rota inteira', texto: 'O mapa enquadra a rota toda. Clicar em qualquer cabo acende a rota dele.' },
+    ],
+  },
+  {
+    id: 'painel-tabelas', papel: 'escritorio', titulo: 'Painel: atividades, projetos e totais',
+    resumo: 'Tabelas com filtros, fichas só de leitura, totais por técnico e conferência.',
+    pop: {
+      codigo: 'POP-15', quem: 'Escritório e administrador.',
+      objetivo: 'Consultar atividades, projetos e totais por técnico e período, e exportar em CSV.',
+      antes: ['Acesso ao painel e dados sincronizados.'],
+      conferir: ['O rodapé da tabela soma só o que está filtrado.', '“Conferir agora” diz “Confere com o servidor” quando os totais batem.', 'O CSV abre no Excel com acentos e vírgula decimal.'],
+      seDerErrado: ['“Conferir agora” aponta diferença: falta sincronizar neste navegador; use Sincronizar agora e confira de novo.', 'Sem internet o painel continua mostrando e filtrando o que já foi sincronizado.'],
+    },
+    passos: [
+      { img: 'a5-atividades', titulo: 'Tabela de atividades', texto: 'Uma linha por atividade, ordenável por qualquer coluna, com filtros e busca. O rodapé soma o que está filtrado.', acao: 'Clique numa linha' },
+      { img: 'a5-ficha', titulo: 'Ficha da atividade', texto: 'Só leitura: materiais, totais, “Ver no mapa” e “Ver trilha GPS” do técnico.' },
+      { img: 'a5-projetos', titulo: 'Projetos', texto: 'Situação, prazo, atividades e metros de cabo de cada projeto, com os atrasados em vermelho. Exporte em CSV.' },
+      { img: 'a5-totais', titulo: 'Totais por técnico', texto: 'Cabos, metros e elementos por técnico e período. “Exportar CSV” abre no Excel com acentos e vírgula decimal.', acao: 'Clique em Conferir agora' },
+      { img: 'a5-conferido', titulo: 'Conferir com o servidor', texto: 'Diz “Confere” quando os totais do painel são os mesmos do servidor; se faltar sincronizar, aponta a diferença.' },
+    ],
+  },
+  {
+    id: 'corrigir', papel: 'escritorio', titulo: 'Corrigir, acompanhar e excluir (administrador)',
+    resumo: 'Editar o registro de um técnico, ver quem mudou o quê e excluir uma atividade.',
+    pop: {
+      codigo: 'POP-16', quem: 'Administrador.',
+      objetivo: 'Corrigir registros dos técnicos, acompanhar as alterações e excluir atividades quando preciso.',
+      antes: ['Conta de administrador.', 'Internet para enviar a correção.'],
+      conferir: ['A ficha mostra “Você (administrador) alterou este registro em …”.', 'Em Alterações e conflitos aparece “Fulano alterou · Poste X · Identificação: A → B”.', 'O técnico recebe a correção na sincronização e continua sendo o dono do registro.'],
+      seDerErrado: ['Excluir atividade vale para todos, inclusive o dono, e não dá para desfazer pelo app: leia a confirmação, que diz o que sai junto.', 'Dois ajustes no mesmo registro: a tela Alterações e conflitos mostra o que foi substituído.'],
+    },
+    passos: [
+      { img: 'a6-ficha', titulo: 'Abra o registro do técnico', texto: 'O administrador abre qualquer elemento, cabo ou atividade. A ficha avisa que o registro é de outra pessoa.', acao: 'Toque em Editar' },
+      { img: 'a6-editar', titulo: 'Corrija e salve', texto: 'Altere o que precisa. O registro continua sendo do técnico dono e o servidor anota quem alterou, quando e o quê.', acao: 'Toque em Salvar' },
+      { img: 'a6-alteracoes', titulo: 'Alterações e conflitos', texto: 'Em Ajustes › Administração › Alterações e conflitos aparece quem alterou, quando e o que mudou (por exemplo, Identificação: P-101 → P-101A). Conflitos mostram o que foi substituído.' },
+      { img: 'a6-atividades', titulo: 'Atividades de todos', texto: 'O administrador vê as atividades de todos os técnicos, com os mesmos filtros e a busca.' },
+      { img: 'a6-atividade-colega', titulo: 'Ficha da atividade de um colega', texto: 'Editar, Reabrir, Ver trilha GPS (baixa a trilha do técnico e desenha no mapa) e Excluir atividade.', acao: 'Toque em Excluir atividade' },
+      { img: 'a6-excluir', titulo: 'Excluir pede confirmação', texto: 'A confirmação diz o que sai junto: elementos, cabos, fotos e trilha. A exclusão vale para todos, inclusive para quem registrou.', acao: 'Toque em Cancelar para desistir', atencao: 'Não dá para desfazer pelo app.' },
+    ],
+  },
+];

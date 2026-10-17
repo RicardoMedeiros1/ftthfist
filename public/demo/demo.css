@@ -1,0 +1,110 @@
+/* Como usar o RotaFibra: passo a passo com telas de exemplo. Mesmas cores do app (Polegar e Fibra). */
+:root, :root[data-theme='polegar'] {
+  --bg: #111418; --surface: #1b2026; --surface-2: #242b33; --border: #38414d; --fg: #f4f6f8; --muted: #b6bfc9;
+  --accent: #b6f23c; --on-accent: #111418; --danger: #ff6b6b; --warn: #ffb020; --ok: #5be28a;
+  --shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+}
+:root[data-theme='fibra'] {
+  --bg: #0b1f2a; --surface: #12313f; --surface-2: #17394a; --border: #25596f; --fg: #e8f7fb; --muted: #a6cbd8;
+  --accent: #22d3ee; --on-accent: #04222c; --danger: #ff7a7a; --warn: #ffb020; --ok: #5be28a;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.45 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; padding-bottom: env(safe-area-inset-bottom); }
+h1, h2, h3 { line-height: 1.2; margin: 0; }
+a { color: var(--accent); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.topbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 12px; padding: 8px 16px; padding-top: calc(8px + env(safe-area-inset-top)); background: var(--surface); border-bottom: 1px solid var(--border); }
+.topbar h1 { font-size: 19px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.back { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; min-width: 64px; padding: 0 14px; border: 2px solid var(--border); border-radius: 16px; background: var(--surface-2); color: var(--fg); text-decoration: none; font-weight: 700; }
+
+#app { max-width: 1180px; margin: 0 auto; padding: 16px 16px 120px; }
+.loading { color: var(--muted); }
+
+/* botões */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; min-width: 52px; padding: 0 20px; border: 2px solid var(--border); border-radius: 18px; background: var(--surface-2); color: var(--fg); font-weight: 700; font-size: 18px; text-decoration: none; cursor: pointer; touch-action: manipulation; }
+.btn:active { filter: brightness(1.25); }
+.btn:disabled, .btn[aria-disabled='true'] { opacity: 0.45; cursor: default; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+
+/* início */
+.hero h2 { font-size: 26px; }
+.hero p { color: var(--muted); margin: 8px 0 0; max-width: 62ch; }
+.roles { display: grid; grid-template-columns: 1fr; gap: 12px; margin: 18px 0; }
+@media (min-width: 640px) { .roles { grid-template-columns: 1fr 1fr; } }
+.role { text-align: left; padding: 16px; border: 2px solid var(--border); border-radius: 20px; background: var(--surface); cursor: pointer; display: flex; flex-direction: column; gap: 4px; min-height: 84px; }
+.role[aria-pressed='true'] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent) inset; }
+.role b { font-size: 20px; }
+.role span { color: var(--muted); font-size: 15px; }
+.chapters { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 720px) { .chapters { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 1040px) { .chapters { grid-template-columns: 1fr 1fr 1fr; } }
+.chapter { display: flex; gap: 14px; align-items: flex-start; padding: 16px; border: 2px solid var(--border); border-radius: 20px; background: var(--surface); color: var(--fg); text-decoration: none; min-height: 96px; }
+.chapter:active { filter: brightness(1.2); }
+.chapter .num { flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; font-weight: 800; font-size: 20px; }
+.chapter h3 { font-size: 19px; }
+.chapter p { margin: 4px 0 0; color: var(--muted); font-size: 15px; }
+.chapter small { color: var(--accent); font-weight: 700; }
+.offline-card { margin-top: 22px; padding: 16px; border: 2px dashed var(--border); border-radius: 20px; background: var(--surface); display: flex; flex-direction: column; gap: 10px; }
+.offline-card p { margin: 0; color: var(--muted); font-size: 15px; }
+.bar { height: 10px; border-radius: 6px; background: var(--surface-2); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--accent); width: 0; transition: width 0.2s; }
+
+/* player: no celular, texto e depois a tela; no computador, a tela ao lado do texto */
+.player { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+.player .a-text { grid-row: 1; } .player .a-stage { grid-row: 2; } .player .a-nav { grid-row: 3; } .player .a-pop { grid-row: 4; }
+@media (min-width: 900px) {
+  .player { grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr); gap: 16px 28px; }
+  .player.is-phone { grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); }
+  .player .a-stage { grid-column: 1; grid-row: 1 / span 3; } .player .a-text { grid-column: 2; grid-row: 1; } .player .a-nav { grid-column: 2; grid-row: 2; } .player .a-pop { grid-column: 2; grid-row: 3; }
+  .player.no-shot { grid-template-columns: minmax(0, 640px); } .player.no-shot .a-text, .player.no-shot .a-nav, .player.no-shot .a-pop { grid-column: 1; }
+}
+/* telas de computador no celular: ficam grandes o bastante para ler, e dá para arrastar para o lado */
+@media (max-width: 899px) { .frame.desktop { overflow-x: auto; -webkit-overflow-scrolling: touch; } .frame.desktop .shot { min-width: 760px; } }
+.crumbs { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+.crumbs a { color: var(--muted); }
+.stage { display: flex; justify-content: center; }
+.frame { position: relative; width: 100%; background: #000; border: 2px solid var(--border); box-shadow: var(--shadow); overflow: hidden; }
+.frame.phone { max-width: 360px; border-radius: 34px; border-width: 8px; border-color: #2b3138; }
+@media (min-width: 900px) { .frame.phone { width: min(100%, 360px, calc((100vh - 170px) * 0.4623)); } } /* o celular inteiro cabe na altura do computador */
+.frame.desktop { border-radius: 14px; }
+.frame .chrome { display: none; height: 28px; background: #2b3138; align-items: center; gap: 6px; padding: 0 10px; }
+.frame.desktop .chrome { display: flex; }
+.frame .chrome i { width: 10px; height: 10px; border-radius: 50%; background: #5a6570; }
+.shot { position: relative; line-height: 0; }
+.shot img { width: 100%; height: auto; display: block; background: var(--surface); }
+.shot.missing { min-height: 220px; display: grid; place-items: center; color: var(--muted); padding: 24px; text-align: center; line-height: 1.4; background: var(--surface); }
+.hot { position: absolute; border: 3px solid var(--accent); border-radius: 12px; background: rgba(182, 242, 60, 0.12); cursor: pointer; padding: 0; box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.55); animation: pulse 1.6s ease-in-out infinite; }
+:root[data-theme='fibra'] .hot { background: rgba(34, 211, 238, 0.12); }
+@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.55), 0 0 0 0 color-mix(in srgb, var(--accent) 70%, transparent); } 50% { box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.55), 0 0 0 12px color-mix(in srgb, var(--accent) 0%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .hot { animation: none; } }
+.text-card { padding: 16px 18px; border: 2px solid var(--border); border-radius: 20px; background: var(--surface); display: flex; flex-direction: column; gap: 10px; }
+.text-card.only { max-width: 640px; }
+.count { color: var(--muted); font-size: 15px; font-weight: 700; letter-spacing: 0.3px; }
+.step-title { font-size: 24px; }
+.step-text { margin: 0; }
+.action { margin: 0; padding: 12px 14px; border-radius: 14px; background: var(--accent); color: var(--on-accent); font-weight: 800; }
+.note { margin: 0; padding: 10px 14px; border-left: 5px solid var(--accent); background: var(--surface-2); border-radius: 8px; font-size: 16px; }
+.note.warn { border-left-color: var(--warn); }
+.dots { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.dots button { width: 14px; height: 14px; padding: 0; border-radius: 50%; border: 0; background: var(--border); cursor: pointer; }
+.dots button[aria-current='step'] { background: var(--accent); transform: scale(1.35); }
+.dots button.done { background: var(--muted); }
+.nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 15; display: flex; gap: 10px; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: var(--surface); border-top: 1px solid var(--border); }
+.nav .btn { flex: 1; min-height: 56px; }
+.nav .btn-primary { flex: 2; }
+.tools { display: flex; gap: 8px; flex-wrap: wrap; }
+.tools .btn { min-height: 48px; font-size: 16px; padding: 0 14px; }
+.pop { border: 2px solid var(--border); border-radius: 18px; background: var(--surface); }
+.pop summary { min-height: 52px; padding: 14px 16px; font-weight: 800; cursor: pointer; }
+.pop .pop-body { padding: 0 16px 16px; display: flex; flex-direction: column; gap: 10px; }
+.pop h4 { margin: 6px 0 0; font-size: 16px; color: var(--accent); }
+.pop ul, .pop ol { margin: 0; padding-left: 22px; }
+.pop li { margin: 3px 0; }
+.end { text-align: center; padding: 28px 16px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.end h2 { font-size: 26px; }
+.end p { margin: 0; color: var(--muted); max-width: 52ch; }
+@media (min-width: 900px) { .nav { position: static; border: 0; background: none; padding: 0; } .nav .btn { flex: none; min-width: 150px; } #app { padding-bottom: 40px; } }
