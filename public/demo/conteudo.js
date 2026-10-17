@@ -36,7 +36,7 @@ export const CAPITULOS = [
       objetivo: 'Abrir uma atividade antes de trabalhar e concluí-la ao terminar o serviço.',
       antes: ['Acesso aprovado.', 'Se o serviço veio de um projeto do administrador, use “Iniciar este projeto” (capítulo Projeto designado).'],
       conferir: ['O título da atividade aparece no alto do mapa, com o tipo e a OS.', 'Na lista de Atividades ela aparece como “Concluída”, com a hora do fim.'],
-      seDerErrado: ['O app só deixa uma atividade aberta por vez: conclua a aberta antes de iniciar outra.', 'Concluiu por engano: abra a atividade e toque em Reabrir.'],
+      seDerErrado: ['O app só deixa uma atividade aberta por vez: conclua a aberta antes de iniciar outra.', 'Concluiu por engano: abra a atividade e toque em Reabrir.', 'Criou a atividade errada: abra e use “Excluir atividade”. A confirmação diz o que sai junto (elementos, cabos, fotos e trilha).'],
     },
     passos: [
       { img: 't2-nova', titulo: 'Dê nome à atividade', texto: 'Escolha o tipo (Implantação ou Manutenção), escreva o título e, se tiver, o número da OS. O seu nome já vem do cadastro.', acao: 'Toque em Iniciar atividade', atencao: 'Só pode haver uma atividade aberta por vez.' },

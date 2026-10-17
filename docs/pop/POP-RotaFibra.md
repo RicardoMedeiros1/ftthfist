@@ -139,6 +139,7 @@ No celular, no campo: marcar, lançar cabo, fibras e uso sem internet.
 
 - O app só deixa uma atividade aberta por vez: conclua a aberta antes de iniciar outra.
 - Concluiu por engano: abra a atividade e toque em Reabrir.
+- Criou a atividade errada: abra e use “Excluir atividade”. A confirmação diz o que sai junto (elementos, cabos, fotos e trilha).
 
 <a id="pop-03"></a>
 
