@@ -156,6 +156,16 @@ Cada pessoa escolhe em *Ajustes › Aparência* (vale só para o aparelho dela).
   </tr>
 </table>
 
+### Como usar: passo a passo e POP
+
+O app traz o seu próprio treinamento. Em **Ajustes › Como usar** abre um passo a passo interativo, em português, com **telas de exemplo** (dados e
+nomes inventados) e o próximo toque destacado, para o **técnico de campo** (no celular) e para o **administrador e o escritório** (no computador).
+São 16 capítulos: instalar e entrar, atividade, marcar elementos, lançar cabo com ramais, fibras e rota, projeto designado, trilha e camadas, sem
+internet, backup, ajustes, aprovar pessoas, projetos, desenho, painel e correções. O mesmo texto vira o **POP** (procedimento operacional padrão)
+em [`docs/pop/POP-RotaFibra.md`](docs/pop/POP-RotaFibra.md) e em PDF ([`docs/pop/POP-RotaFibra.pdf`](docs/pop/POP-RotaFibra.pdf)), com *quem faz*,
+*antes de começar*, *como conferir* e *se der errado* em cada procedimento. Funciona sem internet depois de guardar as telas (botão na própria página).
+Como atualizar: [`docs/pop/README.md`](docs/pop/README.md).
+
 ## Como funciona
 
 ```mermaid
@@ -299,12 +309,15 @@ src/
     sync/         motor de sincronização e envio em segundo plano
     export/       backup, KML/KMZ e GeoJSON
     settings/     configurações
+    howto/        botão "Como usar" (a página fica em public/demo/)
   lib/         funções puras (geo, imagem, rotas, propriedade)
   components/  interface compartilhada
   sw.ts        service worker (offline e Background Sync)
 supabase/
   migrations/  esquema, RLS e regras de conflito (15 arquivos SQL)
   tests/       testes do banco
+public/demo/   "Como usar": passo a passo com telas de exemplo (página estática, funciona offline)
+scripts/       gerar-pop.mjs (POP em Markdown e PDF a partir do mesmo texto)
 docs/          guias de cada área
 ```
 
@@ -316,6 +329,7 @@ docs/          guias de cada área
 | [`docs/projetos.md`](docs/projetos.md) | Projetos designados, desenho do traçado e como o técnico os recebe |
 | [`docs/painel-web.md`](docs/painel-web.md) | Painel do escritório: mapa, tabelas, totais e exportações |
 | [`docs/guia-de-testes.md`](docs/guia-de-testes.md) | O que conferir no celular e no computador |
+| [`docs/pop/`](docs/pop/README.md) | POP (procedimentos operacionais padrão) e o passo a passo "Como usar" do app |
 | [`supabase/README.md`](supabase/README.md) | Preparar o banco, migrations, papéis e verificação |
 | [`CLAUDE.md`](CLAUDE.md) | Contexto, modelo de dados e regras do projeto |
 

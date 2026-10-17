@@ -184,6 +184,19 @@ chaves nem senhas). O deploy é conferido pelo número da versão em *Configura�
       dias). O ícone novo tem fundo **grafite** (antes era preto). Ao abrir, a abertura aparece em grafite, sem "piscar" preto, e a barra de cima
       acompanha o tema escolhido. Quem usa o tema Fibra vê a abertura em grafite e depois a tela em azul-petróleo (o manifesto só guarda uma cor).
 
+## 3c. Como usar e POP
+
+- [ ] *Ajustes*: o cartão **Como usar o app** (logo abaixo do nome) abre o passo a passo na mesma janela; o botão é fácil de tocar com uma mão.
+- [ ] O passo a passo abre com o **tema** que você escolheu (Polegar ou Fibra). A tela inicial mostra os dois públicos (técnico e administrador/escritório)
+      e os capítulos de cada um.
+- [ ] Abra um capítulo: a tela de exemplo aparece num celular de mentira, com o **destaque pulsando** no próximo toque. Tocar no destaque, no botão
+      **Próximo** ou usar as setas do teclado avança; **Voltar** e os pontinhos voltam. **Reproduzir** passa os passos sozinho. Nada fica cortado nem sai da tela.
+- [ ] O bloco **Procedimento (POP)** abaixo do passo mostra quem faz, antes de começar, passo a passo, como conferir e se der errado.
+- [ ] **Sem internet**: com internet, na tela inicial do Como usar toque em **Guardar tudo para usar sem internet**; depois ligue o modo avião, feche e abra o
+      app, vá em Ajustes › Como usar: as telas aparecem. (Sem guardar, só as telas já vistas abrem.)
+- [ ] **← App** volta ao app (Ajustes). O app instalado continua funcionando normalmente depois de visitar o Como usar (nenhum aviso de erro).
+- [ ] O POP em PDF (`docs/pop/POP-RotaFibra.pdf`) abre, está legível e bate com o app.
+
 ## 4. Atualizações do app
 
 - [ ] Depois de um deploy novo, aparece "Nova versão disponível — Atualizar"; tocar atualiza sem perder nada digitado.
