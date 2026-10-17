@@ -1,0 +1,2 @@
+/* link com cara de botão (a mesma altura mínima de toque dos outros) */
+.how-to-use-link { display: flex; align-items: center; justify-content: center; text-decoration: none; }

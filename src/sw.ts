@@ -23,7 +23,17 @@ const sw = self as unknown as ServiceWorkerGlobalScope;
 // O plugin troca exatamente o texto `self.__WB_MANIFEST` pela lista de arquivos do app: nao usar apelido aqui.
 precacheAndRoute((self as unknown as { __WB_MANIFEST: Array<string | { url: string; revision: string | null }> }).__WB_MANIFEST);
 cleanupOutdatedCaches();
-registerRoute(new NavigationRoute(createHandlerBoundToURL(new URL('index.html', sw.registration.scope).pathname)));
+// "Como usar" (public/demo/) e uma pagina a parte: nunca recebe o app no lugar dela. As telas de exemplo (imagens) ficam
+// de fora do precache (pesam alguns MB) e entram no cache na primeira visita (a propria pagina baixa todas, com internet).
+const demoPath = new URL('demo/', sw.registration.scope).pathname;
+registerRoute(new NavigationRoute(createHandlerBoundToURL(new URL('index.html', sw.registration.scope).pathname), { denylist: [new RegExp(`^${demoPath}`)] }));
+registerRoute(
+  ({ url }) => url.origin === sw.location.origin && url.pathname.startsWith(`${demoPath}img/`),
+  new CacheFirst({
+    cacheName: 'demo-img',
+    plugins: [new ExpirationPlugin({ maxEntries: 300, purgeOnQuotaError: true }), new CacheableResponsePlugin({ statuses: [200] })],
+  }),
+);
 registerRoute(
   ({ url }) => url.hostname.endsWith('tile.openstreetmap.org') || url.hostname === 'server.arcgisonline.com',
   new CacheFirst({
